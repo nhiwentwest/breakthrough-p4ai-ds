@@ -20,10 +20,13 @@
             --accent-dim:   rgba(160, 104, 32, 0.08);
             --teal:         #2A7A70;
             --teal-light:   rgba(42, 122, 112, 0.10);
+            --teal-soft:    rgba(42, 122, 112, 0.20);
             --blue:         #3D5A80;
             --blue-light:   rgba(61, 90, 128, 0.10);
+            --blue-soft:    rgba(61, 90, 128, 0.20);
             --violet:       #6B4C8E;
             --violet-light: rgba(107, 76, 142, 0.10);
+            --violet-soft:  rgba(107, 76, 142, 0.20);
             --green:        #2D6A4F;
             --border:       rgba(28, 26, 22, 0.09);
             --border-md:    rgba(28, 26, 22, 0.14);
@@ -95,9 +98,7 @@
         }
 
         /* ─── Page header ────────────────────────────────────── */
-        .page-head {
-            margin-bottom: 24px;
-        }
+        .page-head { margin-bottom: 24px; }
         .page-eyebrow {
             font-size: 0.65rem;
             letter-spacing: 0.22em;
@@ -197,19 +198,25 @@
             background: var(--bg-card);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
-            transition: transform 0.22s, box-shadow 0.22s;
             display: flex;
             flex-direction: column;
+            text-decoration: none;
+            color: var(--ink);
+            position: relative;
+        }
+        .mod-card:hover .mod-card-head {
+            border-color: var(--accent);
         }
         .mod-card:hover {
-            transform: translateY(-3px);
             box-shadow: var(--shadow-lg);
+            transform: translateY(-3px);
         }
 
         /* top color accent bar */
         .mod-card-head {
             padding: 16px 16px 0;
             position: relative;
+            transition: border-color 0.2s;
         }
         .mod-card-head::before {
             content: '';
@@ -250,7 +257,7 @@
         .mod-tag {
             display: inline-flex;
             align-items: center;
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 0.58rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
@@ -262,30 +269,28 @@
         .tag-pending { border-color: var(--border-md); color: var(--ink-faint); background: transparent; }
         .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
-        /* ─── Benchmark stat panel (right half of each card) ─ */
+        /* ─── Stats panel ─────────────────────────────────── */
         .mod-stat-panel {
             flex: 1;
-            padding: 0 16px 16px;
-            margin-top: 14px;
+            padding: 12px 16px 0;
         }
 
-        /* full-width stat blocks */
         .stat-block {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: var(--r-xs);
-            margin-bottom: 7px;
+            margin-bottom: 6px;
         }
-        .stat-block:last-child { margin-bottom: 0; }
-        .stat-block--accent  { background: var(--accent-light); }
+        .stat-block:last-of-type { margin-bottom: 0; }
+        .stat-block--accent  { background: var(--accent-dim); }
         .stat-block--teal    { background: var(--teal-light); }
         .stat-block--blue    { background: var(--blue-light); }
         .stat-block--violet  { background: var(--violet-light); }
 
         .stat-block-label {
-            font-size: 0.58rem;
-            letter-spacing: 0.08em;
+            font-size: 0.57rem;
+            letter-spacing: 0.07em;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
         .stat-block--accent  .stat-block-label { color: var(--accent); }
         .stat-block--teal    .stat-block-label { color: var(--teal); }
@@ -299,7 +304,7 @@
         }
         .stat-block-val {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             line-height: 1;
         }
@@ -309,52 +314,98 @@
         .stat-block--violet  .stat-block-val { color: var(--violet); }
 
         .stat-block-unit {
-            font-size: 0.62rem;
+            font-size: 0.6rem;
             color: var(--ink-muted);
         }
         .stat-block-desc {
-            font-size: 0.6rem;
+            font-size: 0.59rem;
             color: var(--ink-faint);
             margin-top: 1px;
         }
 
-        /* pill tags inside stat panel */
         .stat-pills {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
-            margin-top: 10px;
+            gap: 3px;
+            margin-top: 8px;
         }
         .stat-pill {
-            font-size: 0.58rem;
-            padding: 2px 7px;
+            font-size: 0.57rem;
+            padding: 2px 6px;
             border-radius: 999px;
             background: var(--bg-subtle);
             border: 1px solid var(--border-md);
             color: var(--ink-muted);
-            letter-spacing: 0.04em;
+            letter-spacing: 0.03em;
         }
 
-        /* ─── Progress bar inside card ───────────────────────── */
-        .mod-prog {
-            margin-top: 12px;
+        /* ─── Dataset source button ───────────────────────── */
+        .mod-card-foot {
+            padding: 12px 14px 14px;
+            margin-top: auto;
         }
-        .mod-prog-track {
-            height: 3px;
-            background: var(--bg-subtle);
-            border-radius: 999px;
-            overflow: hidden;
-            margin-top: 5px;
+        .src-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: 100%;
+            padding: 9px 12px;
+            border-radius: var(--r-xs);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+            border: 1.5px solid;
+            transition: all 0.2s;
         }
-        .mod-prog-fill {
-            height: 100%;
-            border-radius: 999px;
-            transition: width 0.6s ease;
+        .src-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
         }
-        .mod-prog-fill--accent  { background: var(--accent); }
-        .mod-prog-fill--teal    { background: var(--teal); }
-        .mod-prog-fill--blue    { background: var(--blue); }
-        .mod-prog-fill--violet  { background: var(--violet); }
+        .mod-card--tabular .src-btn {
+            background: var(--accent-light);
+            border-color: var(--accent-soft);
+            color: var(--accent);
+        }
+        .mod-card--tabular .src-btn:hover {
+            background: var(--accent);
+            color: #FAF8F4;
+        }
+        .mod-card--text .src-btn {
+            background: var(--teal-light);
+            border-color: var(--teal-soft);
+            color: var(--teal);
+        }
+        .mod-card--text .src-btn:hover {
+            background: var(--teal);
+            color: #FAF8F4;
+        }
+        .mod-card--image .src-btn {
+            background: var(--blue-light);
+            border-color: var(--blue-soft);
+            color: var(--blue);
+        }
+        .mod-card--image .src-btn:hover {
+            background: var(--blue);
+            color: #FAF8F4;
+        }
+        .mod-card--multi .src-btn {
+            background: var(--violet-light);
+            border-color: var(--violet-soft);
+            color: var(--violet);
+        }
+        .mod-card--multi .src-btn:hover {
+            background: var(--violet);
+            color: #FAF8F4;
+        }
+
+        /* card divider */
+        .mod-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0 14px;
+        }
 
         /* ─── Footer ──────────────────────────────────────────── */
         footer {
@@ -412,7 +463,7 @@
         <div class="mods-grid">
 
             <!-- ── Tabular ── -->
-            <div class="mod-card mod-card--tabular">
+            <a class="mod-card mod-card--tabular" href="./tabular/">
                 <div class="mod-card-head">
                     <div class="mod-icon">📊</div>
                     <div class="mod-title">Tabular Data</div>
@@ -449,10 +500,14 @@
                         <span class="stat-pill">Train / Test split</span>
                     </div>
                 </div>
-            </div>
+                <div class="mod-divider"></div>
+                <div class="mod-card-foot">
+                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                </div>
+            </a>
 
             <!-- ── Text ── -->
-            <div class="mod-card mod-card--text">
+            <a class="mod-card mod-card--text" href="./text/">
                 <div class="mod-card-head">
                     <div class="mod-icon">📝</div>
                     <div class="mod-title">Text</div>
@@ -488,10 +543,14 @@
                         <span class="stat-pill">word freq</span>
                     </div>
                 </div>
-            </div>
+                <div class="mod-divider"></div>
+                <div class="mod-card-foot">
+                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                </div>
+            </a>
 
             <!-- ── Image ── -->
-            <div class="mod-card mod-card--image">
+            <a class="mod-card mod-card--image" href="./image/">
                 <div class="mod-card-head">
                     <div class="mod-icon">🖼</div>
                     <div class="mod-title">Image</div>
@@ -528,10 +587,14 @@
                         <span class="stat-pill">top-down view</span>
                     </div>
                 </div>
-            </div>
+                <div class="mod-divider"></div>
+                <div class="mod-card-foot">
+                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                </div>
+            </a>
 
             <!-- ── Multimodal ── -->
-            <div class="mod-card mod-card--multi">
+            <a class="mod-card mod-card--multi" href="./multimodal/">
                 <div class="mod-card-head">
                     <div class="mod-icon">🔗</div>
                     <div class="mod-title">Multimodal</div>
@@ -568,7 +631,11 @@
                         <span class="stat-pill">retrieval</span>
                     </div>
                 </div>
-            </div>
+                <div class="mod-divider"></div>
+                <div class="mod-card-foot">
+                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                </div>
+            </a>
 
         </div><!-- /mods-grid -->
     </main>
