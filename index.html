@@ -218,19 +218,19 @@
         .assign-strip {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
         }
 
         /* All three cards in one 2-col row */
         .assign-card {
             border-radius: var(--r-sm);
-            padding: 14px 16px;
+            padding: 20px 18px;
             transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.22s;
             cursor: pointer;
         }
         .assign-card:not(.locked):hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
         .locked { opacity: 0.55; cursor: default; }
         .locked:hover { transform: none; }
@@ -261,19 +261,19 @@
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            gap: 6px;
-            margin-bottom: 6px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
-        .assign-card-badge-row { display: flex; align-items: center; gap: 8px; }
+        .assign-card-badge-row { display: flex; align-items: center; gap: 12px; }
 
         .assign-badge {
-            width: 32px; height: 32px;
-            border-radius: 8px;
+            width: 44px; height: 44px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 0.95rem;
+            font-size: 1.15rem;
             font-weight: 700;
             flex-shrink: 0;
         }
@@ -283,28 +283,28 @@
 
         .assign-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 0.88rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            line-height: 1.2;
+            line-height: 1.15;
         }
         .assign-card--a01 .assign-title { color: var(--accent); }
         .assign-card--a02 .assign-title { color: var(--teal); }
         .assign-card--a03 .assign-title { color: var(--blue); }
 
         .assign-subject {
-            font-size: 0.58rem;
+            font-size: 0.65rem;
             font-weight: 500;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             color: var(--ink-faint);
-            margin-top: 1px;
+            margin-top: 2px;
         }
 
         .assign-tag {
-            font-size: 0.57rem;
+            font-size: 0.62rem;
             text-transform: uppercase;
             letter-spacing: 0.09em;
-            padding: 3px 9px;
+            padding: 4px 11px;
             border-radius: 999px;
             border: 1.5px solid;
             flex-shrink: 0;
@@ -324,45 +324,45 @@
 
         /* Stat row */
         .assign-stat {
-            font-size: 0.72rem;
+            font-size: 0.80rem;
             color: var(--ink-muted);
-            line-height: 1.5;
-            margin-bottom: 10px;
+            line-height: 1.55;
+            margin-bottom: 12px;
         }
 
         /* Mini progress bars — same pattern as pool-mini-bars */
-        .assign-mini-bars { display: flex; flex-direction: column; gap: 5px; }
+        .assign-mini-bars { display: flex; flex-direction: column; gap: 6px; }
         .assign-mini-row {
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .assign-mini-label {
-            font-size: 0.60rem;
+            font-size: 0.62rem;
             color: var(--ink-faint);
-            width: 34px;
+            width: 36px;
             flex-shrink: 0;
         }
         .assign-mini-track {
             flex: 1;
-            height: 4px;
+            height: 5px;
             background: rgba(28,26,22,0.10);
-            border-radius: 2px;
+            border-radius: 3px;
             overflow: hidden;
         }
         .assign-mini-fill {
             height: 100%;
-            border-radius: 2px;
+            border-radius: 3px;
         }
         .assign-card--a01 .assign-mini-fill { background: linear-gradient(90deg, var(--accent), #C8842A); }
         .assign-card--a02 .assign-mini-fill { background: linear-gradient(90deg, var(--teal), #3A9A90); }
         .assign-card--a03 .assign-mini-fill { background: linear-gradient(90deg, var(--blue), #6A8AA0); }
 
         /* Pills */
-        .assign-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+        .assign-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
         .assign-pill {
-            font-size: 0.58rem;
-            padding: 3px 9px;
+            font-size: 0.65rem;
+            padding: 4px 11px;
             border-radius: 999px;
             border: 1px solid;
             font-weight: 500;
