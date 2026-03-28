@@ -218,115 +218,188 @@
         .assign-strip {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 14px;
         }
+
+        /* Base assign card */
         .assign-card {
             display: block;
             text-decoration: none;
             color: inherit;
-            background: var(--bg);
-            border: 1px solid var(--border-md);
-            border-radius: var(--r-sm);
-            padding: 14px 16px;
-            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s, background 0.2s;
-            box-shadow: var(--shadow-sm);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(28,26,22,0.09), 0 6px 20px rgba(28,26,22,0.06);
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
+            position: relative;
         }
         .assign-card:not(.locked):hover {
-            border-color: var(--accent);
-            box-shadow: var(--shadow-md);
-            transform: translateY(-2px);
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(28,26,22,0.14), 0 16px 40px rgba(28,26,22,0.10);
         }
-        .assign-card:not(.locked):hover .assign-title { color: var(--accent); }
         .locked {
             cursor: not-allowed;
-            opacity: 0.68;
+            opacity: 0.70;
+            filter: saturate(0.6);
         }
-        .locked:hover {
-            transform: none;
-            box-shadow: var(--shadow-sm);
+        .locked:hover { transform: none; filter: saturate(0.6); }
+
+        /* Top gradient bar */
+        .assign-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            border-radius: 20px 20px 0 0;
+            z-index: 1;
         }
 
-        /* Card inner layout */
-        .assign-card-head {
+        /* Card inner content */
+        .assign-card-body {
+            padding: 22px 24px 20px;
+            background: var(--bg-card);
+        }
+
+        /* A01 — gold/amber */
+        .assign-card--a01 { border: 1.5px solid rgba(160,104,32,0.30); }
+        .assign-card--a01::before { background: linear-gradient(90deg, #A06820, #E8A840, #C47D00); }
+        .assign-card--a01:not(.locked):hover { border-color: var(--accent); }
+
+        /* A02 — teal */
+        .assign-card--a02 { border: 1.5px solid rgba(42,122,112,0.28); }
+        .assign-card--a02::before { background: linear-gradient(90deg, #1E6860, #2A7A70, #3AAE9E); }
+        .assign-card--a02:not(.locked):hover { border-color: var(--teal); }
+
+        /* A03 — blue/violet */
+        .assign-card--a03 { border: 1.5px solid rgba(61,90,128,0.28); }
+        .assign-card--a03::before { background: linear-gradient(90deg, #3D5A80, #6B4C8E, #3D5A80); }
+        .assign-card--a03:not(.locked):hover { border-color: var(--blue); }
+
+        /* Card top row */
+        .assign-card-top {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 6px;
-            gap: 8px;
+            gap: 12px;
+            margin-bottom: 12px;
         }
-        .assign-card-name {
+        .assign-card-left { display: flex; align-items: center; gap: 12px; }
+
+        /* Number badge */
+        .assign-badge {
+            width: 48px; height: 48px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
-            gap: 9px;
-            font-weight: 600;
-            font-size: 0.88rem;
-        }
-        .assign-num-dot {
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: var(--accent);
+            justify-content: center;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 700;
             flex-shrink: 0;
-            box-shadow: 0 0 0 3px var(--accent-light);
+            color: #FAF8F4;
         }
-        .assign-num-dot--off {
-            background: var(--ink-faint);
-            box-shadow: none;
+        .assign-card--a01 .assign-badge { background: linear-gradient(135deg, #A06820, #C47D00); box-shadow: 0 3px 10px rgba(160,104,32,0.40); }
+        .assign-card--a02 .assign-badge { background: linear-gradient(135deg, #1E6860, #2A7A70); box-shadow: 0 3px 10px rgba(42,122,112,0.40); }
+        .assign-card--a03 .assign-badge { background: linear-gradient(135deg, #3D5A80, #6B4C8E); box-shadow: 0 3px 10px rgba(61,90,128,0.40); }
+
+        /* Title */
+        .assign-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+            transition: color 0.2s;
+            margin-bottom: 4px;
+        }
+        .assign-card--a01 .assign-title { color: var(--accent); }
+        .assign-card--a02 .assign-title { color: var(--teal); }
+        .assign-card--a03 .assign-title { color: var(--blue); }
+        .assign-subject {
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
         }
 
+        /* Status tag */
         .assign-tag {
-            font-size: 0.62rem;
+            font-size: 0.68rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            padding: 3px 9px;
+            padding: 5px 13px;
             border-radius: 999px;
-            border: 1px solid;
+            border: 1.5px solid;
             flex-shrink: 0;
+            margin-top: 4px;
         }
         .tag-open {
-            border-color: rgba(45,106,79,0.40);
+            border-color: rgba(45,106,79,0.45);
             color: var(--green);
-            background: rgba(45,106,79,0.09);
+            background: rgba(45,106,79,0.10);
+            font-weight: 600;
         }
         .tag-locked {
             border-color: var(--border-md);
             color: var(--ink-faint);
             background: transparent;
+            font-weight: 500;
         }
 
+        /* Meta text */
         .assign-meta {
-            font-size: 0.73rem;
+            font-size: 0.88rem;
             color: var(--ink-muted);
-            margin-bottom: 10px;
-            line-height: 1.5;
+            line-height: 1.6;
+            margin-bottom: 16px;
         }
 
-        /* Progress bar */
+        /* Progress */
         .prog-meta {
             display: flex;
             justify-content: space-between;
-            font-size: 0.63rem;
+            font-size: 0.72rem;
             color: var(--ink-faint);
-            margin-bottom: 5px;
+            margin-bottom: 7px;
+            font-weight: 500;
         }
         .prog-track {
-            height: 6px;
+            height: 8px;
             background: var(--bg-subtle);
-            border-radius: 3px;
+            border-radius: 4px;
             overflow: hidden;
             border: 1px solid var(--border);
         }
         .prog-fill {
             height: 100%;
-            border-radius: 3px;
-            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+            border-radius: 4px;
+            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
         }
-        .prog-fill--gold {
-            background: linear-gradient(90deg, var(--accent), #C8842A);
+        .prog-fill--gold  { background: linear-gradient(90deg, #A06820, #E8A840, #C47D00); }
+        .prog-fill--teal  { background: linear-gradient(90deg, #1E6860, #2A7A70, #3AAE9E); }
+        .prog-fill--blue  { background: linear-gradient(90deg, #3D5A80, #6B4C8E); }
+
+        /* Modality pills on A01 */
+        .assign-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 14px;
         }
-        .prog-fill--teal {
-            background: linear-gradient(90deg, var(--teal), #3A9A90);
+        .assign-pill {
+            font-size: 0.68rem;
+            padding: 4px 11px;
+            border-radius: 999px;
+            border: 1px solid var(--border-md);
+            color: var(--ink-muted);
+            background: var(--bg);
+            font-weight: 500;
+            letter-spacing: 0.03em;
         }
+        .assign-pill--accent  { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
+        .assign-pill--teal    { background: var(--teal-light); border-color: rgba(42,122,112,0.25); color: var(--teal); }
+        .assign-pill--blue    { background: var(--blue-light); border-color: rgba(61,90,128,0.22); color: var(--blue); }
+        .assign-pill--violet  { background: var(--violet-light); border-color: rgba(107,76,142,0.25); color: var(--violet); }
 
         /* ─── Pool accounts: bottom-left panels ───────────────── */
         .pool-grid {
@@ -602,57 +675,90 @@
                     </div>
 
                     <div class="assign-strip">
-                        <a class="assign-card" href="./assign1-eda/">
-                            <div class="assign-card-head">
-                                <div class="assign-card-name">
-                                    <span class="assign-num-dot"></span>
-                                    Assignment 01 · EDA
+                        <a class="assign-card assign-card--a01" href="./assign1-eda/">
+                            <div class="assign-card-body">
+                                <div class="assign-card-top">
+                                    <div class="assign-card-left">
+                                        <div class="assign-badge">01</div>
+                                        <div>
+                                            <div class="assign-title">Assignment 01</div>
+                                            <div class="assign-subject">Exploratory Data Analysis</div>
+                                        </div>
+                                    </div>
+                                    <span class="assign-tag tag-open">Open</span>
                                 </div>
-                                <span class="assign-tag tag-open">Open</span>
-                            </div>
-                            <div class="assign-meta">Exploratory Data Analysis — Tabular, Text, Image, Multimodal (RSITMD).</div>
-                            <div class="prog-meta">
-                                <span>Overall progress</span>
-                                <span>75%</span>
-                            </div>
-                            <div class="prog-track">
-                                <div class="prog-fill prog-fill--gold" style="width: 75%;"></div>
+                                <div class="assign-meta">EDA đa phương thức — Tabular, Text, Image &amp; Multimodal trên RSITMD. Báo cáo slide + video YouTube + GitHub Pages.</div>
+                                <div class="prog-meta">
+                                    <span>Overall progress</span>
+                                    <span>75%</span>
+                                </div>
+                                <div class="prog-track">
+                                    <div class="prog-fill prog-fill--gold" style="width: 75%;"></div>
+                                </div>
+                                <div class="assign-pills">
+                                    <span class="assign-pill assign-pill--accent">📊 Tabular</span>
+                                    <span class="assign-pill assign-pill--teal">📝 Text</span>
+                                    <span class="assign-pill assign-pill--blue">🖼 Image</span>
+                                    <span class="assign-pill assign-pill--violet">🔗 Multimodal</span>
+                                </div>
                             </div>
                         </a>
 
-                        <div class="assign-card locked">
-                            <div class="assign-card-head">
-                                <div class="assign-card-name">
-                                    <span class="assign-num-dot assign-num-dot--off"></span>
-                                    Assignment 02
+                        <div class="assign-card assign-card--a02 locked">
+                            <div class="assign-card-body">
+                                <div class="assign-card-top">
+                                    <div class="assign-card-left">
+                                        <div class="assign-badge">02</div>
+                                        <div>
+                                            <div class="assign-title">Assignment 02</div>
+                                            <div class="assign-subject">Coming soon</div>
+                                        </div>
+                                    </div>
+                                    <span class="assign-tag tag-locked">Soon</span>
                                 </div>
-                                <span class="assign-tag tag-locked">Soon</span>
-                            </div>
-                            <div class="assign-meta">Trang con sẽ được tạo khi đề bài &amp; nội dung sẵn sàng.</div>
-                            <div class="prog-meta">
-                                <span>Overall progress</span>
-                                <span>0%</span>
-                            </div>
-                            <div class="prog-track">
-                                <div class="prog-fill prog-fill--teal" style="width: 0%;"></div>
+                                <div class="assign-meta">Trang con sẽ được tạo khi đề bài &amp; nội dung sẵn sàng. Theo dõi cột phải để cập nhật.</div>
+                                <div class="prog-meta">
+                                    <span>Overall progress</span>
+                                    <span>0%</span>
+                                </div>
+                                <div class="prog-track">
+                                    <div class="prog-fill prog-fill--teal" style="width: 0%;"></div>
+                                </div>
+                                <div class="assign-pills">
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="assign-card locked">
-                            <div class="assign-card-head">
-                                <div class="assign-card-name">
-                                    <span class="assign-num-dot assign-num-dot--off"></span>
-                                    Assignment 03
+                        <div class="assign-card assign-card--a03 locked">
+                            <div class="assign-card-body">
+                                <div class="assign-card-top">
+                                    <div class="assign-card-left">
+                                        <div class="assign-badge">03</div>
+                                        <div>
+                                            <div class="assign-title">Assignment 03</div>
+                                            <div class="assign-subject">Coming soon</div>
+                                        </div>
+                                    </div>
+                                    <span class="assign-tag tag-locked">Soon</span>
                                 </div>
-                                <span class="assign-tag tag-locked">Soon</span>
-                            </div>
-                            <div class="assign-meta">Giữ chỗ cho bài tập tiếp theo trong học phần.</div>
-                            <div class="prog-meta">
-                                <span>Overall progress</span>
-                                <span>0%</span>
-                            </div>
-                            <div class="prog-track">
-                                <div class="prog-fill prog-fill--teal" style="width: 0%;"></div>
+                                <div class="assign-meta">Giữ chỗ cho bài tập cuối kỳ trong học phần P4AI-DS. Theo dõi LMS để cập nhật đề bài.</div>
+                                <div class="prog-meta">
+                                    <span>Overall progress</span>
+                                    <span>0%</span>
+                                </div>
+                                <div class="prog-track">
+                                    <div class="prog-fill prog-fill--blue" style="width: 0%;"></div>
+                                </div>
+                                <div class="assign-pills">
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                    <span class="assign-pill">—</span>
+                                </div>
                             </div>
                         </div>
                     </div>
