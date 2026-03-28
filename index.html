@@ -14,9 +14,11 @@
             --ink-muted: #6B6560;
             --ink-faint: #A8A39C;
             --accent: #B8782A;
-            --accent-light: rgba(184,120,42,0.08);
+            --accent-light: rgba(184,120,42,0.10);
             --border: rgba(26,25,22,0.10);
             --border-strong: rgba(26,25,22,0.18);
+            --r: 14px;      /* card border-radius */
+            --r-sm: 8px;    /* small chip radius */
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -36,7 +38,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 48px;
+            padding: 16px 48px;
             border-bottom: 1px solid var(--border);
         }
         .topbar-logo {
@@ -46,9 +48,7 @@
             letter-spacing: 0.04em;
             color: var(--ink);
         }
-        .topbar-logo span {
-            color: var(--accent);
-        }
+        .topbar-logo span { color: var(--accent); }
         .topbar-tag {
             font-size: 0.72rem;
             letter-spacing: 0.12em;
@@ -56,90 +56,101 @@
             color: var(--ink-faint);
         }
 
-        /* ── Hero ── */
+        /* ── Hero / Bento ── */
         .hero {
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 80px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 56px 48px;
+            align-items: start;
+            width: 100%;
         }
 
-        /* Breakthrough mark — vertical line + horizon */
+        /* ── Header card ── */
+        .card-header {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
         .bt-mark {
             position: relative;
             width: 1px;
-            height: 64px;
+            height: 52px;
             background: linear-gradient(to bottom, transparent, var(--accent) 40%, var(--ink) 60%, transparent);
-            margin-bottom: 52px;
+            flex-shrink: 0;
         }
         .bt-mark::before {
             content: '';
             position: absolute;
             top: 50%;
-            left: -24px;
-            width: calc(100px + 48px);
+            left: -20px;
+            width: 90px;
             height: 1px;
             background: linear-gradient(to right, transparent, var(--accent) 30%, var(--ink) 70%, transparent);
         }
-
         h1 {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: clamp(3.5rem, 8vw, 6rem);
+            font-size: clamp(3rem, 6vw, 5rem);
             font-weight: 700;
             line-height: 0.95;
             letter-spacing: -0.02em;
             color: var(--ink);
-            margin-bottom: 24px;
         }
         h1 em {
             font-style: italic;
             color: var(--accent);
         }
-
-        .hero-line {
-            width: 48px;
-            height: 2px;
-            background: var(--accent);
-            margin: 0 auto 28px;
+        .hero-right {
+            text-align: right;
         }
-
         .subtitle {
-            font-size: 1rem;
+            font-size: 0.88rem;
             font-weight: 300;
             color: var(--ink-muted);
-            letter-spacing: 0.06em;
-            max-width: 400px;
+            letter-spacing: 0.04em;
             line-height: 1.7;
-            margin-bottom: 64px;
+            margin-top: 12px;
         }
 
         /* ── Members ── */
+        .card-members {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 24px;
+        }
+        .card-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 14px;
+        }
         .members {
             display: flex;
-            align-items: center;
-            gap: 2px;
-            margin-bottom: 64px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
         .member {
-            width: 48px;
-            height: 48px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             font-weight: 600;
-            border: 1.5px solid var(--bg-subtle);
+            border: 1.5px solid var(--border-strong);
             color: var(--ink-muted);
-            background: var(--bg-subtle);
+            background: var(--bg);
             transition: all 0.2s;
             cursor: default;
         }
-        .member:first-child { border-radius: 24px 4px 4px 24px; }
-        .member:last-child  { border-radius: 4px 24px 24px 4px; }
         .member:hover {
             background: var(--ink);
             color: var(--bg);
@@ -148,65 +159,88 @@
         }
 
         /* ── Assignments ── */
-        .section-label {
-            font-size: 0.68rem;
-            letter-spacing: 0.22em;
-            text-transform: uppercase;
-            color: var(--ink-faint);
-            margin-bottom: 12px;
+        .card-assignments {
+            background: transparent;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--r);
+            padding: 24px;
         }
-
-        .card {
+        .assign-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: transparent;
-            border: 1px solid var(--border-strong);
-            border-radius: 2px;
-            padding: 20px 24px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--border);
             text-decoration: none;
             color: var(--ink);
-            width: 100%;
-            max-width: 480px;
             transition: all 0.2s;
-            margin-bottom: 12px;
         }
-        .card:hover {
-            background: var(--ink);
-            color: var(--bg);
-            border-color: var(--ink);
-            transform: translateX(6px);
-        }
-        .card:hover .card-desc   { color: var(--ink-faint); }
-        .card:hover .card-arrow  { color: var(--bg); }
+        .assign-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .assign-row:first-child { padding-top: 0; }
+        .assign-row:hover .assign-title { color: var(--accent); }
+        .assign-row:hover .assign-arrow { transform: translateX(4px); }
 
-        .card-left  { display: flex; align-items: center; gap: 16px; }
-        .card-num {
+        .assign-left { display: flex; align-items: center; gap: 14px; }
+        .assign-num {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: var(--accent);
             line-height: 1;
-            min-width: 32px;
+            min-width: 28px;
         }
-        .card:hover .card-num { color: var(--bg); }
-        .card-title { font-weight: 600; font-size: 0.95rem; }
-        .card-desc  { font-size: 0.75rem; color: var(--ink-muted); margin-top: 2px; transition: color 0.2s; }
-        .card-arrow {
-            font-size: 1.1rem;
+        .assign-title { font-weight: 600; font-size: 0.9rem; transition: color 0.2s; }
+        .assign-sub   { font-size: 0.72rem; color: var(--ink-muted); margin-top: 2px; }
+        .assign-arrow {
+            font-size: 1rem;
             color: var(--ink-faint);
-            transition: color 0.2s;
+            transition: transform 0.2s;
             flex-shrink: 0;
+        }
+
+        /* Progress bar */
+        .progress-wrap {
+            margin-top: 18px;
+        }
+        .progress-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--ink-faint);
+            margin-bottom: 6px;
+        }
+        .progress-track {
+            height: 4px;
+            background: var(--border-strong);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--accent), #D4962E);
+            border-radius: 2px;
+            width: 75%;
+            transition: width 0.6s ease;
         }
 
         /* ── Footer ── */
         footer {
             text-align: center;
-            padding: 28px;
-            font-size: 0.7rem;
+            padding: 24px;
+            font-size: 0.68rem;
             letter-spacing: 0.1em;
             color: var(--ink-faint);
             border-top: 1px solid var(--border);
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                grid-template-columns: 1fr;
+                padding: 32px 24px;
+            }
+            .topbar { padding: 16px 24px; }
+            .card-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .hero-right { text-align: left; }
         }
     </style>
 </head>
@@ -217,31 +251,54 @@
     </div>
 
     <div class="hero">
-        <div class="bt-mark"></div>
-
-        <h1>Break<em>through</em></h1>
-        <div class="hero-line"></div>
-        <p class="subtitle">Nhóm sinh viên HCMUT — Khoa Khoa học Máy tính</p>
-
-        <div class="members">
-            <div class="member">A</div>
-            <div class="member">B</div>
-            <div class="member">C</div>
-            <div class="member">D</div>
+        <!-- Header spanning full width -->
+        <div class="card-header">
+            <div class="bt-mark"></div>
+            <div>
+                <h1>Break<em>through</em></h1>
+                <div class="subtitle">
+                    Nhóm sinh viên HCMUT — Khoa Khoa học Máy tính<br>
+                    Programming for AI &amp; Data Science
+                </div>
+            </div>
         </div>
 
-        <div class="assignments">
-            <div class="section-label">Assignments</div>
-            <a class="card" href="./assign1-eda/">
-                <div class="card-left">
-                    <div class="card-num">01</div>
+        <!-- Members card -->
+        <div class="card-members">
+            <div class="card-label">Thành viên</div>
+            <div class="members">
+                <div class="member">A</div>
+                <div class="member">B</div>
+                <div class="member">C</div>
+                <div class="member">D</div>
+            </div>
+        </div>
+
+        <!-- Assignments card -->
+        <div class="card-assignments">
+            <div class="card-label">Bài tập</div>
+
+            <a class="assign-row" href="./assign1-eda/">
+                <div class="assign-left">
+                    <div class="assign-num">01</div>
                     <div>
-                        <div class="card-title">Exploratory Data Analysis</div>
-                        <div class="card-desc">Tabular · Text · Image · Multimodal</div>
+                        <div class="assign-title">Exploratory Data Analysis</div>
+                        <div class="assign-sub">Tabular · Text · Image · Multimodal</div>
                     </div>
                 </div>
-                <span class="card-arrow">→</span>
+                <span class="assign-arrow">→</span>
             </a>
+
+            <!-- Progress bar -->
+            <div class="progress-wrap">
+                <div class="progress-meta">
+                    <span>Tiến độ hoàn thành</span>
+                    <span>3 / 4 modalities</span>
+                </div>
+                <div class="progress-track">
+                    <div class="progress-fill" style="width: 75%;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
