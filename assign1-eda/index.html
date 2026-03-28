@@ -17,7 +17,6 @@
             --accent:       #A06820;
             --accent-light: rgba(160, 104, 32, 0.10);
             --accent-soft:  rgba(160, 104, 32, 0.20);
-            --accent-dim:   rgba(160, 104, 32, 0.08);
             --teal:         #2A7A70;
             --teal-light:   rgba(42, 122, 112, 0.10);
             --teal-soft:    rgba(42, 122, 112, 0.20);
@@ -30,12 +29,11 @@
             --green:        #2D6A4F;
             --border:       rgba(28, 26, 22, 0.09);
             --border-md:    rgba(28, 26, 22, 0.14);
-            --r: 16px;
-            --r-sm: 10px;
-            --r-xs: 6px;
-            --shadow-sm:  0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
-            --shadow-md:  0 2px 6px rgba(28,26,22,0.08), 0 6px 20px rgba(28,26,22,0.06);
-            --shadow-lg:  0 4px 12px rgba(28,26,22,0.10), 0 12px 32px rgba(28,26,22,0.08);
+            --r-sm:         10px;
+            --r-xs:         6px;
+            --shadow-sm:    0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --shadow-md:    0 2px 6px rgba(28,26,22,0.08), 0 6px 20px rgba(28,26,22,0.06);
+            --shadow-lg:    0 4px 12px rgba(28,26,22,0.10), 0 12px 32px rgba(28,26,22,0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -175,7 +173,7 @@
             box-shadow: var(--shadow-md);
         }
 
-        /* ─── Modality grid ──────────────────────────────────── */
+        /* ─── Section label ──────────────────────────────────── */
         .mods-label {
             font-size: 0.65rem;
             letter-spacing: 0.18em;
@@ -185,146 +183,140 @@
             padding-left: 2px;
         }
 
+        /* ─── Modality grid ──────────────────────────────────── */
         .mods-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 14px;
         }
 
-        /* ─── Base modality card ─────────────────────────────── */
+        /* ─── ONE cohesive card block ────────────────────────── */
         .mod-card {
-            border-radius: var(--r);
+            border-radius: var(--r-sm);
             border: 1px solid var(--border-md);
             background: var(--bg-card);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
             text-decoration: none;
             color: var(--ink);
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.22s;
         }
-        .mod-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
-
-        /* top color accent bar */
-        .mod-card-head {
-            padding: 16px 16px 0;
-            position: relative;
-            transition: border-color 0.2s;
+        .mod-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(28,26,22,0.10);
         }
-        .mod-card-head::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: var(--r) var(--r) 0 0;
-        }
-        .mod-card--tabular .mod-card-head::before { background: var(--accent); }
-        .mod-card--text    .mod-card-head::before { background: var(--teal); }
-        .mod-card--image  .mod-card-head::before { background: var(--blue); }
-        .mod-card--multi  .mod-card-head::before { background: var(--violet); }
-
-        .mod-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
         .mod-card--tabular:hover { border-color: rgba(160,104,32,0.30); }
         .mod-card--text:hover    { border-color: rgba(42,122,112,0.30); }
         .mod-card--image:hover   { border-color: rgba(61,90,128,0.30); }
         .mod-card--multi:hover   { border-color: rgba(107,76,142,0.30); }
 
+        /* Top color bar — the only color on the card */
+        .mod-card::before {
+            content: '';
+            display: block;
+            height: 3px;
+        }
+        .mod-card--tabular::before { background: var(--accent); }
+        .mod-card--text::before    { background: var(--teal); }
+        .mod-card--image::before  { background: var(--blue); }
+        .mod-card--multi::before  { background: var(--violet); }
+
+        /* Card body — flows as one continuous block */
+        .mod-body {
+            padding: 12px 14px 14px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Header row: icon + titles + tag */
+        .mod-hdr {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 10px;
+        }
         .mod-icon {
-            width: 34px; height: 34px;
+            width: 32px; height: 32px;
             border-radius: var(--r-xs);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1rem;
-            margin-bottom: 10px;
+            font-size: 1.05rem;
+            flex-shrink: 0;
         }
         .mod-card--tabular .mod-icon { background: var(--accent-light); }
         .mod-card--text    .mod-icon { background: var(--teal-light); }
         .mod-card--image  .mod-icon { background: var(--blue-light); }
         .mod-card--multi  .mod-icon { background: var(--violet-light); }
 
+        .mod-hdr-txt { flex: 1; min-width: 0; }
         .mod-title {
             font-weight: 700;
-            font-size: 0.95rem;
-            margin-bottom: 4px;
+            font-size: 0.88rem;
+            margin-bottom: 2px;
+            line-height: 1.2;
         }
         .mod-sub {
-            font-size: 0.7rem;
+            font-size: 0.67rem;
             color: var(--ink-muted);
-            line-height: 1.5;
+            line-height: 1.4;
         }
         .mod-tag {
             display: inline-flex;
             align-items: center;
-            margin-top: 8px;
-            font-size: 0.58rem;
+            font-size: 0.57rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            padding: 3px 8px;
+            padding: 3px 7px;
             border-radius: 999px;
             border: 1px solid;
-        }
-        .tag-done    { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
-        .tag-pending { border-color: var(--border-md); color: var(--ink-faint); background: transparent; }
-        .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
-
-        /* ─── Stats panel — single cohesive block ────────────── */
-        .mod-stat-panel {
-            flex: 1;
-            padding: 10px 16px 12px;
-            margin: 10px 12px;
-            border-radius: var(--r-sm);
-            border: 1.5px solid var(--border-md);
-            background: var(--bg);
-        }
-
-        /* No per-block backgrounds — rows separated by lines */
-        .stat-block {
-            padding: 8px 4px;
-            border-bottom: 1px solid var(--border);
-        }
-        .stat-block:last-of-type { border-bottom: none; }
-
-        .stat-block-label {
-            font-size: 0.57rem;
-            letter-spacing: 0.07em;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-            color: var(--ink-faint);
-        }
-        .stat-block--accent  .stat-block-label { color: var(--accent); }
-        .stat-block--teal    .stat-block-label { color: var(--teal); }
-        .stat-block--blue    .stat-block-label { color: var(--blue); }
-        .stat-block--violet  .stat-block-label { color: var(--violet); }
-
-        .stat-block-row {
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-        .stat-block-val {
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.05rem;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--ink);
-        }
-        .stat-block--accent  .stat-block-val { color: var(--accent); }
-        .stat-block--teal    .stat-block-val { color: var(--teal); }
-        .stat-block--blue    .stat-block-val { color: var(--blue); }
-        .stat-block--violet  .stat-block-val { color: var(--violet); }
-
-        .stat-block-unit {
-            font-size: 0.6rem;
-            color: var(--ink-muted);
-        }
-        .stat-block-desc {
-            font-size: 0.59rem;
-            color: var(--ink-faint);
+            flex-shrink: 0;
             margin-top: 1px;
         }
+        .tag-done   { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
+        .tag-active { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
+        /* Stats — plain rows with bottom borders, no background boxes */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 6px;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .stat-row:last-of-type { border-bottom: none; }
+
+        .stat-lbl {
+            font-size: 0.59rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--ink-faint);
+            flex-shrink: 0;
+        }
+        .stat-val {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: right;
+        }
+        .mod-card--tabular .stat-val { color: var(--accent); }
+        .mod-card--text    .stat-val { color: var(--teal); }
+        .mod-card--image  .stat-val { color: var(--blue); }
+        .mod-card--multi  .stat-val { color: var(--violet); }
+
+        .stat-desc {
+            font-size: 0.58rem;
+            color: var(--ink-muted);
+            margin-top: 1px;
+            text-align: right;
+        }
+
+        /* Pills */
         .stat-pills {
             display: flex;
             flex-wrap: wrap;
@@ -335,25 +327,24 @@
             font-size: 0.57rem;
             padding: 3px 8px;
             border-radius: 999px;
-            border: 1px solid var(--border-md);
-            color: var(--ink-muted);
-            letter-spacing: 0.03em;
+            border: 1px solid;
             font-weight: 500;
         }
-        .mod-card--tabular .stat-pill  { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
-        .mod-card--text    .stat-pill  { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
-        .mod-card--image   .stat-pill  { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
-        .mod-card--multi   .stat-pill  { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
+        .mod-card--tabular .stat-pill { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
+        .mod-card--text    .stat-pill { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
+        .mod-card--image  .stat-pill { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
+        .mod-card--multi  .stat-pill { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
 
-        /* Source button — integrated into stat panel as last item */
+        /* Source button */
         .src-btn {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 7px;
             width: 100%;
-            padding: 9px 10px;
+            padding: 8px 10px;
             border-radius: var(--r-xs);
-            font-size: 0.70rem;
+            font-size: 0.67rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             text-decoration: none;
@@ -366,10 +357,10 @@
         .mod-card--tabular .src-btn:hover { background: var(--accent); color: #FAF8F4; }
         .mod-card--text    .src-btn { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
         .mod-card--text    .src-btn:hover { background: var(--teal); color: #FAF8F4; }
-        .mod-card--image   .src-btn { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
-        .mod-card--image   .src-btn:hover { background: var(--blue); color: #FAF8F4; }
-        .mod-card--multi   .src-btn { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
-        .mod-card--multi   .src-btn:hover { background: var(--violet); color: #FAF8F4; }
+        .mod-card--image  .src-btn { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
+        .mod-card--image  .src-btn:hover { background: var(--blue); color: #FAF8F4; }
+        .mod-card--multi  .src-btn { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
+        .mod-card--multi  .src-btn:hover { background: var(--violet); color: #FAF8F4; }
 
         /* ─── Footer ──────────────────────────────────────────── */
         footer {
@@ -428,35 +419,35 @@
 
             <!-- ── Tabular ── -->
             <a class="mod-card mod-card--tabular" href="./tabular/">
-                <div class="mod-card-head">
-                    <div class="mod-icon">📊</div>
-                    <div class="mod-title">Tabular Data</div>
-                    <div class="mod-sub">World Happiness Report — life satisfaction scores, GDP, and social factors across countries.</div>
-                    <span class="mod-tag tag-done">Hoàn thành</span>
-                </div>
-                <div class="mod-stat-panel">
-                    <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Dataset</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">World Happiness</span>
+                <div class="mod-body">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">📊</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Tabular Data</div>
+                            <div class="mod-sub">World Happiness — life scores, GDP &amp; social factors across countries.</div>
                         </div>
-                        <div class="stat-block-desc">unsdsn · Kaggle</div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
                     </div>
-                    <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Records</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">~3,000</span>
-                            <span class="stat-block-unit">rows</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">World Happiness</div>
+                            <div class="stat-desc">unsdsn · Kaggle</div>
                         </div>
-                        <div class="stat-block-desc">Multiple years · ~150 countries</div>
                     </div>
-                    <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Key Features</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Ladder</span>
-                            <span class="stat-block-unit">GDP · Social</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Records</span>
+                        <div>
+                            <div class="stat-val">~3,000 rows</div>
+                            <div class="stat-desc">Multiple years · ~150 countries</div>
                         </div>
-                        <div class="stat-block-desc">Life eval · Dystopia residual</div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Key Features</span>
+                        <div>
+                            <div class="stat-val">Ladder · GDP</div>
+                            <div class="stat-desc">Life eval · Dystopia residual</div>
+                        </div>
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">CSV</span>
@@ -471,35 +462,35 @@
 
             <!-- ── Text ── -->
             <a class="mod-card mod-card--text" href="./text/">
-                <div class="mod-card-head">
-                    <div class="mod-icon">📝</div>
-                    <div class="mod-title">Text</div>
-                    <div class="mod-sub">Multimodal-Textbook — structured educational text with visual elements from HuggingFace.</div>
-                    <span class="mod-tag tag-done">Hoàn thành</span>
-                </div>
-                <div class="mod-stat-panel">
-                    <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Dataset</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Multimodal-Textbook</span>
+                <div class="mod-body">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">📝</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Text</div>
+                            <div class="mod-sub">Multimodal-Textbook — structured educational text with visual elements.</div>
                         </div>
-                        <div class="stat-block-desc">DAMO-NLP-SG · HuggingFace</div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
                     </div>
-                    <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Content</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Textbook</span>
-                            <span class="stat-block-unit">chapters</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">Multimodal-Textbook</div>
+                            <div class="stat-desc">DAMO-NLP-SG · HuggingFace</div>
                         </div>
-                        <div class="stat-block-desc">Educational · Visual-enhanced</div>
                     </div>
-                    <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Domain</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Education</span>
-                            <span class="stat-block-unit">K-12 / College</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Content</span>
+                        <div>
+                            <div class="stat-val">Textbook chapters</div>
+                            <div class="stat-desc">Educational · Visual-enhanced</div>
                         </div>
-                        <div class="stat-block-desc">Structured · Multimodal content</div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Domain</span>
+                        <div>
+                            <div class="stat-val">Education</div>
+                            <div class="stat-desc">K-12 / College · Structured</div>
+                        </div>
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">NLP</span>
@@ -514,35 +505,35 @@
 
             <!-- ── Image ── -->
             <a class="mod-card mod-card--image" href="./image/">
-                <div class="mod-card-head">
-                    <div class="mod-icon">🖼</div>
-                    <div class="mod-title">Image</div>
-                    <div class="mod-sub">Food Image Classification — food category recognition using PCA and Randomized PCA.</div>
-                    <span class="mod-tag tag-done">Hoàn thành</span>
-                </div>
-                <div class="mod-stat-panel">
-                    <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Dataset</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Food Classification</span>
+                <div class="mod-body">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">🖼</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Image</div>
+                            <div class="mod-sub">Food Image Classification — food recognition via PCA &amp; Randomized PCA.</div>
                         </div>
-                        <div class="stat-block-desc">minhosong88 · GitHub</div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
                     </div>
-                    <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Methods</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">PCA</span>
-                            <span class="stat-block-unit">Rand. PCA</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">Food Classification</div>
+                            <div class="stat-desc">minhosong88 · GitHub</div>
                         </div>
-                        <div class="stat-block-desc">Dimensionality reduction + classification</div>
                     </div>
-                    <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Task</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Classification</span>
-                            <span class="stat-block-unit">multi-class</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Methods</span>
+                        <div>
+                            <div class="stat-val">PCA · Rand. PCA</div>
+                            <div class="stat-desc">Dimensionality reduction + classification</div>
                         </div>
-                        <div class="stat-block-desc">Food category recognition</div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Task</span>
+                        <div>
+                            <div class="stat-val">Classification</div>
+                            <div class="stat-desc">Multi-class · Food categories</div>
+                        </div>
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">PCA / Rand. PCA</span>
@@ -556,35 +547,35 @@
 
             <!-- ── Multimodal ── -->
             <a class="mod-card mod-card--multi" href="./multimodal/">
-                <div class="mod-card-head">
-                    <div class="mod-icon">🔗</div>
-                    <div class="mod-title">Multimodal</div>
-                    <div class="mod-sub">Cross-modal RS Image Retrieval — AMFMN model for text-image matching in remote sensing.</div>
-                    <span class="mod-tag tag-active">Active</span>
-                </div>
-                <div class="mod-stat-panel">
-                    <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Dataset</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">RSITMD</span>
+                <div class="mod-body">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">🔗</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Multimodal</div>
+                            <div class="mod-sub">Cross-modal RS Image Retrieval — AMFMN for text-image matching.</div>
                         </div>
-                        <div class="stat-block-desc">xiaoyuan1996 · GitHub</div>
+                        <span class="mod-tag tag-active">Active</span>
                     </div>
-                    <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Task</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">Retrieval</span>
-                            <span class="stat-block-unit">text→image</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">RSITMD</div>
+                            <div class="stat-desc">xiaoyuan1996 · GitHub</div>
                         </div>
-                        <div class="stat-block-desc">Cross-modal remote sensing retrieval</div>
                     </div>
-                    <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Model</div>
-                        <div class="stat-block-row">
-                            <span class="stat-block-val">AMFMN</span>
-                            <span class="stat-block-unit">CVPR-based</span>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Task</span>
+                        <div>
+                            <div class="stat-val">Retrieval text→image</div>
+                            <div class="stat-desc">Cross-modal remote sensing</div>
                         </div>
-                        <div class="stat-block-desc">Attention-based Multimodal Fusion</div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Model</span>
+                        <div>
+                            <div class="stat-val">AMFMN (CVPR)</div>
+                            <div class="stat-desc">Attention-based Multimodal Fusion</div>
+                        </div>
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">RSITMD</span>
