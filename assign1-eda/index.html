@@ -4,16 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment 1 — EDA | Breakthrough</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #F5F2ED;
+            --bg-subtle: #EDE9E2;
+            --ink: #1A1916;
+            --ink-muted: #6B6560;
+            --ink-faint: #A8A39C;
+            --accent: #B8782A;
+            --accent-light: rgba(184,120,42,0.08);
+            --border: rgba(26,25,22,0.10);
+            --border-strong: rgba(26,25,22,0.18);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #0a0a0f;
-            color: #e0e0e0;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
         }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 48px;
+            border-bottom: 1px solid var(--border);
+        }
+        .topbar-logo {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--ink);
+            text-decoration: none;
+        }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-tag {
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+        }
+
+        /* ── Hero ── */
         .hero {
             flex: 1;
             display: flex;
@@ -21,171 +63,210 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 60px 20px;
-            background: radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0a0a0f 70%);
+            padding: 72px 24px;
         }
+
         .back {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            color: #4b5563;
+            color: var(--ink-faint);
             text-decoration: none;
-            font-size: 0.82rem;
-            margin-bottom: 40px;
+            font-size: 0.8rem;
+            letter-spacing: 0.06em;
+            margin-bottom: 48px;
             transition: color 0.2s;
         }
-        .back:hover { color: #818cf8; }
+        .back:hover { color: var(--accent); }
+
         .badge {
             display: inline-block;
-            background: rgba(99,102,241,0.15);
-            border: 1px solid rgba(99,102,241,0.4);
-            color: #818cf8;
-            font-size: 0.75rem;
-            letter-spacing: 0.15em;
+            font-size: 0.68rem;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
-            padding: 4px 14px;
-            border-radius: 999px;
+            color: var(--accent);
             margin-bottom: 20px;
         }
+
         h1 {
-            font-size: 2.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #e0e7ff, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
-        }
-        .subtitle {
-            font-size: 1rem;
-            color: #6b7280;
-            margin-bottom: 48px;
-            max-width: 560px;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+            margin-bottom: 20px;
         }
 
+        .subtitle {
+            font-size: 0.9rem;
+            font-weight: 300;
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+            max-width: 520px;
+            line-height: 1.75;
+            margin-bottom: 52px;
+        }
+
+        /* ── Draft Banner ── */
+        .draft-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--accent-light);
+            border: 1px solid rgba(184,120,42,0.2);
+            color: var(--accent);
+            font-size: 0.75rem;
+            padding: 5px 16px;
+            border-radius: 2px;
+            margin-bottom: 20px;
+        }
+        .draft-banner .dot {
+            width: 5px;
+            height: 5px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+        }
+
+        /* ── Action Buttons ── */
         .links {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             justify-content: center;
-            margin-bottom: 48px;
+            margin-bottom: 60px;
         }
         .link-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 10px 20px;
-            border-radius: 10px;
+            padding: 10px 22px;
+            border-radius: 2px;
             text-decoration: none;
-            font-size: 0.88rem;
-            font-weight: 600;
+            font-size: 0.82rem;
+            font-weight: 500;
+            letter-spacing: 0.03em;
             transition: all 0.2s;
-            border: 1px solid transparent;
+            border: 1px solid;
         }
         .link-btn-report {
-            background: rgba(99,102,241,0.15);
-            border-color: rgba(99,102,241,0.35);
-            color: #a5b4fc;
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #F5F2ED;
         }
         .link-btn-report:hover {
-            background: rgba(99,102,241,0.28);
-            border-color: rgba(99,102,241,0.6);
+            background: var(--ink);
+            border-color: var(--ink);
         }
         .link-btn-video {
-            background: rgba(239,68,68,0.1);
-            border-color: rgba(239,68,68,0.3);
-            color: #fca5a5;
+            background: transparent;
+            border-color: var(--border-strong);
+            color: var(--ink-muted);
         }
         .link-btn-video:hover {
-            background: rgba(239,68,68,0.2);
-            border-color: rgba(239,68,68,0.55);
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--bg-subtle);
         }
         .link-btn-github {
-            background: rgba(255,255,255,0.04);
-            border-color: rgba(255,255,255,0.1);
-            color: #d1d5db;
+            background: transparent;
+            border-color: var(--border-strong);
+            color: var(--ink-muted);
         }
         .link-btn-github:hover {
-            background: rgba(255,255,255,0.08);
-            border-color: rgba(255,255,255,0.2);
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--bg-subtle);
+        }
+
+        /* ── Modalities ── */
+        .mod-label {
+            font-size: 0.68rem;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 14px;
+            text-align: left;
+            width: 100%;
+            max-width: 760px;
         }
 
         .modalities {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
+            gap: 10px;
             width: 100%;
             max-width: 760px;
         }
-        .mod-label {
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: #4b5563;
-            margin-bottom: 6px;
-            text-align: left;
-            grid-column: 1 / -1;
-        }
+
         .mod-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 10px;
-            padding: 18px 16px;
+            background: transparent;
+            border: 1px solid var(--border-strong);
+            border-radius: 2px;
+            padding: 20px 18px;
             text-align: left;
+            transition: all 0.2s;
         }
-        .mod-icon { font-size: 1.6rem; margin-bottom: 8px; }
-        .mod-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; }
-        .mod-desc { font-size: 0.75rem; color: #6b7280; }
+        .mod-card:hover {
+            border-color: var(--ink);
+            background: var(--ink);
+            color: var(--bg);
+        }
+        .mod-card:hover .mod-desc { color: var(--ink-faint); }
+        .mod-card:hover .mod-tag  { opacity: 0.7; }
+
+        .mod-icon { font-size: 1.4rem; margin-bottom: 8px; }
+        .mod-title {
+            font-weight: 700;
+            font-size: 0.92rem;
+            margin-bottom: 4px;
+        }
+        .mod-desc {
+            font-size: 0.73rem;
+            color: var(--ink-muted);
+            transition: color 0.2s;
+        }
         .mod-tag {
             display: inline-block;
-            margin-top: 8px;
-            font-size: 0.68rem;
+            margin-top: 10px;
+            font-size: 0.65rem;
             padding: 2px 8px;
-            border-radius: 999px;
-            letter-spacing: 0.05em;
+            border-radius: 1px;
+            letter-spacing: 0.06em;
+            transition: opacity 0.2s;
         }
-        .tag-tabular { background: rgba(59,130,246,0.15); color: #93c5fd; }
-        .tag-text    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
-        .tag-image   { background: rgba(245,158,11,0.15); color: #fcd34d; }
-        .tag-draft   { background: rgba(245,158,11,0.15); color: #fcd34d; }
-        .tag-done    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
-        .tag-optional { background: rgba(168,85,247,0.15); color: #d8b4fe; }
-        .draft-banner {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(245,158,11,0.08);
-            border: 1px solid rgba(245,158,11,0.25);
-            color: #fcd34d;
-            font-size: 0.78rem;
-            padding: 6px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .draft-banner .dot {
-            width: 6px; height: 6px;
-            background: #fcd34d;
-            border-radius: 50%;
-            animation: pulse 1.5s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        .tag-done    { background: rgba(26,25,22,0.07);  color: var(--ink-muted); }
+        .tag-pending { background: var(--accent-light); color: var(--accent); }
 
+        /* ── Footer ── */
         footer {
             text-align: center;
-            padding: 24px;
-            font-size: 0.75rem;
-            color: #374151;
-            border-top: 1px solid rgba(255,255,255,0.04);
+            padding: 28px;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            color: var(--ink-faint);
+            border-top: 1px solid var(--border);
         }
     </style>
 </head>
 <body>
-        <div class="hero">
-        <a class="back" href="../">← Group Landing Page</a>
+    <div class="topbar">
+        <a class="topbar-logo" href="../">Breakthrough<span>.</span></a>
+        <div class="topbar-tag">CO3135 · P4AI-DS</div>
+    </div>
 
-        <div class="draft-banner"><span class="dot"></span>Draft — chưa hoàn thiện đủ 4 modality</div>
+    <div class="hero">
+        <a class="back" href="../">← Trang chủ nhóm</a>
+
+        <div class="draft-banner">
+            <span class="dot"></span>
+            Draft — chưa hoàn thiện đủ 4 modality
+        </div>
 
         <div class="badge">Assignment 01</div>
         <h1>Exploratory Data Analysis</h1>
@@ -198,11 +279,11 @@
             <a class="link-btn link-btn-report" href="./report/main.pdf" target="_blank">
                 📄 PDF Report (Draft)
             </a>
-            <a class="link-btn link-btn-video" href="#" target="_blank">
+            <a class="link-btn link-btn-video" href="#">
                 ▶ YouTube Video
             </a>
-            <a class="link-btn link-btn-github" href="#" target="_blank">
-                🐙 GitHub Repo
+            <a class="link-btn link-btn-github" href="#">
+                🐙 GitHub
             </a>
         </div>
 
@@ -234,7 +315,7 @@
                 <div class="mod-icon">🔗</div>
                 <div class="mod-title">Multimodal</div>
                 <div class="mod-desc">Text + Image (RSITMD) — đang triển khai</div>
-                <span class="mod-tag tag-optional">Optional · Chưa xong</span>
+                <span class="mod-tag tag-pending">Pending</span>
             </div>
         </div>
     </div>
