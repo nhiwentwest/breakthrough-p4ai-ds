@@ -204,13 +204,7 @@
             color: var(--ink);
             position: relative;
         }
-        .mod-card:hover .mod-card-head {
-            border-color: var(--accent);
-        }
-        .mod-card:hover {
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-3px);
-        }
+        .mod-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
 
         /* top color accent bar */
         .mod-card-head {
@@ -229,6 +223,12 @@
         .mod-card--text    .mod-card-head::before { background: var(--teal); }
         .mod-card--image  .mod-card-head::before { background: var(--blue); }
         .mod-card--multi  .mod-card-head::before { background: var(--violet); }
+
+        .mod-card:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+        .mod-card--tabular:hover { border-color: rgba(160,104,32,0.30); }
+        .mod-card--text:hover    { border-color: rgba(42,122,112,0.30); }
+        .mod-card--image:hover   { border-color: rgba(61,90,128,0.30); }
+        .mod-card--multi:hover   { border-color: rgba(107,76,142,0.30); }
 
         .mod-icon {
             width: 34px; height: 34px;
@@ -269,28 +269,29 @@
         .tag-pending { border-color: var(--border-md); color: var(--ink-faint); background: transparent; }
         .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
-        /* ─── Stats panel ─────────────────────────────────── */
+        /* ─── Stats panel — single cohesive block ────────────── */
         .mod-stat-panel {
             flex: 1;
-            padding: 12px 16px 0;
+            padding: 10px 16px 12px;
+            margin: 10px 12px;
+            border-radius: var(--r-sm);
+            border: 1.5px solid var(--border-md);
+            background: var(--bg);
         }
 
+        /* No per-block backgrounds — rows separated by lines */
         .stat-block {
-            padding: 8px 10px;
-            border-radius: var(--r-xs);
-            margin-bottom: 6px;
+            padding: 8px 4px;
+            border-bottom: 1px solid var(--border);
         }
-        .stat-block:last-of-type { margin-bottom: 0; }
-        .stat-block--accent  { background: var(--accent-dim); }
-        .stat-block--teal    { background: var(--teal-light); }
-        .stat-block--blue    { background: var(--blue-light); }
-        .stat-block--violet  { background: var(--violet-light); }
+        .stat-block:last-of-type { border-bottom: none; }
 
         .stat-block-label {
             font-size: 0.57rem;
             letter-spacing: 0.07em;
             text-transform: uppercase;
             margin-bottom: 2px;
+            color: var(--ink-faint);
         }
         .stat-block--accent  .stat-block-label { color: var(--accent); }
         .stat-block--teal    .stat-block-label { color: var(--teal); }
@@ -304,9 +305,10 @@
         }
         .stat-block-val {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             line-height: 1;
+            color: var(--ink);
         }
         .stat-block--accent  .stat-block-val { color: var(--accent); }
         .stat-block--teal    .stat-block-val { color: var(--teal); }
@@ -333,7 +335,6 @@
             font-size: 0.57rem;
             padding: 3px 8px;
             border-radius: 999px;
-            background: var(--bg-subtle);
             border: 1px solid var(--border-md);
             color: var(--ink-muted);
             letter-spacing: 0.03em;
@@ -344,58 +345,31 @@
         .mod-card--image   .stat-pill  { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
         .mod-card--multi   .stat-pill  { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
 
-        /* Dataset source button — last stat-block style */
+        /* Source button — integrated into stat panel as last item */
         .src-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 11px 12px;
+            gap: 7px;
+            width: 100%;
+            padding: 9px 10px;
             border-radius: var(--r-xs);
-            font-size: 0.72rem;
+            font-size: 0.70rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             text-decoration: none;
             border: 1.5px solid;
             transition: all 0.22s;
-            margin-top: 8px;
+            margin-top: 10px;
         }
         .src-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .mod-card--tabular .src-btn {
-            background: var(--accent-light);
-            border-color: var(--accent-soft);
-            color: var(--accent);
-        }
-        .mod-card--tabular .src-btn:hover {
-            background: var(--accent);
-            color: #FAF8F4;
-        }
-        .mod-card--text .src-btn {
-            background: var(--teal-light);
-            border-color: var(--teal-soft);
-            color: var(--teal);
-        }
-        .mod-card--text .src-btn:hover {
-            background: var(--teal);
-            color: #FAF8F4;
-        }
-        .mod-card--image .src-btn {
-            background: var(--blue-light);
-            border-color: var(--blue-soft);
-            color: var(--blue);
-        }
-        .mod-card--image .src-btn:hover {
-            background: var(--blue);
-            color: #FAF8F4;
-        }
-        .mod-card--multi .src-btn {
-            background: var(--violet-light);
-            border-color: var(--violet-soft);
-            color: var(--violet);
-        }
-        .mod-card--multi .src-btn:hover {
-            background: var(--violet);
-            color: #FAF8F4;
-        }
+        .mod-card--tabular .src-btn { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
+        .mod-card--tabular .src-btn:hover { background: var(--accent); color: #FAF8F4; }
+        .mod-card--text    .src-btn { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
+        .mod-card--text    .src-btn:hover { background: var(--teal); color: #FAF8F4; }
+        .mod-card--image   .src-btn { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
+        .mod-card--image   .src-btn:hover { background: var(--blue); color: #FAF8F4; }
+        .mod-card--multi   .src-btn { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
+        .mod-card--multi   .src-btn:hover { background: var(--violet); color: #FAF8F4; }
 
         /* ─── Footer ──────────────────────────────────────────── */
         footer {
