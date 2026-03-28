@@ -218,120 +218,142 @@
         .assign-strip {
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 16px;
         }
 
-        /* Base assign card */
+        /* Base card */
         .assign-card {
             display: block;
             text-decoration: none;
             color: inherit;
-            border-radius: 20px;
+            border-radius: 22px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(28,26,22,0.09), 0 6px 20px rgba(28,26,22,0.06);
-            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s;
+            box-shadow: 0 2px 6px rgba(28,26,22,0.07), 0 8px 24px rgba(28,26,22,0.07);
+            transition: transform 0.28s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.28s;
             position: relative;
+            border: 1.5px solid transparent;
         }
         .assign-card:not(.locked):hover {
-            transform: translateY(-5px) scale(1.01);
-            box-shadow: 0 8px 20px rgba(28,26,22,0.14), 0 16px 40px rgba(28,26,22,0.10);
+            transform: translateY(-6px) scale(1.012);
+            box-shadow: 0 14px 36px rgba(28,26,22,0.13), 0 4px 12px rgba(28,26,22,0.08);
         }
         .locked {
-            cursor: not-allowed;
-            opacity: 0.70;
-            filter: saturate(0.6);
+            cursor: default;
+            opacity: 0.55;
+            filter: saturate(0.45) brightness(0.95);
         }
-        .locked:hover { transform: none; filter: saturate(0.6); }
+        .locked:hover { transform: none; }
 
-        /* Top gradient bar */
+        /* Left color spine */
         .assign-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 4px;
-            border-radius: 20px 20px 0 0;
-            z-index: 1;
+            top: 0; left: 0; bottom: 0;
+            width: 6px;
+            border-radius: 22px 0 0 22px;
+            z-index: 2;
+            flex-shrink: 0;
         }
 
-        /* Card inner content */
+        /* Card body */
         .assign-card-body {
-            padding: 22px 24px 20px;
-            background: var(--bg-card);
+            padding: 24px 26px 22px 32px;
         }
 
-        /* A01 — gold/amber */
-        .assign-card--a01 { border: 1.5px solid rgba(160,104,32,0.30); }
-        .assign-card--a01::before { background: linear-gradient(90deg, #A06820, #E8A840, #C47D00); }
-        .assign-card--a01:not(.locked):hover { border-color: var(--accent); }
+        /* ── A01: Terracotta ── */
+        .assign-card--a01 {
+            background: #FDF4EE;
+            border-color: rgba(194,98,45,0.18);
+        }
+        .assign-card--a01::before { background: #C2622D; }
+        .assign-card--a01 .assign-badge {
+            background: #C2622D;
+            box-shadow: 0 4px 14px rgba(194,98,45,0.35);
+        }
+        .assign-card--a01 .assign-title   { color: #A04E20; }
+        .assign-card--a01 .assign-progress-fill { background: linear-gradient(90deg, #C2622D, #E8883A); }
+        .assign-card--a01 .assign-pill     { background: rgba(194,98,45,0.08); border-color: rgba(194,98,45,0.20); color: #A04E20; }
 
-        /* A02 — teal */
-        .assign-card--a02 { border: 1.5px solid rgba(42,122,112,0.28); }
-        .assign-card--a02::before { background: linear-gradient(90deg, #1E6860, #2A7A70, #3AAE9E); }
-        .assign-card--a02:not(.locked):hover { border-color: var(--teal); }
+        /* ── A02: Deep Teal ── */
+        .assign-card--a02 {
+            background: #EEF6F5;
+            border-color: rgba(42,122,112,0.18);
+        }
+        .assign-card--a02::before { background: #2A7A70; }
+        .assign-card--a02 .assign-badge {
+            background: #2A7A70;
+            box-shadow: 0 4px 14px rgba(42,122,112,0.35);
+        }
+        .assign-card--a02 .assign-title   { color: #1E6460; }
+        .assign-card--a02 .assign-progress-fill { background: linear-gradient(90deg, #2A7A70, #3AAF9E); }
+        .assign-card--a02 .assign-pill     { background: rgba(42,122,112,0.08); border-color: rgba(42,122,112,0.20); color: #1E6460; }
 
-        /* A03 — blue/violet */
-        .assign-card--a03 { border: 1.5px solid rgba(61,90,128,0.28); }
-        .assign-card--a03::before { background: linear-gradient(90deg, #3D5A80, #6B4C8E, #3D5A80); }
-        .assign-card--a03:not(.locked):hover { border-color: var(--blue); }
+        /* ── A03: Indigo ── */
+        .assign-card--a03 {
+            background: #EEF0F8;
+            border-color: rgba(74,111,165,0.18);
+        }
+        .assign-card--a03::before { background: #4A6FA5; }
+        .assign-card--a03 .assign-badge {
+            background: #4A6FA5;
+            box-shadow: 0 4px 14px rgba(74,111,165,0.35);
+        }
+        .assign-card--a03 .assign-title   { color: #3A5A8A; }
+        .assign-card--a03 .assign-progress-fill { background: linear-gradient(90deg, #4A6FA5, #6B8EC2); }
+        .assign-card--a03 .assign-pill     { background: rgba(74,111,165,0.08); border-color: rgba(74,111,165,0.20); color: #3A5A8A; }
 
-        /* Card top row */
+        /* Top row */
         .assign-card-top {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
+            gap: 14px;
+            margin-bottom: 14px;
         }
-        .assign-card-left { display: flex; align-items: center; gap: 12px; }
+        .assign-card-left { display: flex; align-items: center; gap: 16px; }
 
-        /* Number badge */
+        /* Large badge */
         .assign-badge {
-            width: 48px; height: 48px;
-            border-radius: 14px;
+            width: 60px; height: 60px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.4rem;
+            font-size: 1.65rem;
             font-weight: 700;
             flex-shrink: 0;
             color: #FAF8F4;
+            transition: transform 0.2s;
         }
-        .assign-card--a01 .assign-badge { background: linear-gradient(135deg, #A06820, #C47D00); box-shadow: 0 3px 10px rgba(160,104,32,0.40); }
-        .assign-card--a02 .assign-badge { background: linear-gradient(135deg, #1E6860, #2A7A70); box-shadow: 0 3px 10px rgba(42,122,112,0.40); }
-        .assign-card--a03 .assign-badge { background: linear-gradient(135deg, #3D5A80, #6B4C8E); box-shadow: 0 3px 10px rgba(61,90,128,0.40); }
+        .assign-card:not(.locked):hover .assign-badge { transform: rotate(-3deg); }
 
         /* Title */
         .assign-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.3rem;
+            font-size: 1.45rem;
             font-weight: 700;
             line-height: 1.1;
             letter-spacing: -0.01em;
-            transition: color 0.2s;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
         }
-        .assign-card--a01 .assign-title { color: var(--accent); }
-        .assign-card--a02 .assign-title { color: var(--teal); }
-        .assign-card--a03 .assign-title { color: var(--blue); }
         .assign-subject {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             font-weight: 500;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.10em;
             text-transform: uppercase;
             color: var(--ink-faint);
         }
 
         /* Status tag */
         .assign-tag {
-            font-size: 0.68rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            padding: 5px 13px;
+            letter-spacing: 0.10em;
+            padding: 5px 14px;
             border-radius: 999px;
             border: 1.5px solid;
             flex-shrink: 0;
-            margin-top: 4px;
         }
         .tag-open {
             border-color: rgba(45,106,79,0.45);
@@ -346,54 +368,51 @@
             font-weight: 500;
         }
 
-        /* Meta text */
+        /* Description */
         .assign-meta {
-            font-size: 0.88rem;
+            font-size: 0.90rem;
             color: var(--ink-muted);
-            line-height: 1.6;
-            margin-bottom: 16px;
+            line-height: 1.65;
+            margin-bottom: 18px;
         }
 
-        /* Progress */
+        /* Progress bar */
         .prog-meta {
             display: flex;
             justify-content: space-between;
-            font-size: 0.72rem;
+            font-size: 0.70rem;
             color: var(--ink-faint);
             margin-bottom: 7px;
             font-weight: 500;
         }
         .prog-track {
-            height: 8px;
-            background: var(--bg-subtle);
-            border-radius: 4px;
+            height: 9px;
+            background: rgba(28,26,22,0.08);
+            border-radius: 5px;
             overflow: hidden;
-            border: 1px solid var(--border);
+            border: 1px solid rgba(28,26,22,0.06);
         }
-        .prog-fill {
+        .assign-progress-fill {
             height: 100%;
-            border-radius: 4px;
-            transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+            border-radius: 5px;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
         }
-        .prog-fill--gold  { background: linear-gradient(90deg, #A06820, #E8A840, #C47D00); }
-        .prog-fill--teal  { background: linear-gradient(90deg, #1E6860, #2A7A70, #3AAE9E); }
-        .prog-fill--blue  { background: linear-gradient(90deg, #3D5A80, #6B4C8E); }
 
-        /* Modality pills on A01 */
+        /* Pills */
         .assign-pills {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 14px;
+            gap: 7px;
+            margin-top: 16px;
         }
         .assign-pill {
             font-size: 0.68rem;
-            padding: 4px 11px;
+            padding: 5px 13px;
             border-radius: 999px;
-            border: 1px solid var(--border-md);
-            color: var(--ink-muted);
-            background: var(--bg);
+            border: 1px solid;
             font-weight: 500;
+            letter-spacing: 0.03em;
+        }
             letter-spacing: 0.03em;
         }
         .assign-pill--accent  { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
@@ -696,13 +715,13 @@
                                     <span>75%</span>
                                 </div>
                                 <div class="prog-track">
-                                    <div class="prog-fill prog-fill--gold" style="width: 75%;"></div>
+                                    <div class="assign-progress-fill" style="width: 75%;"></div>
                                 </div>
                                 <div class="assign-pills">
-                                    <span class="assign-pill assign-pill--accent">📊 Tabular</span>
-                                    <span class="assign-pill assign-pill--teal">📝 Text</span>
-                                    <span class="assign-pill assign-pill--blue">🖼 Image</span>
-                                    <span class="assign-pill assign-pill--violet">🔗 Multimodal</span>
+                                    <span class="assign-pill">📊 Tabular</span>
+                                    <span class="assign-pill">📝 Text</span>
+                                    <span class="assign-pill">🖼 Image</span>
+                                    <span class="assign-pill">🔗 Multimodal</span>
                                 </div>
                             </div>
                         </a>
@@ -719,13 +738,13 @@
                                     </div>
                                     <span class="assign-tag tag-locked">Soon</span>
                                 </div>
-                                <div class="assign-meta">Trang con sẽ được tạo khi đề bài &amp; nội dung sẵn sàng. Theo dõi cột phải để cập nhật.</div>
+                                <div class="assign-meta">Trang con sẽ được tạo khi đề bài &amp; nội dung sẵn sàng. Theo dõi LMS để cập nhật đề bài.</div>
                                 <div class="prog-meta">
                                     <span>Overall progress</span>
                                     <span>0%</span>
                                 </div>
                                 <div class="prog-track">
-                                    <div class="prog-fill prog-fill--teal" style="width: 0%;"></div>
+                                    <div class="assign-progress-fill" style="width: 0%;"></div>
                                 </div>
                                 <div class="assign-pills">
                                     <span class="assign-pill">—</span>
@@ -754,7 +773,7 @@
                                     <span>0%</span>
                                 </div>
                                 <div class="prog-track">
-                                    <div class="prog-fill prog-fill--blue" style="width: 0%;"></div>
+                                    <div class="assign-progress-fill" style="width: 0%;"></div>
                                 </div>
                                 <div class="assign-pills">
                                     <span class="assign-pill">—</span>
