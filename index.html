@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,15 +10,23 @@
         :root {
             --bg: #F5F2ED;
             --bg-subtle: #EDE9E2;
+            --bg-card: #FAF8F4;
             --ink: #1A1916;
             --ink-muted: #6B6560;
             --ink-faint: #A8A39C;
             --accent: #B8782A;
-            --accent-light: rgba(184,120,42,0.10);
-            --border: rgba(26,25,22,0.10);
-            --border-strong: rgba(26,25,22,0.18);
-            --r: 14px;      /* card border-radius */
-            --r-sm: 8px;    /* small chip radius */
+            --accent-light: rgba(184, 120, 42, 0.12);
+            --accent-soft: rgba(184, 120, 42, 0.22);
+            --teal: #1b7f7a;
+            --teal-light: rgba(27, 127, 122, 0.14);
+            --blue: #3d5a80;
+            --blue-light: rgba(61, 90, 128, 0.12);
+            --green-ok: #2d6a4f;
+            --amber-warn: #c77d00;
+            --border: rgba(26, 25, 22, 0.10);
+            --border-strong: rgba(26, 25, 22, 0.16);
+            --r: 16px;
+            --r-sm: 10px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,214 +41,433 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Topbar ── */
+        /* 顶栏 */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 48px;
+            padding: 14px 40px;
             border-bottom: 1px solid var(--border);
+            background: var(--bg-card);
         }
         .topbar-logo {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.15rem;
+            font-size: 1.12rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             color: var(--ink);
         }
         .topbar-logo span { color: var(--accent); }
         .topbar-tag {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             color: var(--ink-faint);
         }
 
-        /* ── Hero / Bento ── */
-        .hero {
+        /* 主工作区 */
+        .workspace {
             flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: auto auto;
-            gap: 20px;
-            max-width: 900px;
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 56px 48px;
-            align-items: start;
+            padding: 28px 40px 40px;
             width: 100%;
         }
 
-        /* ── Header card ── */
-        .card-header {
-            grid-column: 1 / -1;
+        /* 页头：标题 + 状态 chip */
+        .page-head {
+            margin-bottom: 22px;
+        }
+        .page-head-kicker {
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 8px;
+        }
+        .page-head-row {
             display: flex;
-            align-items: center;
-            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
         }
-        .bt-mark {
-            position: relative;
-            width: 1px;
-            height: 52px;
-            background: linear-gradient(to bottom, transparent, var(--accent) 40%, var(--ink) 60%, transparent);
-            flex-shrink: 0;
-        }
-        .bt-mark::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: -20px;
-            width: 90px;
-            height: 1px;
-            background: linear-gradient(to right, transparent, var(--accent) 30%, var(--ink) 70%, transparent);
-        }
-        h1 {
+        .page-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: clamp(3rem, 6vw, 5rem);
+            font-size: clamp(2rem, 4.5vw, 2.75rem);
             font-weight: 700;
-            line-height: 0.95;
             letter-spacing: -0.02em;
-            color: var(--ink);
+            line-height: 1.05;
         }
-        h1 em {
+        .page-title em {
             font-style: italic;
             color: var(--accent);
         }
-        .hero-right {
-            text-align: right;
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
         }
-        .subtitle {
-            font-size: 0.88rem;
-            font-weight: 300;
+        .chip {
+            font-size: 0.68rem;
+            padding: 5px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border-strong);
+            background: var(--bg-subtle);
             color: var(--ink-muted);
             letter-spacing: 0.04em;
-            line-height: 1.7;
-            margin-top: 12px;
+        }
+        .chip--accent {
+            border-color: var(--accent-soft);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .chip--ok {
+            border-color: rgba(45, 106, 79, 0.35);
+            background: rgba(45, 106, 79, 0.1);
+            color: var(--green-ok);
         }
 
-        /* ── Members ── */
-        .card-members {
-            background: var(--bg-subtle);
-            border: 1px solid var(--border);
-            border-radius: var(--r);
-            padding: 24px;
+        /* 双栏 bento */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(280px, 320px);
+            gap: 20px;
+            align-items: start;
         }
-        .card-label {
+
+        /* 通用面板 */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--r);
+            padding: 18px 20px;
+        }
+        .panel-title {
             font-size: 0.65rem;
-            letter-spacing: 0.22em;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
             color: var(--ink-faint);
             margin-bottom: 14px;
         }
-        .members {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .member {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.82rem;
-            font-weight: 600;
-            border: 1.5px solid var(--border-strong);
-            color: var(--ink-muted);
-            background: var(--bg);
-            transition: all 0.2s;
-            cursor: default;
-        }
-        .member:hover {
-            background: var(--ink);
-            color: var(--bg);
-            border-color: var(--ink);
-            transform: translateY(-2px);
-        }
 
-        /* ── Assignments ── */
-        .card-assignments {
-            background: transparent;
-            border: 1px solid var(--border-strong);
-            border-radius: var(--r);
-            padding: 24px;
+        /* Live routing：指标行 */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
         }
-        .assign-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 0;
-            border-bottom: 1px solid var(--border);
-            text-decoration: none;
-            color: var(--ink);
-            transition: all 0.2s;
+        .metric {
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            padding: 10px 12px;
         }
-        .assign-row:last-child { border-bottom: none; padding-bottom: 0; }
-        .assign-row:first-child { padding-top: 0; }
-        .assign-row:hover .assign-title { color: var(--accent); }
-        .assign-row:hover .assign-arrow { transform: translateX(4px); }
-
-        .assign-left { display: flex; align-items: center; gap: 14px; }
-        .assign-num {
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--accent);
-            line-height: 1;
-            min-width: 28px;
-        }
-        .assign-title { font-weight: 600; font-size: 0.9rem; transition: color 0.2s; }
-        .assign-sub   { font-size: 0.72rem; color: var(--ink-muted); margin-top: 2px; }
-        .assign-arrow {
-            font-size: 1rem;
+        .metric-label {
+            font-size: 0.65rem;
             color: var(--ink-faint);
-            transition: transform 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+
+        /* Assignment 横条卡片（可点） */
+        .assign-strip {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .assign-card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            background: var(--bg);
+            border: 1px solid var(--border-strong);
+            border-radius: var(--r-sm);
+            padding: 12px 14px;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+        }
+        a.assign-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 18px rgba(26, 25, 22, 0.06);
+            transform: translateY(-1px);
+        }
+        .assign-card--locked {
+            cursor: not-allowed;
+            opacity: 0.72;
+        }
+        .assign-card--locked:hover {
+            border-color: var(--border-strong);
+            box-shadow: none;
+            transform: none;
+        }
+        .assign-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .assign-card-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.88rem;
+        }
+        .assign-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
             flex-shrink: 0;
         }
-
-        /* Progress bar */
-        .progress-wrap {
-            margin-top: 18px;
+        .assign-dot--muted { background: var(--ink-faint); }
+        .assign-tag {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--ink-muted);
         }
-        .progress-meta {
+        .assign-tag--live {
+            border-color: rgba(45, 106, 79, 0.4);
+            color: var(--green-ok);
+            background: rgba(45, 106, 79, 0.08);
+        }
+        .assign-tag--soon {
+            border-color: var(--border-strong);
+            color: var(--ink-faint);
+        }
+        .assign-meta {
+            font-size: 0.72rem;
+            color: var(--ink-muted);
+            margin-bottom: 8px;
+        }
+        .progress-row {
             display: flex;
             justify-content: space-between;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--ink-faint);
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .progress-track {
-            height: 4px;
+            height: 5px;
             background: var(--border-strong);
-            border-radius: 2px;
+            border-radius: 3px;
             overflow: hidden;
         }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(to right, var(--accent), #D4962E);
-            border-radius: 2px;
-            width: 75%;
-            transition: width 0.6s ease;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent), #d4962e);
+            transition: width 0.5s ease;
+        }
+        .progress-fill--teal {
+            background: linear-gradient(90deg, var(--teal), #2a9d8f);
         }
 
-        /* ── Footer ── */
+        /* Pool accounts（左下大卡片区） */
+        .pool-accounts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .account-panel {
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-strong);
+            padding: 14px 16px;
+            min-height: 120px;
+        }
+        .account-panel--primary {
+            background: linear-gradient(135deg, var(--accent-light) 0%, var(--bg) 45%);
+            border-color: var(--accent-soft);
+        }
+        .account-panel--extra {
+            background: linear-gradient(135deg, var(--blue-light) 0%, var(--bg) 45%);
+            border-color: rgba(61, 90, 128, 0.22);
+        }
+        .account-panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .account-panel-title {
+            font-weight: 600;
+            font-size: 0.82rem;
+        }
+        .account-stat {
+            font-size: 0.72rem;
+            color: var(--ink-muted);
+            margin-top: 6px;
+        }
+        .mini-bars {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .mini-bar {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--teal-light);
+            overflow: hidden;
+        }
+        .mini-bar > span {
+            display: block;
+            height: 100%;
+            background: var(--teal);
+            border-radius: 2px;
+        }
+
+        /* 右侧 Pool setup */
+        .segmented {
+            display: flex;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-strong);
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .segmented button {
+            flex: 1;
+            border: none;
+            background: var(--bg);
+            color: var(--ink-muted);
+            font-size: 0.72rem;
+            padding: 10px 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+        }
+        .segmented button + button {
+            border-left: 1px solid var(--border);
+        }
+        .segmented button.is-on {
+            background: var(--accent);
+            color: #faf8f4;
+            font-weight: 600;
+        }
+        .setup-blurb {
+            font-size: 0.78rem;
+            color: var(--ink-muted);
+            line-height: 1.55;
+            margin-bottom: 16px;
+        }
+
+        /* Accounts in pool = members */
+        .member-list-title {
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 10px;
+        }
+        .member-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--r-sm);
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+        .member-pill:last-child { margin-bottom: 0; }
+        .member-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .member-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 1px solid var(--border-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ink-muted);
+        }
+        .member-name {
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+        .member-role {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--ink-muted);
+        }
+        .member-role--primary {
+            border-color: var(--accent-soft);
+            color: var(--accent);
+            background: var(--accent-light);
+        }
+
+        /* Pool state 三色点 */
+        .pool-state {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .state-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.68rem;
+            color: var(--ink-muted);
+        }
+        .state-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+        }
+        .state-dot--g { background: var(--green-ok); }
+        .state-dot--a { background: var(--amber-warn); }
+        .state-dot--r { background: #c94c4c; }
+
         footer {
             text-align: center;
-            padding: 24px;
-            font-size: 0.68rem;
+            padding: 20px;
+            font-size: 0.65rem;
             letter-spacing: 0.1em;
             color: var(--ink-faint);
             border-top: 1px solid var(--border);
         }
 
-        @media (max-width: 640px) {
-            .hero {
+        @media (max-width: 900px) {
+            .dash-grid {
                 grid-template-columns: 1fr;
-                padding: 32px 24px;
             }
-            .topbar { padding: 16px 24px; }
-            .card-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-            .hero-right { text-align: left; }
+            .metrics-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .pool-accounts-grid {
+                grid-template-columns: 1fr;
+            }
+            .workspace { padding: 22px 20px 32px; }
+            .topbar { padding: 14px 20px; }
         }
     </style>
 </head>
@@ -250,57 +477,179 @@
         <div class="topbar-tag">CO3135 · P4AI-DS · HCMUT</div>
     </div>
 
-    <div class="hero">
-        <!-- Header spanning full width -->
-        <div class="card-header">
-            <div class="bt-mark"></div>
-            <div>
-                <h1>Break<em>through</em></h1>
-                <div class="subtitle">
-                    Nhóm sinh viên HCMUT — Khoa Khoa học Máy tính<br>
-                    Programming for AI &amp; Data Science
+    <main class="workspace">
+        <header class="page-head">
+            <div class="page-head-kicker">Group workspace</div>
+            <div class="page-head-row">
+                <h1 class="page-title">Break<em>through</em></h1>
+                <div class="chips">
+                    <span class="chip chip--accent">GitHub Pages</span>
+                    <span class="chip">RSITMD · Multimodal</span>
+                    <span class="chip chip--ok">Assignment 1 active</span>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Members card -->
-        <div class="card-members">
-            <div class="card-label">Thành viên</div>
-            <div class="members">
-                <div class="member">A</div>
-                <div class="member">B</div>
-                <div class="member">C</div>
-                <div class="member">D</div>
-            </div>
-        </div>
-
-        <!-- Assignments card -->
-        <div class="card-assignments">
-            <div class="card-label">Bài tập</div>
-
-            <a class="assign-row" href="./assign1-eda/">
-                <div class="assign-left">
-                    <div class="assign-num">01</div>
-                    <div>
-                        <div class="assign-title">Exploratory Data Analysis</div>
-                        <div class="assign-sub">Tabular · Text · Image · Multimodal</div>
+        <div class="dash-grid">
+            <!-- 左：Live routing + Pool accounts -->
+            <div class="col-main">
+                <section class="panel">
+                    <div class="panel-title">Live routing · Assignments</div>
+                    <div class="metrics-row">
+                        <div class="metric">
+                            <div class="metric-label">Assignments</div>
+                            <div class="metric-value">3</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">In progress</div>
+                            <div class="metric-value">1</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Linked</div>
+                            <div class="metric-value">1/3</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Due window</div>
+                            <div class="metric-value" style="font-size:1rem;">2025–26</div>
+                        </div>
                     </div>
-                </div>
-                <span class="assign-arrow">→</span>
-            </a>
 
-            <!-- Progress bar -->
-            <div class="progress-wrap">
-                <div class="progress-meta">
-                    <span>Tiến độ hoàn thành</span>
-                    <span>3 / 4 modalities</span>
-                </div>
-                <div class="progress-track">
-                    <div class="progress-fill" style="width: 75%;"></div>
-                </div>
+                    <div class="assign-strip">
+                        <a class="assign-card" href="./assign1-eda/">
+                            <div class="assign-card-top">
+                                <div class="assign-card-name">
+                                    <span class="assign-dot"></span>
+                                    Assignment 01 · EDA
+                                </div>
+                                <span class="assign-tag assign-tag--live">Open</span>
+                            </div>
+                            <div class="assign-meta">Exploratory Data Analysis — Tabular, Text, Image, Multimodal (RSITMD).</div>
+                            <div class="progress-row">
+                                <span>Overall progress</span>
+                                <span>75%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: 75%;"></div>
+                            </div>
+                        </a>
+
+                        <div class="assign-card assign-card--locked" title="Chưa có trang — cập nhật sau">
+                            <div class="assign-card-top">
+                                <div class="assign-card-name">
+                                    <span class="assign-dot assign-dot--muted"></span>
+                                    Assignment 02
+                                </div>
+                                <span class="assign-tag assign-tag--soon">Soon</span>
+                            </div>
+                            <div class="assign-meta">Trang con sẽ được thêm khi đề bài &amp; nội dung sẵn sàng.</div>
+                            <div class="progress-row">
+                                <span>Overall progress</span>
+                                <span>0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill progress-fill--teal" style="width: 0%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="assign-card assign-card--locked" title="Chưa có trang — cập nhật sau">
+                            <div class="assign-card-top">
+                                <div class="assign-card-name">
+                                    <span class="assign-dot assign-dot--muted"></span>
+                                    Assignment 03
+                                </div>
+                                <span class="assign-tag assign-tag--soon">Soon</span>
+                            </div>
+                            <div class="assign-meta">Giữ chỗ cho bài tập tiếp theo trong học phần.</div>
+                            <div class="progress-row">
+                                <span>Overall progress</span>
+                                <span>0%</span>
+                            </div>
+                            <div class="progress-track">
+                                <div class="progress-fill progress-fill--teal" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel" style="margin-top: 18px;">
+                    <div class="panel-title">Pool accounts · Deliverables &amp; focus</div>
+                    <div class="pool-accounts-grid">
+                        <div class="account-panel account-panel--primary">
+                            <div class="account-panel-head">
+                                <span class="account-panel-title">Assignment 01 · Primary</span>
+                                <span class="assign-tag assign-tag--live">Draft</span>
+                            </div>
+                            <div class="account-stat">PDF report · YouTube · GitHub — theo yêu cầu nộp bài.</div>
+                            <div class="mini-bars">
+                                <div class="mini-bar" title="Multimodal EDA"><span style="width: 88%;"></span></div>
+                                <div class="mini-bar" title="Landing &amp; repo"><span style="width: 55%;"></span></div>
+                            </div>
+                            <div class="account-stat" style="margin-top:10px;">Modalities trong report: đang hoàn thiện đủ 4 nhánh.</div>
+                        </div>
+                        <div class="account-panel account-panel--extra">
+                            <div class="account-panel-head">
+                                <span class="account-panel-title">Course pool · Extra</span>
+                                <span class="assign-tag assign-tag--soon">Roadmap</span>
+                            </div>
+                            <div class="account-stat">A02 / A03: tạo thư mục &amp; trang con tương tự <code style="font-size:0.7rem;">assign1-eda/</code> khi có đề.</div>
+                            <div class="account-stat" style="margin-top:8px;">Repo chính: đồng bộ PDF + static site qua branch <code style="font-size:0.7rem;">gh-pages</code>.</div>
+                        </div>
+                    </div>
+                </section>
             </div>
+
+            <!-- 右：Pool setup + Accounts in pool -->
+            <aside class="col-side">
+                <section class="panel">
+                    <div class="panel-title">Pool setup</div>
+                    <div class="segmented" role="group" aria-label="Workspace mode">
+                        <button type="button" class="is-on">Current term</button>
+                        <button type="button">Archive</button>
+                    </div>
+                    <p class="setup-blurb">
+                        Trọng tâm hiện tại: <strong>Assignment 1</strong> — EDA đa phương thức trên RSITMD.
+                        Chọn assignment ở cột trái để vào trang chi tiết (A01 đã gắn link).
+                    </p>
+                    <div class="panel-title" style="margin-top:4px;">Accounts in pool · Members</div>
+                    <div class="member-list-title">Team</div>
+                    <div class="member-pill">
+                        <div class="member-left">
+                            <div class="member-avatar">A</div>
+                            <span class="member-name">Thành viên A</span>
+                        </div>
+                        <span class="member-role member-role--primary">Lead</span>
+                    </div>
+                    <div class="member-pill">
+                        <div class="member-left">
+                            <div class="member-avatar">B</div>
+                            <span class="member-name">Thành viên B</span>
+                        </div>
+                        <span class="member-role">Member</span>
+                    </div>
+                    <div class="member-pill">
+                        <div class="member-left">
+                            <div class="member-avatar">C</div>
+                            <span class="member-name">Thành viên C</span>
+                        </div>
+                        <span class="member-role">Member</span>
+                    </div>
+                    <div class="member-pill">
+                        <div class="member-left">
+                            <div class="member-avatar">D</div>
+                            <span class="member-name">Thành viên D</span>
+                        </div>
+                        <span class="member-role">Member</span>
+                    </div>
+
+                    <div class="pool-state">
+                        <div class="state-item"><span class="state-dot state-dot--g"></span> Pages live</div>
+                        <div class="state-item"><span class="state-dot state-dot--a"></span> Report draft</div>
+                        <div class="state-item"><span class="state-dot state-dot--r"></span> A02/A03 locked</div>
+                    </div>
+                </section>
+            </aside>
         </div>
-    </div>
+    </main>
 
     <footer>
         Programming for AI and Data Science · HCMUT · 2025–2026
