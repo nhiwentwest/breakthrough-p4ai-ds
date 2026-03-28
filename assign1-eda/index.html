@@ -326,43 +326,40 @@
         .stat-pills {
             display: flex;
             flex-wrap: wrap;
-            gap: 3px;
+            gap: 4px;
             margin-top: 8px;
         }
         .stat-pill {
             font-size: 0.57rem;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 999px;
             background: var(--bg-subtle);
             border: 1px solid var(--border-md);
             color: var(--ink-muted);
             letter-spacing: 0.03em;
+            font-weight: 500;
         }
+        .mod-card--tabular .stat-pill  { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
+        .mod-card--text    .stat-pill  { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
+        .mod-card--image   .stat-pill  { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
+        .mod-card--multi   .stat-pill  { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
 
-        /* ─── Dataset source button ───────────────────────── */
-        .mod-card-foot {
-            padding: 12px 14px 14px;
-            margin-top: auto;
-        }
+        /* Dataset source button — last stat-block style */
         .src-btn {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 7px;
-            width: 100%;
-            padding: 9px 12px;
+            gap: 8px;
+            padding: 11px 12px;
             border-radius: var(--r-xs);
             font-size: 0.72rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             text-decoration: none;
             border: 1.5px solid;
-            transition: all 0.2s;
+            transition: all 0.22s;
+            margin-top: 8px;
         }
-        .src-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-md);
-        }
+        .src-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
         .mod-card--tabular .src-btn {
             background: var(--accent-light);
             border-color: var(--accent-soft);
@@ -398,13 +395,6 @@
         .mod-card--multi .src-btn:hover {
             background: var(--violet);
             color: #FAF8F4;
-        }
-
-        /* card divider */
-        .mod-divider {
-            height: 1px;
-            background: var(--border);
-            margin: 0 14px;
         }
 
         /* ─── Footer ──────────────────────────────────────────── */
@@ -467,7 +457,7 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">📊</div>
                     <div class="mod-title">Tabular Data</div>
-                    <div class="mod-sub">World Happiness Report — global indices, life satisfaction scores, and socioeconomic factors.</div>
+                    <div class="mod-sub">World Happiness Report — life satisfaction scores, GDP, and social factors across countries.</div>
                     <span class="mod-tag tag-done">Hoàn thành</span>
                 </div>
                 <div class="mod-stat-panel">
@@ -476,32 +466,32 @@
                         <div class="stat-block-row">
                             <span class="stat-block-val">World Happiness</span>
                         </div>
-                        <div class="stat-block-desc">Kaggle · unsdsn/world-happiness</div>
+                        <div class="stat-block-desc">unsdsn · Kaggle</div>
                     </div>
                     <div class="stat-block stat-block--accent">
                         <div class="stat-block-label">Records</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">~3,000+</span>
+                            <span class="stat-block-val">~3,000</span>
                             <span class="stat-block-unit">rows</span>
                         </div>
                         <div class="stat-block-desc">Multiple years · ~150 countries</div>
                     </div>
                     <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Features</div>
+                        <div class="stat-block-label">Key Features</div>
                         <div class="stat-block-row">
                             <span class="stat-block-val">Ladder</span>
                             <span class="stat-block-unit">GDP · Social</span>
                         </div>
-                        <div class="stat-block-desc">Life evaluation · Dystopia residual</div>
+                        <div class="stat-block-desc">Life eval · Dystopia residual</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">CSV · Kaggle</span>
-                        <span class="stat-pill">Regression-ready</span>
+                        <span class="stat-pill">CSV</span>
+                        <span class="stat-pill">Kaggle</span>
+                        <span class="stat-pill">Regression</span>
                     </div>
-                </div>
-                <div class="mod-divider"></div>
-                <div class="mod-card-foot">
-                    <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">🔗 World Happiness Report — Kaggle</a>
+                    <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">
+                        🔗 World Happiness Report — Kaggle
+                    </a>
                 </div>
             </a>
 
@@ -510,7 +500,7 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">📝</div>
                     <div class="mod-title">Text</div>
-                    <div class="mod-sub">Multimodal-Textbook — structured educational text from HuggingFace with visual elements.</div>
+                    <div class="mod-sub">Multimodal-Textbook — structured educational text with visual elements from HuggingFace.</div>
                     <span class="mod-tag tag-done">Hoàn thành</span>
                 </div>
                 <div class="mod-stat-panel">
@@ -527,7 +517,7 @@
                             <span class="stat-block-val">Textbook</span>
                             <span class="stat-block-unit">chapters</span>
                         </div>
-                        <div class="stat-block-desc">Educational · Multimodal content</div>
+                        <div class="stat-block-desc">Educational · Visual-enhanced</div>
                     </div>
                     <div class="stat-block stat-block--teal">
                         <div class="stat-block-label">Domain</div>
@@ -535,16 +525,16 @@
                             <span class="stat-block-val">Education</span>
                             <span class="stat-block-unit">K-12 / College</span>
                         </div>
-                        <div class="stat-block-desc">Structured · Visual-enhanced text</div>
+                        <div class="stat-block-desc">Structured · Multimodal content</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">HuggingFace</span>
-                        <span class="stat-pill">Educational text</span>
+                        <span class="stat-pill">NLP</span>
+                        <span class="stat-pill">Tokenization</span>
+                        <span class="stat-pill">Word freq</span>
                     </div>
-                </div>
-                <div class="mod-divider"></div>
-                <div class="mod-card-foot">
-                    <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">🔗 Multimodal-Textbook — HuggingFace</a>
+                    <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">
+                        🔗 Multimodal-Textbook — HuggingFace
+                    </a>
                 </div>
             </a>
 
@@ -582,12 +572,11 @@
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">PCA / Rand. PCA</span>
-                        <span class="stat-pill">Image</span>
+                        <span class="stat-pill">Classification</span>
                     </div>
-                </div>
-                <div class="mod-divider"></div>
-                <div class="mod-card-foot">
-                    <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">🔗 Food Image Classification — GitHub</a>
+                    <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">
+                        🔗 Food Image Classification — GitHub
+                    </a>
                 </div>
             </a>
 
@@ -603,7 +592,7 @@
                     <div class="stat-block stat-block--violet">
                         <div class="stat-block-label">Dataset</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">RSITMD / AMFMN</span>
+                            <span class="stat-block-val">RSITMD</span>
                         </div>
                         <div class="stat-block-desc">xiaoyuan1996 · GitHub</div>
                     </div>
@@ -625,12 +614,12 @@
                     </div>
                     <div class="stat-pills">
                         <span class="stat-pill">RSITMD</span>
-                        <span class="stat-pill">AMFMN</span>
+                        <span class="stat-pill">Image-Text</span>
+                        <span class="stat-pill">Retrieval</span>
                     </div>
-                </div>
-                <div class="mod-divider"></div>
-                <div class="mod-card-foot">
-                    <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">🔗 AMFMN — Cross-modal RS Retrieval · GitHub</a>
+                    <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
+                        🔗 AMFMN — Cross-modal RS Retrieval · GitHub
+                    </a>
                 </div>
             </a>
 
