@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment 1 — EDA | Breakthrough</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0a0f;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 20px;
+            background: radial-gradient(ellipse at 50% 30%, #1a1a3e 0%, #0a0a0f 70%);
+        }
+        .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #4b5563;
+            text-decoration: none;
+            font-size: 0.82rem;
+            margin-bottom: 40px;
+            transition: color 0.2s;
+        }
+        .back:hover { color: #818cf8; }
+        .badge {
+            display: inline-block;
+            background: rgba(99,102,241,0.15);
+            border: 1px solid rgba(99,102,241,0.4);
+            color: #818cf8;
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 4px 14px;
+            border-radius: 999px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #e0e7ff, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-bottom: 48px;
+            max-width: 560px;
+        }
+
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 48px;
+        }
+        .link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .link-btn-report {
+            background: rgba(99,102,241,0.15);
+            border-color: rgba(99,102,241,0.35);
+            color: #a5b4fc;
+        }
+        .link-btn-report:hover {
+            background: rgba(99,102,241,0.28);
+            border-color: rgba(99,102,241,0.6);
+        }
+        .link-btn-video {
+            background: rgba(239,68,68,0.1);
+            border-color: rgba(239,68,68,0.3);
+            color: #fca5a5;
+        }
+        .link-btn-video:hover {
+            background: rgba(239,68,68,0.2);
+            border-color: rgba(239,68,68,0.55);
+        }
+        .link-btn-github {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.1);
+            color: #d1d5db;
+        }
+        .link-btn-github:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .modalities {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 760px;
+        }
+        .mod-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: #4b5563;
+            margin-bottom: 6px;
+            text-align: left;
+            grid-column: 1 / -1;
+        }
+        .mod-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px;
+            padding: 18px 16px;
+            text-align: left;
+        }
+        .mod-icon { font-size: 1.6rem; margin-bottom: 8px; }
+        .mod-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; }
+        .mod-desc { font-size: 0.75rem; color: #6b7280; }
+        .mod-tag {
+            display: inline-block;
+            margin-top: 8px;
+            font-size: 0.68rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            letter-spacing: 0.05em;
+        }
+        .tag-tabular { background: rgba(59,130,246,0.15); color: #93c5fd; }
+        .tag-text    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+        .tag-image   { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .tag-multi   { background: rgba(168,85,247,0.15); color: #d8b4fe; }
+
+        footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 0.75rem;
+            color: #374151;
+            border-top: 1px solid rgba(255,255,255,0.04);
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <a class="back" href="../">← Group Landing Page</a>
+
+        <div class="badge">Assignment 01</div>
+        <h1>Exploratory Data Analysis</h1>
+        <p class="subtitle">
+            EDA trên 3 modality: Tabular, Text, Image — và phân tích Multimodal
+            (text + image) trên bộ dữ liệu RSITMD.
+        </p>
+
+        <div class="links">
+            <!-- ↓ THAY BẰNG LINK THẬT CỦA BẠN ↓ -->
+            <a class="link-btn link-btn-report" href="./report/main.pdf" target="_blank">
+                📄 PDF Report
+            </a>
+            <a class="link-btn link-btn-video" href="#" target="_blank">
+                ▶ YouTube Video
+            </a>
+            <a class="link-btn link-btn-github" href="#" target="_blank">
+                🐙 GitHub Repo
+            </a>
+        </div>
+
+        <div class="modalities">
+            <div class="mod-label">Datasets &amp; Modalities</div>
+
+            <div class="mod-card">
+                <div class="mod-icon">📊</div>
+                <div class="mod-title">Tabular</div>
+                <div class="mod-desc">Structured data — CSV</div>
+                <span class="mod-tag tag-tabular">Tabular</span>
+            </div>
+
+            <div class="mod-card">
+                <div class="mod-icon">📝</div>
+                <div class="mod-title">Text</div>
+                <div class="mod-desc">Unstructured text data</div>
+                <span class="mod-tag tag-text">Text</span>
+            </div>
+
+            <div class="mod-card">
+                <div class="mod-icon">🖼</div>
+                <div class="mod-title">Image</div>
+                <div class="mod-desc">Remote sensing images</div>
+                <span class="mod-tag tag-image">Image</span>
+            </div>
+
+            <div class="mod-card">
+                <div class="mod-icon">🔗</div>
+                <div class="mod-title">Multimodal</div>
+                <div class="mod-desc">Text + Image (RSITMD)</div>
+                <span class="mod-tag tag-multi">Optional</span>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+    </footer>
+</body>
+</html>
