@@ -146,7 +146,31 @@
         .tag-tabular { background: rgba(59,130,246,0.15); color: #93c5fd; }
         .tag-text    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
         .tag-image   { background: rgba(245,158,11,0.15); color: #fcd34d; }
-        .tag-multi   { background: rgba(168,85,247,0.15); color: #d8b4fe; }
+        .tag-draft   { background: rgba(245,158,11,0.15); color: #fcd34d; }
+        .tag-done    { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+        .tag-optional { background: rgba(168,85,247,0.15); color: #d8b4fe; }
+        .draft-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245,158,11,0.08);
+            border: 1px solid rgba(245,158,11,0.25);
+            color: #fcd34d;
+            font-size: 0.78rem;
+            padding: 6px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .draft-banner .dot {
+            width: 6px; height: 6px;
+            background: #fcd34d;
+            border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
 
         footer {
             text-align: center;
@@ -158,8 +182,10 @@
     </style>
 </head>
 <body>
-    <div class="hero">
+        <div class="hero">
         <a class="back" href="../">← Group Landing Page</a>
+
+        <div class="draft-banner"><span class="dot"></span>Draft — chưa hoàn thiện đủ 4 modality</div>
 
         <div class="badge">Assignment 01</div>
         <h1>Exploratory Data Analysis</h1>
@@ -169,9 +195,8 @@
         </p>
 
         <div class="links">
-            <!-- ↓ THAY BẰNG LINK THẬT CỦA BẠN ↓ -->
             <a class="link-btn link-btn-report" href="./report/main.pdf" target="_blank">
-                📄 PDF Report
+                📄 PDF Report (Draft)
             </a>
             <a class="link-btn link-btn-video" href="#" target="_blank">
                 ▶ YouTube Video
@@ -188,28 +213,28 @@
                 <div class="mod-icon">📊</div>
                 <div class="mod-title">Tabular</div>
                 <div class="mod-desc">Structured data — CSV</div>
-                <span class="mod-tag tag-tabular">Tabular</span>
+                <span class="mod-tag tag-done">Hoàn thành</span>
             </div>
 
             <div class="mod-card">
                 <div class="mod-icon">📝</div>
                 <div class="mod-title">Text</div>
                 <div class="mod-desc">Unstructured text data</div>
-                <span class="mod-tag tag-text">Text</span>
+                <span class="mod-tag tag-done">Hoàn thành</span>
             </div>
 
             <div class="mod-card">
                 <div class="mod-icon">🖼</div>
                 <div class="mod-title">Image</div>
                 <div class="mod-desc">Remote sensing images</div>
-                <span class="mod-tag tag-image">Image</span>
+                <span class="mod-tag tag-done">Hoàn thành</span>
             </div>
 
             <div class="mod-card">
                 <div class="mod-icon">🔗</div>
                 <div class="mod-title">Multimodal</div>
-                <div class="mod-desc">Text + Image (RSITMD)</div>
-                <span class="mod-tag tag-multi">Optional</span>
+                <div class="mod-desc">Text + Image (RSITMD) — đang triển khai</div>
+                <span class="mod-tag tag-optional">Optional · Chưa xong</span>
             </div>
         </div>
     </div>
