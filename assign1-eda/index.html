@@ -443,8 +443,8 @@
             <div class="page-eyebrow">Assignment 01 · 2025–2026</div>
             <h1 class="page-title">Exploratory Data Analysis</h1>
             <p class="page-sub">
-                EDA đa phương thức trên RSITMD — khám phá 4 modality:
-                Tabular, Text, Image, và Multimodal (text + image) trên bộ dữ liệu ảnh vệ tinh.
+                EDA đa phương thức trên 4 bộ dữ liệu: Tabular (World Happiness), Text (Multimodal-Textbook),
+                Image (Food Classification), và Multimodal (RSITMD — Remote Sensing).
             </p>
         </header>
 
@@ -467,42 +467,41 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">📊</div>
                     <div class="mod-title">Tabular Data</div>
-                    <div class="mod-sub">Structured CSV annotations — land use categories, caption metadata, split distribution.</div>
+                    <div class="mod-sub">World Happiness Report — global indices, life satisfaction scores, and socioeconomic factors.</div>
                     <span class="mod-tag tag-done">Hoàn thành</span>
                 </div>
                 <div class="mod-stat-panel">
                     <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Total Images</div>
+                        <div class="stat-block-label">Dataset</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">4,743</span>
-                            <span class="stat-block-unit">img</span>
+                            <span class="stat-block-val">World Happiness</span>
                         </div>
-                        <div class="stat-block-desc">Train: 4,291 · Test: 452</div>
+                        <div class="stat-block-desc">Kaggle · unsdsn/world-happiness</div>
                     </div>
                     <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Total Captions</div>
+                        <div class="stat-block-label">Records</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">23,715</span>
-                            <span class="stat-block-unit">captions</span>
+                            <span class="stat-block-val">~3,000+</span>
+                            <span class="stat-block-unit">rows</span>
                         </div>
-                        <div class="stat-block-desc">5 captions / image</div>
+                        <div class="stat-block-desc">Multiple years · ~150 countries</div>
                     </div>
                     <div class="stat-block stat-block--accent">
-                        <div class="stat-block-label">Categories</div>
+                        <div class="stat-block-label">Features</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">33</span>
-                            <span class="stat-block-unit">land cover</span>
+                            <span class="stat-block-val">Ladder</span>
+                            <span class="stat-block-unit">GDP · Social</span>
                         </div>
-                        <div class="stat-block-desc">5 thematic clusters</div>
+                        <div class="stat-block-desc">Life evaluation · Dystopia residual</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">CSV metadata</span>
-                        <span class="stat-pill">Train / Test split</span>
+                        <span class="stat-pill">CSV · Kaggle</span>
+                        <span class="stat-pill">Regression-ready</span>
                     </div>
                 </div>
                 <div class="mod-divider"></div>
                 <div class="mod-card-foot">
-                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                    <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">🔗 World Happiness Report — Kaggle</a>
                 </div>
             </a>
 
@@ -511,41 +510,41 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">📝</div>
                     <div class="mod-title">Text</div>
-                    <div class="mod-sub">NLP preprocessing, tokenization, word frequency, vocabulary &amp; bigram analysis.</div>
+                    <div class="mod-sub">Multimodal-Textbook — structured educational text from HuggingFace with visual elements.</div>
                     <span class="mod-tag tag-done">Hoàn thành</span>
                 </div>
                 <div class="mod-stat-panel">
                     <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Vocabulary Size</div>
+                        <div class="stat-block-label">Dataset</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">3,470</span>
-                            <span class="stat-block-unit">unique words</span>
+                            <span class="stat-block-val">Multimodal-Textbook</span>
                         </div>
-                        <div class="stat-block-desc">After stopword removal</div>
+                        <div class="stat-block-desc">DAMO-NLP-SG · HuggingFace</div>
                     </div>
                     <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Avg Words / Caption</div>
+                        <div class="stat-block-label">Content</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">10.3</span>
-                            <span class="stat-block-unit">words</span>
+                            <span class="stat-block-val">Textbook</span>
+                            <span class="stat-block-unit">chapters</span>
                         </div>
-                        <div class="stat-block-desc">Std dev: 3.7</div>
+                        <div class="stat-block-desc">Educational · Multimodal content</div>
                     </div>
                     <div class="stat-block stat-block--teal">
-                        <div class="stat-block-label">Top Bigrams</div>
+                        <div class="stat-block-label">Domain</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">green trees</span>
+                            <span class="stat-block-val">Education</span>
+                            <span class="stat-block-unit">K-12 / College</span>
                         </div>
-                        <div class="stat-block-desc">1,543 occurrences · parking lot: 799</div>
+                        <div class="stat-block-desc">Structured · Visual-enhanced text</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">bigram analysis</span>
-                        <span class="stat-pill">word freq</span>
+                        <span class="stat-pill">HuggingFace</span>
+                        <span class="stat-pill">Educational text</span>
                     </div>
                 </div>
                 <div class="mod-divider"></div>
                 <div class="mod-card-foot">
-                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                    <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">🔗 Multimodal-Textbook — HuggingFace</a>
                 </div>
             </a>
 
@@ -554,42 +553,41 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">🖼</div>
                     <div class="mod-title">Image</div>
-                    <div class="mod-sub">Remote sensing / aerial image EDA — resolution, band analysis, spatial properties.</div>
+                    <div class="mod-sub">Food Image Classification — food category recognition using PCA and Randomized PCA.</div>
                     <span class="mod-tag tag-done">Hoàn thành</span>
                 </div>
                 <div class="mod-stat-panel">
                     <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Resolution</div>
+                        <div class="stat-block-label">Dataset</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">256×256</span>
-                            <span class="stat-block-unit">px</span>
+                            <span class="stat-block-val">Food Classification</span>
                         </div>
-                        <div class="stat-block-desc">GeoTIFF format</div>
+                        <div class="stat-block-desc">minhosong88 · GitHub</div>
                     </div>
                     <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Top Color Words</div>
+                        <div class="stat-block-label">Methods</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">green</span>
-                            <span class="stat-block-unit">34.7%</span>
+                            <span class="stat-block-val">PCA</span>
+                            <span class="stat-block-unit">Rand. PCA</span>
                         </div>
-                        <div class="stat-block-desc">Color in 42% of captions</div>
+                        <div class="stat-block-desc">Dimensionality reduction + classification</div>
                     </div>
                     <div class="stat-block stat-block--blue">
-                        <div class="stat-block-label">Spatial Signal</div>
+                        <div class="stat-block-label">Task</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">52.9%</span>
-                            <span class="stat-block-unit">images</span>
+                            <span class="stat-block-val">Classification</span>
+                            <span class="stat-block-unit">multi-class</span>
                         </div>
-                        <div class="stat-block-desc">have spatial relationships in captions</div>
+                        <div class="stat-block-desc">Food category recognition</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">GeoTIFF</span>
-                        <span class="stat-pill">top-down view</span>
+                        <span class="stat-pill">PCA / Rand. PCA</span>
+                        <span class="stat-pill">Image</span>
                     </div>
                 </div>
                 <div class="mod-divider"></div>
                 <div class="mod-card-foot">
-                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                    <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">🔗 Food Image Classification — GitHub</a>
                 </div>
             </a>
 
@@ -598,42 +596,41 @@
                 <div class="mod-card-head">
                     <div class="mod-icon">🔗</div>
                     <div class="mod-title">Multimodal</div>
-                    <div class="mod-sub">Text + Image fusion — cross-modal alignment, caption-image pairing on RSITMD.</div>
+                    <div class="mod-sub">Cross-modal RS Image Retrieval — AMFMN model for text-image matching in remote sensing.</div>
                     <span class="mod-tag tag-active">Active</span>
                 </div>
                 <div class="mod-stat-panel">
                     <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Class Imbalance Ratio</div>
+                        <div class="stat-block-label">Dataset</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">38×</span>
-                            <span class="stat-block-unit">max</span>
+                            <span class="stat-block-val">RSITMD / AMFMN</span>
                         </div>
-                        <div class="stat-block-desc">Storage tanks (227) vs plane (6)</div>
+                        <div class="stat-block-desc">xiaoyuan1996 · GitHub</div>
                     </div>
                     <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Caption Variability</div>
+                        <div class="stat-block-label">Task</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">1.75</span>
-                            <span class="stat-block-unit">std</span>
+                            <span class="stat-block-val">Retrieval</span>
+                            <span class="stat-block-unit">text→image</span>
                         </div>
-                        <div class="stat-block-desc">across 5 captions per image</div>
+                        <div class="stat-block-desc">Cross-modal remote sensing retrieval</div>
                     </div>
                     <div class="stat-block stat-block--violet">
-                        <div class="stat-block-label">Top Objects</div>
+                        <div class="stat-block-label">Model</div>
                         <div class="stat-block-row">
-                            <span class="stat-block-val">trees</span>
-                            <span class="stat-block-unit">3,505</span>
+                            <span class="stat-block-val">AMFMN</span>
+                            <span class="stat-block-unit">CVPR-based</span>
                         </div>
-                        <div class="stat-block-desc">buildings: 2,921 · road: 2,177</div>
+                        <div class="stat-block-desc">Attention-based Multimodal Fusion</div>
                     </div>
                     <div class="stat-pills">
-                        <span class="stat-pill">image-text fusion</span>
-                        <span class="stat-pill">retrieval</span>
+                        <span class="stat-pill">RSITMD</span>
+                        <span class="stat-pill">AMFMN</span>
                     </div>
                 </div>
                 <div class="mod-divider"></div>
                 <div class="mod-card-foot">
-                    <span class="src-btn">🔗 Dataset Source — RSITMD (Google Drive)</span>
+                    <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">🔗 AMFMN — Cross-modal RS Retrieval · GitHub</a>
                 </div>
             </a>
 
