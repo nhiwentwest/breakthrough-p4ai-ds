@@ -190,7 +190,7 @@
             gap: 14px;
         }
 
-        /* ─── ONE cohesive card block ────────────────────────── */
+        /* ─── ONE card — no internal borders at all ──────────── */
         .mod-card {
             border-radius: var(--r-sm);
             border: 1px solid var(--border-md);
@@ -212,7 +212,7 @@
         .mod-card--image:hover   { border-color: rgba(61,90,128,0.30); }
         .mod-card--multi:hover   { border-color: rgba(107,76,142,0.30); }
 
-        /* Top color bar — the only color on the card */
+        /* Top color bar */
         .mod-card::before {
             content: '';
             display: block;
@@ -223,15 +223,15 @@
         .mod-card--image::before  { background: var(--blue); }
         .mod-card--multi::before  { background: var(--violet); }
 
-        /* Card body — flows as one continuous block */
-        .mod-body {
+        /* All content in ONE seamless block — NO border between sections */
+        .mod-content {
             padding: 12px 14px 14px;
             display: flex;
             flex-direction: column;
             flex: 1;
         }
 
-        /* Header row: icon + titles + tag */
+        /* Header row: icon + title/tag inline */
         .mod-hdr {
             display: flex;
             align-items: flex-start;
@@ -276,19 +276,17 @@
             flex-shrink: 0;
             margin-top: 1px;
         }
-        .tag-done   { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
-        .tag-active { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
+        .tag-done    { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
+        .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
-        /* Stats — plain rows with bottom borders, no background boxes */
+        /* Stats — NO borders between rows */
         .stat-row {
             display: flex;
             justify-content: space-between;
             align-items: baseline;
             gap: 6px;
-            padding: 6px 0;
-            border-bottom: 1px solid var(--border);
+            padding: 5px 0;
         }
-        .stat-row:last-of-type { border-bottom: none; }
 
         .stat-lbl {
             font-size: 0.59rem;
@@ -335,7 +333,7 @@
         .mod-card--image  .stat-pill { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
         .mod-card--multi  .stat-pill { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
 
-        /* Source button */
+        /* Source button — NO margin-top, flows naturally */
         .src-btn {
             display: flex;
             align-items: center;
@@ -350,7 +348,7 @@
             text-decoration: none;
             border: 1.5px solid;
             transition: all 0.22s;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         .src-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
         .mod-card--tabular .src-btn { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
@@ -419,7 +417,7 @@
 
             <!-- ── Tabular ── -->
             <a class="mod-card mod-card--tabular" href="./tabular/">
-                <div class="mod-body">
+                <div class="mod-content">
                     <div class="mod-hdr">
                         <div class="mod-icon">📊</div>
                         <div class="mod-hdr-txt">
@@ -462,7 +460,7 @@
 
             <!-- ── Text ── -->
             <a class="mod-card mod-card--text" href="./text/">
-                <div class="mod-body">
+                <div class="mod-content">
                     <div class="mod-hdr">
                         <div class="mod-icon">📝</div>
                         <div class="mod-hdr-txt">
@@ -505,7 +503,7 @@
 
             <!-- ── Image ── -->
             <a class="mod-card mod-card--image" href="./image/">
-                <div class="mod-body">
+                <div class="mod-content">
                     <div class="mod-hdr">
                         <div class="mod-icon">🖼</div>
                         <div class="mod-hdr-txt">
@@ -547,7 +545,7 @@
 
             <!-- ── Multimodal ── -->
             <a class="mod-card mod-card--multi" href="./multimodal/">
-                <div class="mod-body">
+                <div class="mod-content">
                     <div class="mod-hdr">
                         <div class="mod-icon">🔗</div>
                         <div class="mod-hdr-txt">
