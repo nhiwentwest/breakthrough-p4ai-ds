@@ -1,22 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment 1 — EDA | Breakthrough</title>
+    <title>Assignment 01 — EDA | Breakthrough</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F5F2ED;
-            --bg-subtle: #EDE9E2;
-            --ink: #1A1916;
-            --ink-muted: #6B6560;
-            --ink-faint: #A8A39C;
-            --accent: #B8782A;
-            --accent-light: rgba(184,120,42,0.08);
-            --border: rgba(26,25,22,0.10);
-            --border-strong: rgba(26,25,22,0.18);
+            --bg:           #F0EDE6;
+            --bg-card:      #FAF8F4;
+            --bg-subtle:    #E8E4DC;
+            --ink:          #1C1A16;
+            --ink-muted:    #7A746A;
+            --ink-faint:    #B0A89C;
+            --accent:       #A06820;
+            --accent-light: rgba(160, 104, 32, 0.10);
+            --accent-soft:  rgba(160, 104, 32, 0.20);
+            --teal:         #2A7A70;
+            --teal-light:   rgba(42, 122, 112, 0.10);
+            --blue:         #3D5A80;
+            --blue-light:   rgba(61, 90, 128, 0.10);
+            --violet:       #6B4C8E;
+            --violet-light: rgba(107, 76, 142, 0.10);
+            --green:        #2D6A4F;
+            --amber:        #C47D00;
+            --border:       rgba(28, 26, 22, 0.09);
+            --border-md:    rgba(28, 26, 22, 0.14);
+            --r: 16px;
+            --r-sm: 10px;
+            --r-xs: 6px;
+            --shadow-sm:  0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --shadow-md:  0 2px 6px rgba(28,26,22,0.08), 0 6px 20px rgba(28,26,22,0.06);
+            --shadow-lg:  0 4px 12px rgba(28,26,22,0.10), 0 12px 32px rgba(28,26,22,0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,294 +47,561 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Topbar ── */
+        /* ─── Topbar ─────────────────────────────────────────── */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 48px;
+            padding: 12px 40px;
+            background: var(--bg-card);
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .topbar-logo {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             color: var(--ink);
             text-decoration: none;
+            transition: color 0.2s;
         }
         .topbar-logo span { color: var(--accent); }
+        .topbar-logo:hover span { color: var(--ink); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
         .topbar-tag {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             color: var(--ink-faint);
         }
+        .topbar-badge {
+            font-size: 0.62rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: var(--accent-light);
+            border: 1px solid var(--accent-soft);
+            color: var(--accent);
+            letter-spacing: 0.06em;
+        }
 
-        /* ── Hero ── */
-        .hero {
+        /* ─── Workspace ──────────────────────────────────────── */
+        .workspace {
             flex: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 40px 44px;
+            width: 100%;
+        }
+
+        /* ─── Asymmetric bento grid ──────────────────────────── */
+        /*
+           Layout:
+           ┌──────────────────────────────┬──────────┐
+           │  Hero (title + subtitle)    │  Status  │ ← 3fr + 1fr
+           ├──────────────────┬──────────┴──────────┤
+           │  Actions         │  3-side-metric    │ ← Hero actions row
+           ├──────────────────┴──┬─────────────────┤
+           │  Modality grid       │  4th modality   │ ← 2fr + 1fr  ← MODALITY ROW
+           │  (Tabular + Text    │  (Multimodal)  │
+           │   + Image)          │                 │
+           └─────────────────────┴─────────────────┘
+        */
+        .bento {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 16px;
+        }
+
+        /* ─── Cell: Hero title ────────────────────────────────── */
+        .cell-hero {
+            grid-column: 1;
+            grid-row: 1;
+            padding: 28px 28px 22px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-md);
+            border-radius: var(--r);
+            box-shadow: var(--shadow-sm);
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 72px 24px;
+            justify-content: flex-end;
+            min-height: 180px;
+            position: relative;
+            overflow: hidden;
         }
-
-        .back {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--ink-faint);
-            text-decoration: none;
-            font-size: 0.8rem;
-            letter-spacing: 0.06em;
-            margin-bottom: 48px;
-            transition: color 0.2s;
+        /* Decorative top accent line */
+        .cell-hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--teal) 60%, transparent 100%);
+            border-radius: var(--r) var(--r) 0 0;
         }
-        .back:hover { color: var(--accent); }
-
-        .badge {
-            display: inline-block;
-            font-size: 0.68rem;
+        .cell-hero-eyebrow {
+            font-size: 0.65rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
             color: var(--accent);
-            margin-bottom: 20px;
+            margin-bottom: 10px;
+        }
+        .cell-hero-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.05;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+        }
+        .cell-hero-sub {
+            font-size: 0.8rem;
+            color: var(--ink-muted);
+            line-height: 1.6;
+            max-width: 480px;
         }
 
-        h1 {
+        /* ─── Cell: Status card (right of hero) ───────────────── */
+        .cell-status {
+            grid-column: 2;
+            grid-row: 1;
+            background: var(--accent);
+            border-radius: var(--r);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow-md);
+            color: #FAF8F4;
+            position: relative;
+            overflow: hidden;
+        }
+        .cell-status::after {
+            content: '';
+            position: absolute;
+            bottom: -20px; right: -20px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.07);
+        }
+        .cell-status-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            opacity: 0.75;
+            margin-bottom: 12px;
+        }
+        .cell-status-big {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-size: 2.6rem;
             font-weight: 700;
             line-height: 1;
-            letter-spacing: -0.02em;
-            color: var(--ink);
-            margin-bottom: 20px;
+            margin-bottom: 4px;
         }
-
-        .subtitle {
-            font-size: 0.9rem;
-            font-weight: 300;
-            color: var(--ink-muted);
-            letter-spacing: 0.04em;
-            max-width: 520px;
-            line-height: 1.75;
-            margin-bottom: 52px;
+        .cell-status-sub {
+            font-size: 0.72rem;
+            opacity: 0.8;
+            line-height: 1.4;
         }
-
-        /* ── Draft Banner ── */
-        .draft-banner {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--accent-light);
-            border: 1px solid rgba(184,120,42,0.2);
-            color: var(--accent);
-            font-size: 0.75rem;
-            padding: 5px 16px;
-            border-radius: 2px;
-            margin-bottom: 20px;
-        }
-        .draft-banner .dot {
-            width: 5px;
-            height: 5px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: pulse 1.8s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.25; }
-        }
-
-        /* ── Action Buttons ── */
-        .links {
+        .cell-status-pills {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 60px;
+            gap: 5px;
+            margin-top: 16px;
         }
-        .link-btn {
+        .status-pill {
+            font-size: 0.6rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: rgba(250,248,244,0.9);
+            letter-spacing: 0.06em;
+        }
+        .status-pill--active { background: rgba(255,255,255,0.25); }
+
+        /* ─── Cell: Action buttons ──────────────────────────────── */
+        .cell-actions {
+            grid-column: 1;
+            grid-row: 2;
+            background: var(--bg-card);
+            border: 1px solid var(--border-md);
+            border-radius: var(--r);
+            padding: 18px 20px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .action-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-right: 4px;
+            flex-shrink: 0;
+        }
+        .action-btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 22px;
-            border-radius: 2px;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--r-xs);
             text-decoration: none;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 500;
             letter-spacing: 0.03em;
             transition: all 0.2s;
             border: 1px solid;
+            cursor: pointer;
         }
-        .link-btn-report {
+        .action-btn--primary {
             background: var(--accent);
             border-color: var(--accent);
-            color: #F5F2ED;
+            color: #FAF8F4;
+            box-shadow: var(--shadow-sm);
         }
-        .link-btn-report:hover {
+        .action-btn--primary:hover {
             background: var(--ink);
             border-color: var(--ink);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-1px);
         }
-        .link-btn-video {
+        .action-btn--outline {
             background: transparent;
-            border-color: var(--border-strong);
+            border-color: var(--border-md);
             color: var(--ink-muted);
         }
-        .link-btn-video:hover {
+        .action-btn--outline:hover {
             border-color: var(--ink);
             color: var(--ink);
             background: var(--bg-subtle);
         }
-        .link-btn-github {
-            background: transparent;
-            border-color: var(--border-strong);
-            color: var(--ink-muted);
+        .action-btn-icon {
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
-        .link-btn-github:hover {
-            border-color: var(--ink);
-            color: var(--ink);
-            background: var(--bg-subtle);
+        .action-btn-sep {
+            width: 1px;
+            height: 20px;
+            background: var(--border-md);
+            flex-shrink: 0;
         }
 
-        /* ── Modalities ── */
-        .mod-label {
-            font-size: 0.68rem;
+        /* ─── Cell: 3-side metrics ────────────────────────────── */
+        .cell-side-metrics {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .side-metric-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-md);
+            border-radius: var(--r-sm);
+            padding: 12px 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .side-metric-label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ink-faint);
+            margin-bottom: 4px;
+        }
+        .side-metric-val {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .side-metric-sub {
+            font-size: 0.62rem;
+            color: var(--ink-faint);
+            margin-top: 1px;
+        }
+
+        /* ─── Modality row ────────────────────────────────────── */
+        .cell-mods {
+            grid-column: 1 / -1;
+            grid-row: 3;
+        }
+        .mods-label {
+            font-size: 0.62rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
             color: var(--ink-faint);
-            margin-bottom: 14px;
-            text-align: left;
-            width: 100%;
-            max-width: 760px;
+            margin-bottom: 10px;
+            padding-left: 2px;
         }
 
-        .modalities {
+        /* Bento 4-card layout:
+           [ Tabular — large ] [ Text ]        ← row 1
+           [ Image — large   ] [ Multimodal ]  ← row 2
+           All spanning full cell-mods width
+        */
+        .mods-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 10px;
-            width: 100%;
-            max-width: 760px;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            height: 340px;
         }
 
         .mod-card {
-            background: transparent;
-            border: 1px solid var(--border-strong);
-            border-radius: 2px;
-            padding: 20px 18px;
-            text-align: left;
-            transition: all 0.2s;
+            border-radius: var(--r);
+            border: 1px solid var(--border-md);
+            background: var(--bg-card);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
         .mod-card:hover {
-            border-color: var(--ink);
-            background: var(--ink);
-            color: var(--bg);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
         }
-        .mod-card:hover .mod-desc { color: var(--ink-faint); }
-        .mod-card:hover .mod-tag  { opacity: 0.7; }
+        .mod-card:not(.locked):hover {
+            border-color: var(--accent);
+        }
+        .locked { cursor: not-allowed; opacity: 0.75; }
+        .locked:hover { transform: none; box-shadow: var(--shadow-sm); }
 
-        .mod-icon { font-size: 1.4rem; margin-bottom: 8px; }
+        /* Top accent bar per card */
+        .mod-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: var(--r) var(--r) 0 0;
+        }
+        .mod-card--tabular::before { background: var(--accent); }
+        .mod-card--text::before    { background: var(--teal); }
+        .mod-card--image::before   { background: var(--blue); }
+        .mod-card--multi::before   { background: var(--violet); }
+
+        /* Icon */
+        .mod-icon {
+            width: 38px; height: 38px;
+            border-radius: var(--r-xs);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 14px;
+        }
+        .mod-card--tabular .mod-icon { background: var(--accent-light); }
+        .mod-card--text    .mod-icon { background: var(--teal-light); }
+        .mod-card--image   .mod-icon { background: var(--blue-light); }
+        .mod-card--multi   .mod-icon { background: var(--violet-light); }
+
         .mod-title {
             font-weight: 700;
-            font-size: 0.92rem;
+            font-size: 0.95rem;
             margin-bottom: 4px;
         }
-        .mod-desc {
-            font-size: 0.73rem;
+        .mod-sub {
+            font-size: 0.72rem;
             color: var(--ink-muted);
-            transition: color 0.2s;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+        .mod-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: auto;
         }
         .mod-tag {
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 1px;
-            letter-spacing: 0.06em;
-            transition: opacity 0.2s;
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid;
+            flex-shrink: 0;
         }
-        .tag-done    { background: rgba(26,25,22,0.07);  color: var(--ink-muted); }
-        .tag-pending { background: var(--accent-light); color: var(--accent); }
+        .tag-done    { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
+        .tag-pending { border-color: var(--border-md); color: var(--ink-faint); background: transparent; }
+        .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
-        /* ── Footer ── */
+        /* ─── Footer ──────────────────────────────────────────── */
         footer {
             text-align: center;
-            padding: 28px;
-            font-size: 0.7rem;
+            padding: 18px;
+            font-size: 0.63rem;
             letter-spacing: 0.1em;
             color: var(--ink-faint);
             border-top: 1px solid var(--border);
+        }
+
+        /* ─── Responsive ───────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .bento {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            .cell-hero { grid-column: 1; grid-row: 1; }
+            .cell-status { grid-column: 1; grid-row: 2; }
+            .cell-actions { grid-column: 1; grid-row: 3; }
+            .cell-side-metrics { grid-column: 1; grid-row: 4; flex-direction: row; flex-wrap: wrap; }
+            .cell-mods { grid-column: 1; grid-row: 5; }
+            .mods-grid {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto;
+                height: auto;
+            }
+            .workspace { padding: 20px 20px 32px; }
+            .topbar { padding: 12px 20px; }
         }
     </style>
 </head>
 <body>
     <div class="topbar">
         <a class="topbar-logo" href="../">Breakthrough<span>.</span></a>
-        <div class="topbar-tag">CO3135 · P4AI-DS</div>
-    </div>
-
-    <div class="hero">
-        <a class="back" href="../">← Trang chủ nhóm</a>
-
-        <div class="draft-banner">
-            <span class="dot"></span>
-            Draft — chưa hoàn thiện đủ 4 modality
-        </div>
-
-        <div class="badge">Assignment 01</div>
-        <h1>Exploratory Data Analysis</h1>
-        <p class="subtitle">
-            EDA trên 3 modality: Tabular, Text, Image — và phân tích Multimodal
-            (text + image) trên bộ dữ liệu RSITMD.
-        </p>
-
-        <div class="links">
-            <a class="link-btn link-btn-report" href="./report/main.pdf" target="_blank">
-                📄 PDF Report (Draft)
-            </a>
-            <a class="link-btn link-btn-video" href="#">
-                ▶ YouTube Video
-            </a>
-            <a class="link-btn link-btn-github" href="#">
-                🐙 GitHub
-            </a>
-        </div>
-
-        <div class="modalities">
-            <div class="mod-label">Datasets &amp; Modalities</div>
-
-            <div class="mod-card">
-                <div class="mod-icon">📊</div>
-                <div class="mod-title">Tabular</div>
-                <div class="mod-desc">Structured data — CSV</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
-            </div>
-
-            <div class="mod-card">
-                <div class="mod-icon">📝</div>
-                <div class="mod-title">Text</div>
-                <div class="mod-desc">Unstructured text data</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
-            </div>
-
-            <div class="mod-card">
-                <div class="mod-icon">🖼</div>
-                <div class="mod-title">Image</div>
-                <div class="mod-desc">Remote sensing images</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
-            </div>
-
-            <div class="mod-card">
-                <div class="mod-icon">🔗</div>
-                <div class="mod-title">Multimodal</div>
-                <div class="mod-desc">Text + Image (RSITMD) — đang triển khai</div>
-                <span class="mod-tag tag-pending">Pending</span>
-            </div>
+        <div class="topbar-right">
+            <span class="topbar-badge">A01 · Draft</span>
+            <span class="topbar-tag">CO3135 · P4AI-DS</span>
         </div>
     </div>
+
+    <main class="workspace">
+
+        <div class="bento">
+
+            <!-- ── Hero title cell ── -->
+            <div class="cell-hero">
+                <div class="cell-hero-eyebrow">Assignment 01 · 2025–2026</div>
+                <h1 class="cell-hero-title">Exploratory<br>Data Analysis</h1>
+                <p class="cell-hero-sub">
+                    EDA trên 4 modality: Tabular, Text, Image — và phân tích Multimodal
+                    (text + image) trên bộ dữ liệu RSITMD.
+                </p>
+            </div>
+
+            <!-- ── Status card (accent, stands out) ── -->
+            <div class="cell-status">
+                <div>
+                    <div class="cell-status-label">Tiến độ chung</div>
+                    <div class="cell-status-big">75%</div>
+                    <div class="cell-status-sub">3 / 4 modalities<br>hoàn thành</div>
+                </div>
+                <div class="cell-status-pills">
+                    <span class="status-pill status-pill--active">● Live</span>
+                    <span class="status-pill">Tabular ✓</span>
+                    <span class="status-pill">Text ✓</span>
+                    <span class="status-pill">Image ✓</span>
+                    <span class="status-pill">Multi ↗</span>
+                </div>
+            </div>
+
+            <!-- ── Action buttons ── -->
+            <div class="cell-actions">
+                <span class="action-label">Tài liệu</span>
+                <div class="action-btn-sep"></div>
+                <a class="action-btn action-btn--primary" href="./report/main.pdf" target="_blank">
+                    <span class="action-btn-icon">📄</span>
+                    PDF Report
+                </a>
+                <a class="action-btn action-btn--outline" href="#">
+                    <span class="action-btn-icon">▶</span>
+                    YouTube Video
+                </a>
+                <a class="action-btn action-btn--outline" href="#">
+                    <span class="action-btn-icon">🐙</span>
+                    GitHub
+                </a>
+            </div>
+
+            <!-- ── Side metrics (3 cards) ── -->
+            <div class="cell-side-metrics">
+                <div class="side-metric-card">
+                    <div class="side-metric-label">Datasets</div>
+                    <div class="side-metric-val">4</div>
+                    <div class="side-metric-sub">RSITMD + 3 sources</div>
+                </div>
+                <div class="side-metric-card">
+                    <div class="side-metric-label">Học phần</div>
+                    <div class="side-metric-val">CO3135</div>
+                    <div class="side-metric-sub">P4AI-DS · HCMUT</div>
+                </div>
+                <div class="side-metric-card">
+                    <div class="side-metric-label">Multimodal</div>
+                    <div class="side-metric-val" style="font-size:1rem;">RSITMD</div>
+                    <div class="side-metric-sub">Text + Image fusion</div>
+                </div>
+            </div>
+
+            <!-- ── Modality cards ── -->
+            <div class="cell-mods">
+                <div class="mods-label">Datasets &amp; Modalities</div>
+                <div class="mods-grid">
+
+                    <!-- Tabular — spans 2 cols -->
+                    <div class="mod-card mod-card--tabular" style="grid-column: 1 / 3; grid-row: 1;">
+                        <div>
+                            <div class="mod-icon">📊</div>
+                            <div class="mod-title">Tabular Data</div>
+                            <div class="mod-sub">Structured CSV — numerical &amp; categorical features, statistical summary, correlation heatmap.</div>
+                        </div>
+                        <div class="mod-footer">
+                            <span class="mod-tag tag-done">Hoàn thành</span>
+                            <span style="font-size:0.7rem; color: var(--ink-faint);">Dataset RSITMD</span>
+                        </div>
+                    </div>
+
+                    <!-- Text -->
+                    <div class="mod-card mod-card--text" style="grid-column: 3; grid-row: 1;">
+                        <div>
+                            <div class="mod-icon">📝</div>
+                            <div class="mod-title">Text</div>
+                            <div class="mod-sub">NLP preprocessing, tokenization, word freq &amp; topic extraction.</div>
+                        </div>
+                        <div class="mod-footer">
+                            <span class="mod-tag tag-done">Hoàn thành</span>
+                        </div>
+                    </div>
+
+                    <!-- Image -->
+                    <div class="mod-card mod-card--image" style="grid-column: 1 / 3; grid-row: 2;">
+                        <div>
+                            <div class="mod-icon">🖼</div>
+                            <div class="mod-title">Remote Sensing Image</div>
+                            <div class="mod-sub">Satellite / aerial image EDA — band analysis, histogram, spatial resolution, visualization.</div>
+                        </div>
+                        <div class="mod-footer">
+                            <span class="mod-tag tag-done">Hoàn thành</span>
+                            <span style="font-size:0.7rem; color: var(--ink-faint);">Remote sensing dataset</span>
+                        </div>
+                    </div>
+
+                    <!-- Multimodal (accent highlight) -->
+                    <div class="mod-card mod-card--multi" style="grid-column: 3; grid-row: 2;">
+                        <div>
+                            <div class="mod-icon">🔗</div>
+                            <div class="mod-title">Multimodal</div>
+                            <div class="mod-sub">Text + Image fusion trên RSITMD — cross-modal analysis.</div>
+                        </div>
+                        <div class="mod-footer">
+                            <span class="mod-tag tag-active">Active</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div><!-- /bento -->
+    </main>
 
     <footer>
         Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
