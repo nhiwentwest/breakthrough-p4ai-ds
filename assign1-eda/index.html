@@ -113,8 +113,8 @@
             margin-bottom: 8px;
         }
         .page-sub {
-            font-size: 0.8rem;
-            color: var(--ink-muted);
+            font-size: 0.80rem;
+            color: var(--ink);
             line-height: 1.55;
             max-width: 560px;
         }
@@ -190,7 +190,7 @@
             gap: 14px;
         }
 
-        /* ─── ONE card — no internal borders at all ──────────── */
+        /* ONE card — no internal borders at all */
         .mod-card {
             border-radius: var(--r-sm);
             border: 1px solid var(--border-md);
@@ -201,6 +201,22 @@
             display: flex;
             flex-direction: column;
             transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.22s;
+            position: relative;
+        }
+        /* Stretched link: invisible overlay covers entire card so clicking anywhere navigates */
+        .mod-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        .mod-card > * { position: relative; z-index: 2; }
+        /* Kill all underlines inside the card */
+        .mod-card,
+        .mod-card *,
+        .mod-card a,
+        .mod-card a * {
+            text-decoration: none !important;
         }
         .mod-card:hover {
             transform: translateY(-3px);
@@ -224,7 +240,7 @@
 
         /* All content in ONE seamless block — NO border between sections */
         .mod-content {
-            padding: 12px 14px 14px;
+            padding: 12px 14px 0;
             display: flex;
             flex-direction: column;
             flex: 1;
@@ -240,6 +256,7 @@
             text-decoration: none;
             cursor: pointer;
         }
+        .mod-card-main:hover { color: inherit; }
         .mod-card-main:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 3px;
@@ -304,6 +321,8 @@
             align-items: baseline;
             gap: 6px;
             padding: 5px 0;
+            position: relative;
+            z-index: 3;
         }
 
         .stat-lbl {
@@ -338,6 +357,8 @@
             flex-wrap: wrap;
             gap: 4px;
             margin-top: 8px;
+            position: relative;
+            z-index: 3;
         }
         .stat-pill {
             font-size: 0.57rem;
@@ -352,6 +373,9 @@
         .mod-card--multi  .stat-pill { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
 
         /* Dataset source — same card, hairline only (no nested <a> bug, no heavy box border) */
+        .mod-footer {
+            padding: 0 14px 14px;
+        }
         .src-btn {
             display: flex;
             align-items: center;
@@ -370,15 +394,14 @@
             background: transparent;
             transition: color 0.18s, background 0.18s;
         }
-        .src-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+        .src-btn:hover { background: var(--accent-light); }
         .mod-card--tabular .src-btn { color: var(--accent); }
-        .mod-card--tabular .src-btn:hover { background: var(--accent-light); text-decoration: none; }
         .mod-card--text    .src-btn { color: var(--teal); }
-        .mod-card--text    .src-btn:hover { background: var(--teal-light); text-decoration: none; }
+        .mod-card--text    .src-btn:hover { background: var(--teal-light); }
         .mod-card--image  .src-btn { color: var(--blue); }
-        .mod-card--image  .src-btn:hover { background: var(--blue-light); text-decoration: none; }
+        .mod-card--image  .src-btn:hover { background: var(--blue-light); }
         .mod-card--multi  .src-btn { color: var(--violet); }
-        .mod-card--multi  .src-btn:hover { background: var(--violet-light); text-decoration: none; }
+        .mod-card--multi  .src-btn:hover { background: var(--violet-light); }
 
         /* ─── Footer ──────────────────────────────────────────── */
         footer {
@@ -474,9 +497,12 @@
                         <span class="stat-pill">Regression</span>
                     </div>
                     </a>
-                    <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">
-                        🔗 World Happiness Report — Kaggle
-                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            World Happiness Report — Kaggle
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -519,9 +545,12 @@
                         <span class="stat-pill">Word freq</span>
                     </div>
                     </a>
-                    <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">
-                        🔗 Multimodal-Textbook — HuggingFace
-                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Multimodal-Textbook — HuggingFace
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -563,9 +592,12 @@
                         <span class="stat-pill">Classification</span>
                     </div>
                     </a>
-                    <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">
-                        🔗 Food Image Classification — GitHub
-                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Food Image Classification — GitHub
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -608,9 +640,12 @@
                         <span class="stat-pill">Retrieval</span>
                     </div>
                     </a>
-                    <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
-                        🔗 AMFMN — Cross-modal RS Retrieval · GitHub
-                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            AMFMN — Cross-modal RS Retrieval · GitHub
+                        </a>
+                    </div>
                 </div>
             </div>
 
