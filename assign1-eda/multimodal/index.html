@@ -5,18 +5,364 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multimodal EDA | Assignment 01</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #F0EDE6; color: #1C1A16; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .msg { text-align: center; padding: 40px; }
-        h1 { font-size: 1.5rem; margin-bottom: 8px; }
-        p { color: #7A746A; font-size: 0.9rem; }
-        a { color: #6B4C8E; text-decoration: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:        #F0EDE6;
+            --bg-card:   #FAF8F4;
+            --ink:       #1C1A16;
+            --ink-muted: #7A746A;
+            --ink-faint: #B0A89C;
+            --purple:    #6B4C8E;
+            --purple-bg: rgba(107, 76, 142, 0.09);
+            --purple-md: rgba(107, 76, 142, 0.22);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --border:    rgba(28, 26, 22, 0.09);
+            --border-md: rgba(28, 26, 22, 0.14);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--purple); text-decoration: none; }
         a:hover { text-decoration: underline; }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo {
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .topbar-logo span { color: var(--purple); }
+        .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+        /* ── Main ── */
+        main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        /* ── Page header ── */
+        .page-head { margin-bottom: 24px; }
+        .kicker { font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+        h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+        h1 em { font-style: normal; color: var(--purple); }
+
+        /* ── Chips ── */
+        .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .chip {
+            font-size: 0.66rem; padding: 4px 12px;
+            border-radius: 999px; border: 1px solid var(--border-md);
+            background: var(--bg-card); color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--purple { background: var(--purple-bg); border-color: var(--purple-md); color: var(--purple); font-weight: 500; }
+        .chip--ok { background: rgba(45,106,79,0.09); border-color: rgba(45,106,79,0.28); color: #2D6A4F; font-weight: 500; }
+
+        /* ── Dataset card ── */
+        .dataset-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 20px 22px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .dataset-card h2 { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+        .dataset-title { font-size: 1.05rem; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+        .dataset-sub { font-size: 0.72rem; color: var(--ink-muted); margin-bottom: 10px; }
+        .dataset-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { font-size: 0.64rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--shadow-sm);
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 4px; }
+        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--purple); line-height: 1; }
+        .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
+
+        /* ── Analysis sections ── */
+        .section-title { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+
+        .analysis-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .analysis-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .analysis-icon { font-size: 1.1rem; }
+        .analysis-name { font-size: 0.95rem; font-weight: 600; }
+        .analysis-badge {
+            font-size: 0.6rem; padding: 2px 9px; border-radius: 999px;
+            background: var(--purple-bg); border: 1px solid var(--purple-md);
+            color: var(--purple); font-weight: 500; margin-left: auto;
+        }
+        .analysis-desc { font-size: 0.78rem; color: var(--ink-muted); line-height: 1.55; margin-bottom: 10px; }
+        .analysis-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { font-size: 0.63rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Figures ── */
+        .figures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .fig-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm);
+        }
+        .fig-card img { width: 100%; display: block; border-bottom: 1px solid var(--border); }
+        .fig-label { padding: 10px 14px; }
+        .fig-name { font-size: 0.72rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+        .fig-desc { font-size: 0.64rem; color: var(--ink-muted); }
+
+        /* ── Code block ── */
+        .code-section { margin-bottom: 20px; }
+        .code-card {
+            background: #1C1A16; border-radius: var(--r-sm); overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .code-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background: #C0504A; }
+        .dot-y { background: #C47D00; }
+        .dot-g { background: #2D6A4F; }
+        .code-title { font-size: 0.7rem; color: rgba(255,255,255,0.5); margin-left: 4px; font-family: monospace; }
+        pre { padding: 16px 18px; overflow-x: auto; }
+        pre code { font-family: 'Menlo', 'Consolas', monospace; font-size: 0.72rem; color: #D4C9BB; line-height: 1.6; }
+
+        /* ── Links ── */
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .link-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
+        }
+        .link-card:hover { border-color: var(--purple-md); transform: translateY(-2px); }
+        .link-icon { font-size: 1.1rem; }
+        .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .link-url { font-size: 0.63rem; color: var(--purple); font-family: monospace; word-break: break-all; }
+
+        /* ── Footer ── */
+        footer { text-align: center; padding: 18px; font-size: 0.63rem; letter-spacing: 0.08em; color: var(--ink-faint); border-top: 1px solid var(--border); }
+
+        @media (max-width: 640px) {
+            main { padding: 20px 16px 40px; }
+            .figures-grid { grid-template-columns: 1fr; }
+            .links-grid { grid-template-columns: 1fr; }
+            .topbar { padding: 12px 16px; }
+        }
     </style>
 </head>
 <body>
-    <div class="msg">
-        <h1>🔗 Multimodal EDA</h1>
-        <p>Source code coming soon.<br><a href="../">← Back to Assignment 01</a></p>
+
+<div class="topbar">
+    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <div class="topbar-meta">A01 · Multimodal · RSITMD</div>
+</div>
+
+<main>
+
+    <header class="page-head">
+        <div class="kicker">Assignment 01 · Exploratory Data Analysis</div>
+        <h1>🔗 Multimodal <em>EDA</em></h1>
+        <div class="chips">
+            <span class="chip chip--purple">RSITMD · Remote Sensing</span>
+            <span class="chip chip--ok">Python · pandas · matplotlib · seaborn · nltk</span>
+            <span class="chip">Image + Text</span>
+        </div>
+    </header>
+
+    <!-- Dataset overview -->
+    <div class="dataset-card">
+        <h2>Dataset</h2>
+        <div class="dataset-title">RSITMD — Remote Sensing Image-Text Matching Dataset</div>
+        <div class="dataset-sub">Z. Yuan et al., IEEE TGRS 2021 · Cross-modal remote sensing image-text retrieval</div>
+        <div class="dataset-meta">
+            <span class="meta-tag">5,000 train images</span>
+            <span class="meta-tag">2,000 test images</span>
+            <span class="meta-tag">5 captions / image</span>
+            <span class="meta-tag">~25,000 train pairs</span>
+            <span class="meta-tag">21 categories</span>
+            <span class="meta-tag">AMFMN model (CVPR'20)</span>
+        </div>
     </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Train images</div>
+            <div class="stat-val">5K+</div>
+            <div class="stat-sub">RSITMD train set</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Captions / image</div>
+            <div class="stat-val">5</div>
+            <div class="stat-sub">fixed per image</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Categories</div>
+            <div class="stat-val">21</div>
+            <div class="stat-sub">scene classes</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Analysis plots</div>
+            <div class="stat-val">20+</div>
+            <div class="stat-sub">train + test</div>
+        </div>
+    </div>
+
+    <!-- Analyses covered -->
+    <div class="section-title">Phân tích thực hiện</div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📝</span>
+            <span class="analysis-name">Text Analysis</span>
+            <span class="analysis-badge">7 plots</span>
+        </div>
+        <div class="analysis-desc">
+            Phân tích 35,000+ captions trong bộ train: phân bố category, độ dài caption, phân bố ký tự, độ phong phú từ vựng, top-50 từ phổ biến, từ khóa đặc trưng theo category, và bigrams (cặp từ liền kề).
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">category distribution</span>
+            <span class="tag">caption length</span>
+            <span class="tag">char distribution</span>
+            <span class="tag">vocabulary richness</span>
+            <span class="tag">top-50 words</span>
+            <span class="tag">category keywords</span>
+            <span class="tag">bigrams</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🖼</span>
+            <span class="analysis-name">Image Analysis</span>
+            <span class="analysis-badge">5 plots</span>
+        </div>
+        <div class="analysis-desc">
+            Phân tích ảnh vệ tinh: phân bố lớp (category distribution), chất lượng ảnh (resolution & aspect ratio), độ đa dạng hình ảnh, object grounding coverage, và scene graph summary.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">class distribution</span>
+            <span class="tag">image quality</span>
+            <span class="tag">visual diversity</span>
+            <span class="tag">object grounding</span>
+            <span class="tag">scene graph</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🔗</span>
+            <span class="analysis-name">Multimodal Analysis</span>
+            <span class="analysis-badge">5 plots</span>
+        </div>
+        <div class="analysis-desc">
+            Phân tích cross-modal: caption variability (biến thiên caption giữa các ảnh cùng loại), sample pairs (hiển thị ảnh + 5 captions), và multimodal correlation giữa thuộc tính text và image.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">caption variability</span>
+            <span class="tag">sample pairs</span>
+            <span class="tag">multimodal correlation</span>
+        </div>
+    </div>
+
+    <!-- Figures from report -->
+    <div class="section-title" style="margin-top:4px;">Key figures · train set</div>
+    <div class="figures-grid">
+        <div class="fig-card">
+            <img src="../report/figures/ia_01_category_distribution_train.png" alt="Category distribution"
+                 onerror="this.parentElement.style.display='none'">
+            <div class="fig-label">
+                <div class="fig-name">ia_01 · Category Distribution</div>
+                <div class="fig-desc">Image class distribution across 21 RSITMD categories</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../report/figures/ta_02_word_frequency_train.png" alt="Word frequency"
+                 onerror="this.parentElement.style.display='none'">
+            <div class="fig-label">
+                <div class="fig-name">ta_02 · Top-50 Word Frequency</div>
+                <div class="fig-desc">Most frequent words across train captions (nltk stopwords removed)</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../report/figures/ta_04_bigram_frequency_train.png" alt="Bigram frequency"
+                 onerror="this.parentElement.style.display='none'">
+            <div class="fig-label">
+                <div class="fig-name">ta_04 · Bigram Frequency</div>
+                <div class="fig-desc">Top-40 most frequent word pairs in train captions</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../report/figures/mm_01_caption_variability_train.png" alt="Caption variability"
+                 onerror="this.parentElement.style.display='none'">
+            <div class="fig-label">
+                <div class="fig-name">mm_01 · Caption Variability</div>
+                <div class="fig-desc">Caption length variability within each category (train)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Source code -->
+    <div class="section-title">Source code</div>
+    <div class="links-grid">
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/multimodal/eda_multimodal.py">
+            <span class="link-icon">🐍</span>
+            <span class="link-label">eda_multimodal.py</span>
+            <span class="link-url">/multimodal/eda_multimodal.py</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/multimodal/requirements.txt">
+            <span class="link-icon">📦</span>
+            <span class="link-label">requirements.txt</span>
+            <span class="link-url">/multimodal/requirements.txt</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/tree/main/report">
+            <span class="link-icon">📄</span>
+            <span class="link-label">PDF Report</span>
+            <span class="link-url">/report/main.tex</span>
+        </a>
+    </div>
+
+    <!-- Run snippet -->
+    <div class="code-section">
+        <div class="code-header">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span class="code-title">terminal — run EDA locally</span>
+        </div>
+        <div class="code-card">
+            <pre><code>pip install -r requirements.txt
+python eda_multimodal.py</code></pre>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+</footer>
+
 </body>
 </html>
