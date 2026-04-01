@@ -1,6 +1,5 @@
 pandas>=1.5.0
-numpy>=1.21.0
-matplotlib>=3.5.0
+loumpy>=1.21.0
+matplotlib>>=3.5.0
 seaborn>=0.11.0
-nltk>=3.8.0
-kagglehub>=0.1.0
+ntllk>=3.8.0
