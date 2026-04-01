@@ -5,18 +5,480 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tabular EDA | Assignment 01</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #F0EDE6; color: #1C1A16; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .msg { text-align: center; padding: 40px; }
-        h1 { font-size: 1.5rem; margin-bottom: 8px; }
-        p { color: #7A746A; font-size: 0.9rem; }
-        a { color: #A06820; text-decoration: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:        #F0EDE6;
+            --bg-card:   #FAF8F4;
+            --ink:       #1C1A16;
+            --ink-muted: #7A746A;
+            --ink-faint: #B0A89C;
+            --purple:    #6B4C8E;
+            --purple-bg: rgba(107, 76, 142, 0.09);
+            --purple-md: rgba(107, 76, 142, 0.22);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --border:    rgba(28, 26, 22, 0.09);
+            --border-md: rgba(28, 26, 22, 0.14);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--purple); text-decoration: none; }
         a:hover { text-decoration: underline; }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo {
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .topbar-logo span { color: var(--purple); }
+        .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+        /* ── Main ── */
+        main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        /* ── Page header ── */
+        .page-head { margin-bottom: 24px; }
+        .kicker { font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+        h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+        h1 em { font-style: normal; color: var(--purple); }
+
+        /* ── Chips ── */
+        .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .chip {
+            font-size: 0.66rem; padding: 4px 12px;
+            border-radius: 999px; border: 1px solid var(--border-md);
+            background: var(--bg-card); color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--purple { background: var(--purple-bg); border-color: var(--purple-md); color: var(--purple); font-weight: 500; }
+        .chip--ok { background: rgba(45,106,79,0.09); border-color: rgba(45,106,79,0.28); color: #2D6A4F; font-weight: 500; }
+
+        /* ── Dataset card ── */
+        .dataset-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 20px 22px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .dataset-card h2 { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+        .dataset-title { font-size: 1.05rem; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+        .dataset-sub { font-size: 0.72rem; color: var(--ink-muted); margin-bottom: 10px; }
+        .dataset-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { font-size: 0.64rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--shadow-sm);
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 4px; }
+        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--purple); line-height: 1; }
+        .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
+
+        /* ── Analysis sections ── */
+        .section-title { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+
+        .analysis-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .analysis-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .analysis-icon { font-size: 1.1rem; }
+        .analysis-name { font-size: 0.95rem; font-weight: 600; }
+        .analysis-badge {
+            font-size: 0.6rem; padding: 2px 9px; border-radius: 999px;
+            background: var(--purple-bg); border: 1px solid var(--purple-md);
+            color: var(--purple); font-weight: 500; margin-left: auto;
+        }
+        .analysis-desc { font-size: 0.78rem; color: var(--ink-muted); line-height: 1.55; margin-bottom: 10px; }
+        .analysis-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { font-size: 0.63rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Figures ── */
+        .figures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .fig-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm);
+        }
+        .fig-card img { width: 100%; display: block; border-bottom: 1px solid var(--border); }
+        .fig-card .fig-label { padding: 10px 14px; }
+        .fig-name { font-size: 0.72rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+        .fig-desc { font-size: 0.64rem; color: var(--ink-muted); }
+
+        /* ── Code block ── */
+        .code-section { margin-bottom: 20px; }
+        .code-card {
+            background: #1C1A16; border-radius: var(--r-sm); overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .code-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background: #C0504A; }
+        .dot-y { background: #C47D00; }
+        .dot-g { background: #2D6A4F; }
+        .code-title { font-size: 0.7rem; color: #C8BFB0; margin-left: 4px; font-family: monospace; font-weight: 500; }
+        pre { padding: 16px 18px; overflow-x: auto; }
+        pre code { font-family: 'Menlo', 'Consolas', monospace; font-size: 0.72rem; color: #D4C9BB; line-height: 1.6; }
+
+        /* ── Links ── */
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .link-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
+        }
+        .link-card:hover { border-color: var(--purple-md); transform: translateY(-2px); }
+        .link-icon { font-size: 1.1rem; }
+        .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .link-url { font-size: 0.63rem; color: var(--purple); font-family: monospace; word-break: break-all; }
+
+        /* ── Footer ── */
+        footer { text-align: center; padding: 18px; font-size: 0.63rem; letter-spacing: 0.08em; color: var(--ink-faint); border-top: 1px solid var(--border); }
+
+        @media (max-width: 640px) {
+            main { padding: 20px 16px 40px; }
+            .figures-grid { grid-template-columns: 1fr; }
+            .links-grid { grid-template-columns: 1fr; }
+            .topbar { padding: 12px 16px; }
+        }
     </style>
 </head>
 <body>
-    <div class="msg">
-        <h1>📊 Tabular EDA</h1>
-        <p>Source code coming soon.<br><a href="../">← Back to Assignment 01</a></p>
+
+<div class="topbar">
+    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <div class="topbar-meta">A01 · Tabular · World Happiness 2019</div>
+</div>
+
+<main>
+
+    <header class="page-head">
+        <div class="kicker">Assignment 01 · Exploratory Data Analysis</div>
+        <h1>📊 Tabular <em>EDA</em></h1>
+        <div class="chips">
+            <span class="chip chip--purple">World Happiness Report 2019</span>
+            <span class="chip chip--ok">Python · pandas · matplotlib · seaborn</span>
+            <span class="chip">Tabular Data</span>
+        </div>
+    </header>
+
+    <!-- Dataset overview -->
+    <div class="dataset-card">
+        <h2>Dataset</h2>
+        <div class="dataset-title">World Happiness Report 2019</div>
+        <div class="dataset-sub">Gallup World Poll · Published by the Sustainable Development Solutions Network</div>
+        <div class="dataset-meta">
+            <span class="meta-tag">156 countries</span>
+            <span class="meta-tag">9 features</span>
+            <span class="meta-tag">1 target variable</span>
+            <span class="meta-tag">7 numerical features</span>
+            <span class="meta-tag">2 categorical features</span>
+            <span class="meta-tag">GDP_Level engineered</span>
+        </div>
     </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Countries</div>
+            <div class="stat-val">156</div>
+            <div class="stat-sub">2019 edition</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Features</div>
+            <div class="stat-val">9</div>
+            <div class="stat-sub">7 numerical · 2 categorical</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Target variable</div>
+            <div class="stat-val">Score</div>
+            <div class="stat-sub">Happiness score (0–10)</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Missing values</div>
+            <div class="stat-val">0%</div>
+            <div class="stat-sub">clean dataset</div>
+        </div>
+    </div>
+
+    <!-- Analysis steps -->
+    <div class="section-title">Analysis Steps</div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🗂️</span>
+            <span class="analysis-name">Step 1 — Dataset Overview</span>
+            <span class="analysis-badge">Overview</span>
+        </div>
+        <div class="analysis-desc">
+            Giới thiệu tổng quan dataset: shape, kiểu dữ liệu từng cột, feature description table, target variable và feature engineering (GDP_Level: Low / Medium / High).
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">156 rows</span>
+            <span class="tag">9 columns</span>
+            <span class="tag">Feature descriptions</span>
+            <span class="tag">GDP_Level engineering</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">❓</span>
+            <span class="analysis-name">Step 2 — Missing Values</span>
+            <span class="analysis-badge">Data Quality</span>
+        </div>
+        <div class="analysis-desc">
+            Kiểm tra missing values trên tất cả 9 features. Trực quan hóa bằng bar chart. Đưa ra recommendations dựa trên mức độ thiếu: drop, advanced imputation, hay simple imputation.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Missing value %</span>
+            <span class="tag">Bar chart</span>
+            <span class="tag">Imputation strategies</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📈</span>
+            <span class="analysis-name">Step 3 — Numerical Distributions</span>
+            <span class="analysis-badge">Univariate</span>
+        </div>
+        <div class="analysis-desc">
+            Phân tích phân phối 7 numerical features: GDP per capita, Social support, Healthy life expectancy, Freedom to make life choices, Generosity, Perceptions of corruption, và Score. Mỗi feature có histogram + stats table (Mean, Median, Std, Min, Max).
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Histograms</span>
+            <span class="tag">Mean / Median / Std</span>
+            <span class="tag">7 features</span>
+            <span class="tag">Selectable via UI</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🏷️</span>
+            <span class="analysis-name">Step 4 — Categorical: GDP Level</span>
+            <span class="analysis-badge">Categorical</span>
+        </div>
+        <div class="analysis-desc">
+            Feature engineering: binning GDP per capita thành 3 nhóm Low / Medium / High. Trực quan hóa bằng bar chart. Tính số lượng và tỉ lệ phần trăm country mỗi nhóm.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">GDP_Level</span>
+            <span class="tag">Low / Medium / High</span>
+            <span class="tag">Bar chart</span>
+            <span class="tag">Feature binning</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🎯</span>
+            <span class="analysis-name">Step 5 — Target Distribution</span>
+            <span class="analysis-badge">Target</span>
+        </div>
+        <div class="analysis-desc">
+            Phân tích phân phối của target variable — Happiness Score. Histogram với đường Mean và Median. Tính toán các thống kê tổng quát: mean, median, min, max.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Score distribution</span>
+            <span class="tag">Histogram</span>
+            <span class="tag">μ & median lines</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🔗</span>
+            <span class="analysis-name">Step 6 — Correlation Analysis</span>
+            <span class="analysis-badge">Bivariate</span>
+        </div>
+        <div class="analysis-desc">
+            Tính correlation matrix giữa 7 numerical features. Trực quan hóa bằng heatmap (RdBu_r colormap). Trích xuất các cặp feature có |r| > 0.5, nhận diện top predictors của Happiness Score.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Correlation heatmap</span>
+            <span class="tag">RdBu_r colormap</span>
+            <span class="tag">|r| > 0.5 threshold</span>
+            <span class="tag">Feature pairs</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📦</span>
+            <span class="analysis-name">Step 7 — Outlier Detection (IQR)</span>
+            <span class="analysis-badge">Outliers</span>
+        </div>
+        <div class="analysis-desc">
+            Phát hiện outliers bằng IQR method: values outside [Q1 − 1.5·IQR, Q3 + 1.5·IQR]. Trực quan hóa bằng box plots song song trên 7 features. Tính Q1, Q3, IQR, lower/upper bounds, outlier count/percentage cho từng feature.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">IQR method</span>
+            <span class="tag">Box plots</span>
+            <span class="tag">7 features</span>
+            <span class="tag">Outlier statistics</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📊</span>
+            <span class="analysis-name">Step 8 — GDP Level vs Score</span>
+            <span class="analysis-badge">Grouped</span>
+        </div>
+        <div class="analysis-desc">
+            So sánh Happiness Score giữa 3 nhóm GDP_Level (High / Medium / Low) bằng grouped box plot. Tính grouped statistics: mean, median, std, min, max theo từng nhóm. Nhận diện economic divide.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Grouped box plot</span>
+            <span class="tag">GDP_Level × Score</span>
+            <span class="tag">Economic divide</span>
+            <span class="tag">Grouped stats</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🔍</span>
+            <span class="analysis-name">Step 9 — Sample Data</span>
+            <span class="analysis-badge">Sample</span>
+        </div>
+        <div class="analysis-desc">
+            Quan sát dữ liệu thô: top 10 happiest countries, bottom 10, và random sample (seed=42). Giúp hiểu trực quan về raw data trước khi đi vào kết luận.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Top 10</span>
+            <span class="tag">Bottom 10</span>
+            <span class="tag">Random sample</span>
+        </div>
+    </div>
+
+    <!-- Figures (generated from notebook) -->
+    <div class="section-title">Key Figures</div>
+    <div class="figures-grid">
+        <div class="fig-card">
+            <img src="../../report/figures/ta_happiness_score_distribution.png"
+                 alt="Happiness Score Distribution"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                 style="min-height:160px; background:#E8E4DC; display:flex; align-items:center; justify-content:center;">
+            <div class="fig-label" style="display:none; font-size:0.75rem; color:#7A746A;">
+                Figure pending generation from notebook
+            </div>
+            <div class="fig-label">
+                <div class="fig-name">Happiness Score Distribution</div>
+                <div class="fig-desc">Histogram · μ and median lines · 20 bins</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../../report/figures/ta_gdp_level_distribution.png"
+                 alt="GDP Level Distribution"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                 style="min-height:160px; background:#E8E4DC; display:flex; align-items:center; justify-content:center;">
+            <div class="fig-label" style="display:none; font-size:0.75rem; color:#7A746A;">
+                Figure pending generation from notebook
+            </div>
+            <div class="fig-label">
+                <div class="fig-name">GDP Level Distribution</div>
+                <div class="fig-desc">Bar chart · Low / Medium / High counts</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../../report/figures/ta_correlation_matrix.png"
+                 alt="Correlation Matrix"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                 style="min-height:160px; background:#E8E4DC; display:flex; align-items:center; justify-content:center;">
+            <div class="fig-label" style="display:none; font-size:0.75rem; color:#7A746A;">
+                Figure pending generation from notebook
+            </div>
+            <div class="fig-label">
+                <div class="fig-name">Correlation Matrix</div>
+                <div class="fig-desc">Heatmap · RdBu_r · 7 numerical features</div>
+            </div>
+        </div>
+        <div class="fig-card">
+            <img src="../../report/figures/ta_gdp_level_vs_score.png"
+                 alt="GDP Level vs Score"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                 style="min-height:160px; background:#E8E4DC; display:flex; align-items:center; justify-content:center;">
+            <div class="fig-label" style="display:none; font-size:0.75rem; color:#7A746A;">
+                Figure pending generation from notebook
+            </div>
+            <div class="fig-label">
+                <div class="fig-name">GDP Level vs Score</div>
+                <div class="fig-desc">Grouped box plot · 3 economic tiers</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Source code -->
+    <div class="section-title">Source code</div>
+    <div class="links-grid">
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/tabular/eda_tabular.py">
+            <span class="link-icon">🐍</span>
+            <span class="link-label">eda_tabular.py</span>
+            <span class="link-url">/assign1-eda/tabular/eda_tabular.py</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/tabular/requirements.txt">
+            <span class="link-icon">📦</span>
+            <span class="link-label">requirements.txt</span>
+            <span class="link-url">/assign1-eda/tabular/requirements.txt</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/tree/main/assign1-eda/tabular">
+            <span class="link-icon">🗂️</span>
+            <span class="link-label">Source Data</span>
+            <span class="link-url">github.com/nhiwentwest/breakthrough-p4ai-ds</span>
+        </a>
+    </div>
+
+    <!-- Run snippet -->
+    <div class="code-section">
+        <div class="code-header">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span class="code-title">terminal — run EDA locally</span>
+        </div>
+        <div class="code-card">
+            <pre><code>pip install -r requirements.txt
+python eda_tabular.py</code></pre>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+</footer>
+
 </body>
 </html>
