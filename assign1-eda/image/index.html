@@ -5,18 +5,370 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Image EDA | Assignment 01</title>
     <style>
-        body { font-family: system-ui, sans-serif; background: #F0EDE6; color: #1C1A16; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .msg { text-align: center; padding: 40px; }
-        h1 { font-size: 1.5rem; margin-bottom: 8px; }
-        p { color: #7A746A; font-size: 0.9rem; }
-        a { color: #3D5A80; text-decoration: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:        #F0EDE6;
+            --bg-card:   #FAF8F4;
+            --ink:       #1C1A16;
+            --ink-muted: #7A746A;
+            --ink-faint: #B0A89C;
+            --blue:      #3D5A80;
+            --blue-bg:   rgba(61, 90, 128, 0.09);
+            --blue-md:   rgba(61, 90, 128, 0.22);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --border:    rgba(28, 26, 22, 0.09);
+            --border-md: rgba(28, 26, 22, 0.14);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--blue); text-decoration: none; }
         a:hover { text-decoration: underline; }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo {
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .topbar-logo span { color: var(--blue); }
+        .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+        /* ── Main ── */
+        main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        /* ── Page header ── */
+        .page-head { margin-bottom: 24px; }
+        .kicker { font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+        h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+        h1 em { font-style: normal; color: var(--blue); }
+
+        /* ── Chips ── */
+        .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .chip {
+            font-size: 0.66rem; padding: 4px 12px;
+            border-radius: 999px; border: 1px solid var(--border-md);
+            background: var(--bg-card); color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--blue { background: var(--blue-bg); border-color: var(--blue-md); color: var(--blue); font-weight: 500; }
+        .chip--ok { background: rgba(45,106,79,0.09); border-color: rgba(45,106,79,0.28); color: #2D6A4F; font-weight: 500; }
+
+        /* ── Dataset card ── */
+        .dataset-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 20px 22px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .dataset-card h2 { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+        .dataset-title { font-size: 1.05rem; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+        .dataset-sub { font-size: 0.72rem; color: var(--ink-muted); margin-bottom: 10px; }
+        .dataset-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { font-size: 0.64rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Stats grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--shadow-sm);
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 4px; }
+        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1; }
+        .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
+
+        /* ── Analysis sections ── */
+        .section-title { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+
+        .analysis-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px;
+            box-shadow: var(--shadow-sm);
+        }
+        .analysis-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .analysis-icon { font-size: 1.1rem; }
+        .analysis-name { font-size: 0.95rem; font-weight: 600; }
+        .analysis-badge {
+            font-size: 0.6rem; padding: 2px 9px; border-radius: 999px;
+            background: var(--blue-bg); border: 1px solid var(--blue-md);
+            color: var(--blue); font-weight: 500; margin-left: auto;
+        }
+        .analysis-desc { font-size: 0.78rem; color: var(--ink-muted); line-height: 1.55; margin-bottom: 10px; }
+        .analysis-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .tag { font-size: 0.63rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        /* ── Figures ── */
+        .figures-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .fig-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm);
+        }
+        .fig-card img { width: 100%; display: block; border-bottom: 1px solid var(--border); }
+        .fig-card .fig-label { padding: 10px 14px; }
+        .fig-name { font-size: 0.72rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+        .fig-desc { font-size: 0.64rem; color: var(--ink-muted); }
+
+        /* ── Code block ── */
+        .code-section { margin-bottom: 20px; }
+        .code-card {
+            background: #1C1A16; border-radius: var(--r-sm); overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .code-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background: #C0504A; }
+        .dot-y { background: #C47D00; }
+        .dot-g { background: #2D6A4F; }
+        .code-title { font-size: 0.7rem; color: #C8BFB0; margin-left: 4px; font-family: monospace; font-weight: 500; }
+        pre { padding: 16px 18px; overflow-x: auto; }
+        pre code { font-family: 'Menlo', 'Consolas', monospace; font-size: 0.72rem; color: #D4C9BB; line-height: 1.6; }
+
+        /* ── Links ── */
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .link-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
+        }
+        .link-card:hover { border-color: var(--blue-md); transform: translateY(-2px); }
+        .link-icon { font-size: 1.1rem; }
+        .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .link-url { font-size: 0.63rem; color: var(--blue); font-family: monospace; word-break: break-all; }
+
+        /* ── Footer ── */
+        footer { text-align: center; padding: 18px; font-size: 0.63rem; letter-spacing: 0.08em; color: var(--ink-faint); border-top: 1px solid var(--border); }
+
+        @media (max-width: 640px) {
+            main { padding: 20px 16px 40px; }
+            .figures-grid { grid-template-columns: 1fr; }
+            .links-grid { grid-template-columns: 1fr; }
+            .topbar { padding: 12px 16px; }
+        }
     </style>
 </head>
 <body>
-    <div class="msg">
-        <h1>🖼 Image EDA</h1>
-        <p>Source code coming soon.<br><a href="../">← Back to Assignment 01</a></p>
+
+<div class="topbar">
+    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <div class="topbar-meta">A01 · Image · MNIST</div>
+</div>
+
+<main>
+
+    <header class="page-head">
+        <div class="kicker">Assignment 01 · Exploratory Data Analysis</div>
+        <h1>🖼 Image <em>EDA</em></h1>
+        <div class="chips">
+            <span class="chip chip--blue">MNIST Handwritten Digits</span>
+            <span class="chip chip--ok">Python · numpy · matplotlib · seaborn</span>
+            <span class="chip">Image Data</span>
+        </div>
+    </header>
+
+    <!-- Dataset overview -->
+    <div class="dataset-card">
+        <h2>Dataset</h2>
+        <div class="dataset-title">MNIST — Modified National Institute of Standards and Technology</div>
+        <div class="dataset-sub">Yann LeCun et al. · ratulb/mnist_datasets · Pure Python + NumPy loader</div>
+        <div class="dataset-meta">
+            <span class="meta-tag">70,000 images total</span>
+            <span class="meta-tag">60,000 train</span>
+            <span class="meta-tag">10,000 test</span>
+            <span class="meta-tag">28 × 28 pixels</span>
+            <span class="meta-tag">Grayscale (0–255)</span>
+            <span class="meta-tag">10 classes (0–9)</span>
+        </div>
     </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total images</div>
+            <div class="stat-val">70,000</div>
+            <div class="stat-sub">train + test combined</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Image size</div>
+            <div class="stat-val">28×28</div>
+            <div class="stat-sub">grayscale pixels</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Classes</div>
+            <div class="stat-val">10</div>
+            <div class="stat-sub">digits 0 through 9</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Pixel range</div>
+            <div class="stat-val">0–255</div>
+            <div class="stat-sub">uint8 grayscale</div>
+        </div>
+    </div>
+
+    <!-- Analysis steps -->
+    <div class="section-title">Analysis Steps</div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🗂️</span>
+            <span class="analysis-name">Step 1 — Dataset Overview</span>
+            <span class="analysis-badge">Overview</span>
+        </div>
+        <div class="analysis-desc">
+            Kiểm tra tổng quan dataset: số lượng train/test images và labels, xác nhận shape đúng (60k train · 10k test). Reshape vector 784-D thành 28×28 matrix để visualize.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">MNISTLoader</span>
+            <span class="tag">60k train / 10k test</span>
+            <span class="tag">784 → 28×28 reshape</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">✅</span>
+            <span class="analysis-name">Step 2 — Data Validation</span>
+            <span class="analysis-badge">Validation</span>
+        </div>
+        <div class="analysis-desc">
+            Xác nhận dữ liệu đúng format bằng assertions: len(images) == 60000, len(test_images) == 10000. Kiểm tra pixel range: giá trị min/max (0–255).
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">assert len()</span>
+            <span class="tag">Pixel range check</span>
+            <span class="tag">Data integrity</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📊</span>
+            <span class="analysis-name">Step 3 — Sample Images</span>
+            <span class="analysis-badge">Sample</span>
+        </div>
+        <div class="analysis-desc">
+            Hiển thị grid 3×3 (9 ảnh đầu tiên) từ training set với cmap="gray". Mỗi ảnh hiển thị label tương ứng phía trên. Giúp quan sát trực quan dữ liệu thô.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">matplotlib</span>
+            <span class="tag">cmap="gray"</span>
+            <span class="tag">9 sample images</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">📈</span>
+            <span class="analysis-name">Step 4 — Digit Distribution</span>
+            <span class="analysis-badge">Univariate</span>
+        </div>
+        <div class="analysis-desc">
+            Vẽ count plot phân bố số lượng mẫu mỗi digit (0–9) trong training set. Dùng seaborn.countplot. Kiểm tra class imbalance — MNIST thường tương đối balanced.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">seaborn.countplot</span>
+            <span class="tag">Class distribution</span>
+            <span class="tag">Class imbalance check</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🔢</span>
+            <span class="analysis-name">Step 5 — Per-Digit Examples</span>
+            <span class="analysis-badge">Sample</span>
+        </div>
+        <div class="analysis-desc">
+            Hiển thị 1 ảnh đại diện cho mỗi digit (0–9), tìm first occurrence của mỗi class trong training set. Grid 2×5. Giúp xác nhận mỗi class có dữ liệu hợp lệ.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">First occurrence per digit</span>
+            <span class="tag">2×5 grid</span>
+            <span class="tag">np.where()</span>
+        </div>
+    </div>
+
+    <div class="analysis-card">
+        <div class="analysis-card-head">
+            <span class="analysis-icon">🎯</span>
+            <span class="analysis-name">Step 6 — Mean Image per Digit</span>
+            <span class="analysis-badge">Mean</span>
+        </div>
+        <div class="analysis-desc">
+            Tính mean image cho mỗi digit bằng cách lấy trung bình pixel-wise trên tất cả ảnh cùng class. Reshape thành 28×28 và visualize bằng cmap="inferno". Cho thấy cấu trúc pixel đặc trưng mỗi chữ số.
+        </div>
+        <div class="analysis-tags">
+            <span class="tag">Mean image per class</span>
+            <span class="tag">cmap="inferno"</span>
+            <span class="tag">Pixel-wise average</span>
+            <span class="tag">2×5 grid</span>
+        </div>
+    </div>
+
+    <!-- Source code -->
+    <div class="section-title">Source code</div>
+    <div class="links-grid">
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/image/main.py">
+            <span class="link-icon">🐍</span>
+            <span class="link-label">main.py</span>
+            <span class="link-url">/assign1-eda/image/main.py</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/image/requirements.txt">
+            <span class="link-icon">📦</span>
+            <span class="link-label">requirements.txt</span>
+            <span class="link-url">/assign1-eda/image/requirements.txt</span>
+        </a>
+        <a class="link-card" href="https://github.com/ratulb/mnist_datasets">
+            <span class="link-icon">🗂️</span>
+            <span class="link-label">Source Data</span>
+            <span class="link-url">github.com/ratulb/mnist_datasets</span>
+        </a>
+    </div>
+
+    <!-- Run snippet -->
+    <div class="code-section">
+        <div class="code-header">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span class="code-title">terminal — run EDA locally</span>
+        </div>
+        <div class="code-card">
+            <pre><code>pip install -r requirements.txt
+python main.py</code></pre>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+</footer>
+
 </body>
 </html>
