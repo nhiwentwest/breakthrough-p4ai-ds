@@ -97,42 +97,6 @@
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1; }
         .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
 
-        /* ── Analysis sections ── */
-        .section-title { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
-
-        .analysis-card {
-            background: var(--bg-card); border: 1px solid var(--border-md);
-            border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px;
-            box-shadow: var(--shadow-sm);
-        }
-        .analysis-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .analysis-icon { font-size: 1.1rem; }
-        .analysis-name { font-size: 0.95rem; font-weight: 600; }
-        .analysis-badge {
-            font-size: 0.6rem; padding: 2px 9px; border-radius: 999px;
-            background: var(--blue-bg); border: 1px solid var(--blue-md);
-            color: var(--blue); font-weight: 500; margin-left: auto;
-        }
-        .analysis-desc { font-size: 0.78rem; color: var(--ink-muted); line-height: 1.55; margin-bottom: 10px; }
-        .analysis-tags { display: flex; flex-wrap: wrap; gap: 5px; }
-        .tag { font-size: 0.63rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
-
-        /* ── Figures ── */
-        .figures-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .fig-card {
-            background: var(--bg-card); border: 1px solid var(--border-md);
-            border-radius: var(--r-sm); overflow: hidden; box-shadow: var(--shadow-sm);
-        }
-        .fig-card img { width: 100%; display: block; border-bottom: 1px solid var(--border); }
-        .fig-card .fig-label { padding: 10px 14px; }
-        .fig-name { font-size: 0.72rem; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
-        .fig-desc { font-size: 0.64rem; color: var(--ink-muted); }
-
         /* ── Code block ── */
         .code-section { margin-bottom: 20px; }
         .code-card {
@@ -166,7 +130,6 @@
 
         @media (max-width: 640px) {
             main { padding: 20px 16px 40px; }
-            .figures-grid { grid-template-columns: 1fr; }
             .links-grid { grid-template-columns: 1fr; }
             .topbar { padding: 12px 16px; }
         }
@@ -230,108 +193,7 @@
         </div>
     </div>
 
-    <!-- Analysis steps -->
-    <div class="section-title">Analysis Steps</div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">🗂️</span>
-            <span class="analysis-name">Step 1 — Dataset Overview</span>
-            <span class="analysis-badge">Overview</span>
-        </div>
-        <div class="analysis-desc">
-            Kiểm tra tổng quan dataset: số lượng train/test images và labels, xác nhận shape đúng (60k train · 10k test). Reshape vector 784-D thành 28×28 matrix để visualize.
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">MNISTLoader</span>
-            <span class="tag">60k train / 10k test</span>
-            <span class="tag">784 → 28×28 reshape</span>
-        </div>
-    </div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">✅</span>
-            <span class="analysis-name">Step 2 — Data Validation</span>
-            <span class="analysis-badge">Validation</span>
-        </div>
-        <div class="analysis-desc">
-            Xác nhận dữ liệu đúng format bằng assertions: len(images) == 60000, len(test_images) == 10000. Kiểm tra pixel range: giá trị min/max (0–255).
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">assert len()</span>
-            <span class="tag">Pixel range check</span>
-            <span class="tag">Data integrity</span>
-        </div>
-    </div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">📊</span>
-            <span class="analysis-name">Step 3 — Sample Images</span>
-            <span class="analysis-badge">Sample</span>
-        </div>
-        <div class="analysis-desc">
-            Hiển thị grid 3×3 (9 ảnh đầu tiên) từ training set với cmap="gray". Mỗi ảnh hiển thị label tương ứng phía trên. Giúp quan sát trực quan dữ liệu thô.
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">matplotlib</span>
-            <span class="tag">cmap="gray"</span>
-            <span class="tag">9 sample images</span>
-        </div>
-    </div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">📈</span>
-            <span class="analysis-name">Step 4 — Digit Distribution</span>
-            <span class="analysis-badge">Univariate</span>
-        </div>
-        <div class="analysis-desc">
-            Vẽ count plot phân bố số lượng mẫu mỗi digit (0–9) trong training set. Dùng seaborn.countplot. Kiểm tra class imbalance — MNIST thường tương đối balanced.
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">seaborn.countplot</span>
-            <span class="tag">Class distribution</span>
-            <span class="tag">Class imbalance check</span>
-        </div>
-    </div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">🔢</span>
-            <span class="analysis-name">Step 5 — Per-Digit Examples</span>
-            <span class="analysis-badge">Sample</span>
-        </div>
-        <div class="analysis-desc">
-            Hiển thị 1 ảnh đại diện cho mỗi digit (0–9), tìm first occurrence của mỗi class trong training set. Grid 2×5. Giúp xác nhận mỗi class có dữ liệu hợp lệ.
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">First occurrence per digit</span>
-            <span class="tag">2×5 grid</span>
-            <span class="tag">np.where()</span>
-        </div>
-    </div>
-
-    <div class="analysis-card">
-        <div class="analysis-card-head">
-            <span class="analysis-icon">🎯</span>
-            <span class="analysis-name">Step 6 — Mean Image per Digit</span>
-            <span class="analysis-badge">Mean</span>
-        </div>
-        <div class="analysis-desc">
-            Tính mean image cho mỗi digit bằng cách lấy trung bình pixel-wise trên tất cả ảnh cùng class. Reshape thành 28×28 và visualize bằng cmap="inferno". Cho thấy cấu trúc pixel đặc trưng mỗi chữ số.
-        </div>
-        <div class="analysis-tags">
-            <span class="tag">Mean image per class</span>
-            <span class="tag">cmap="inferno"</span>
-            <span class="tag">Pixel-wise average</span>
-            <span class="tag">2×5 grid</span>
-        </div>
-    </div>
-
     <!-- Source code -->
-    <div class="section-title">Source code</div>
     <div class="links-grid">
         <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/image/main.py">
             <span class="link-icon">🐍</span>
