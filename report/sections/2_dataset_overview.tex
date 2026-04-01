@@ -1,14 +1,12 @@
 \section{Dataset Overview}
 
-Remote sensing imagery presents a uniquely challenging domain for image-text learning: aerial and satellite images are captured from a top-down perspective where familiar objects appear in unfamiliar orientations and scales, characterized by textures, color distributions, and spatial arrangements rather than object-level details. The RSITMD (Remote Sensing Image-Text Matching Dataset) \cite{rsitmd}, introduced by Yuan et al. in IEEE TGRS 2021, was specifically designed to bridge this gap. This report presents a multimodal exploratory data analysis (EDA) of RSITMD organized around a central question: \textbf{how do the two modalities interact, and what does their intersection reveal about the dataset's suitability for multimodal learning?}
+\subsection{Data Source}
+
+This analysis uses the RSITMD (Remote Sensing Image-Text Matching Dataset) \cite{rsitmd}, introduced by Yuan et al. in IEEE TGRS 2021. RSITMD is designed for cross-modal retrieval in aerial imagery and pairs satellite images with human-annotated English captions.
+
+\textbf{Download:} \url{https://drive.google.com/file/d/1NJY86TAAUd8BVs7hyteImv8I2_Lh95W6/view} (Google Drive) | \url{https://pan.baidu.com/s/1gDj38mzUL-LmQX32PYxr0Q} (Baidu, password: NIST). Distribution includes GeoTIFF images (256$\times$256 px) and a JSON annotation file.
 
 \subsection{Dataset Structure}
-
-RSITMD is organized into two official splits: a training set (4,291 images, 21,455 captions) and a test set (452 images, 2,260 captions). Each training image is associated with exactly five human-annotated English captions, yielding a total of 23,715 captions across both splits. Notably, no public validation set is provided; practitioners typically create an internal validation split from the training set using stratified sampling or k-fold cross-validation.
-
-The image modality consists of high-resolution satellite imagery stored in GeoTIFF format at 256$\times$256 pixel resolution. The text modality comprises natural language captions of aerial scenes, each averaging approximately 10 words in length. The five captions per image are not duplicates but paraphrase each other --- they describe the same scene using different word choices and syntactic structures.
-
-Table \ref{tab:dataset_overview} summarizes the key structural statistics.
 
 \begin{table}[h]
 \centering
@@ -22,7 +20,7 @@ Total Images & 4,291 & 452 \\
 \hline
 Total Captions & 21,455 & 2,260 \\
 \hline
-Captions per Image & 5 & 5 \\
+Captions / Image & 5 & 5 \\
 \hline
 Land Use Categories & 33 & 32 \\
 \hline
@@ -35,13 +33,11 @@ Vocabulary Size (clean) & 3,470 & 1,143 \\
 \end{tabular}
 \end{table}
 
-The compact vocabulary of 3,470 unique words (after stopword removal) makes it feasible to use fixed word embedding layers without excessive out-of-vocabulary issues, simplifying model architecture choices. The consistent average caption length of 10.20--10.26 words across splits indicates a standardized annotation guideline was used during captioning.
+Each image has exactly five human-annotated English captions describing the same scene with different word choices (paraphrase-style). No public validation set is provided; practitioners split the training set internally. The compact vocabulary (3,470 words) and consistent caption length ($\mu\approx10$) reflect a standardized annotation guideline.
 
 \subsection{Land Use Categories}
 
-RSITMD covers 33 distinct land use and land cover categories spanning geographic and urban scene types. The test set includes 32 of these 33 categories; the \textit{plane} category is absent from the test split, which has implications for evaluation fairness on that class.
-
-The 33 categories can be grouped into five thematic clusters:
+33 categories across five thematic clusters:
 
 \begin{itemize}
     \item \textbf{Transportation}: airport, bridge, parking, port, railwaystation, viaduct
@@ -51,13 +47,63 @@ The 33 categories can be grouped into five thematic clusters:
     \item \textbf{Urban Features}: baseballfield, boat, industrial, intersection, park, plane, resort, square, storagetanks
 \end{itemize}
 
-This thematic diversity makes RSITMD well-suited for cross-modal retrieval across a broad spectrum of geographic contexts, but it also introduces challenges: several categories are visually similar (e.g., denseresidential vs. mediumresidential), and their textual descriptions must provide sufficient discriminative signal.
+Note: the \textit{plane} category is absent from the test split (32 categories instead of 33), affecting evaluation fairness for that class.
 
-\subsection{Dataset Availability}
+\subsection{EDA Pipeline Overview}
 
-RSITMD is publicly available for download from two sources:
-\begin{itemize}
-    \item \textbf{Google Drive}: \url{https://drive.google.com/file/d/1NJY86TAAUd8BVs7hyteImv8I2_Lh95W6/view}
-    \item \textbf{Baidu Netdisk}: \url{https://pan.baidu.com/s/1gDj38mzUL-LmQX32PYxr0Q} (Password: NIST)
-\end{itemize}
-The distribution includes GeoTIFF images and a JSON annotation file mapping each image to its captions and land use category.
+The EDA follows three parallel analysis pipelines:
+
+\begin{enumerate}
+    \item \textbf{Text Analysis.} Captions are tokenized and analyzed for word frequency, bigrams, vocabulary size, and caption-length distributions. Color words and spatial prepositions are extracted to quantify the visual vocabulary.
+
+    \item \textbf{Image Analysis.} Two levels: (a) metadata from filenames --- category distribution and class imbalance ratio; (b) pixel-level --- per-category brightness, RGB channel ratios, and texture (intra-block pixel std) computed from raw image files.
+
+    \item \textbf{Multimodal Joint Analysis.} Cross-modal alignment: caption variability across the five annotations per image, color word coverage, spatial relationship frequency, and cross-referencing between text and image visual profiles.
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\resizebox{0.85\textwidth}{!}{
+\begin{tikzpicture}[
+    node distance=2.2cm,
+    block/.style={rounded corners, minimum height=1.1cm, text width=3cm, align=center, font=\small},
+    dataset/.style={block, fill=accent-light},
+    modality/.style={block},
+    pipeline/.style={block, fill=blue!15},
+    output/.style={block, fill=orange!15},
+]
+
+% Row 1: input
+\node[dataset] (dataset) {RSITMD Dataset\\{\tiny JSON + GeoTIFF}};
+
+% Row 2: modalities
+\node[modality, fill=blue!20, below=1.2cm of dataset] (text) {Text\\Captions};
+\node[modality, fill=green!20, below=1.2cm of dataset] (img) {Image\\Pixels};
+
+% Row 3: pipelines
+\node[pipeline, right=3cm of text] (ta) {Text Analysis\\\emph{word freq, vocab, length}};
+\node[pipeline, right=3cm of img] (ia) {Image Analysis\\\emph{brightness, texture, RGB}};
+
+% Row 4: joint
+\node[pipeline, right=2.5cm of ta] (mma) {Multimodal Analysis\\\emph{color words, spatial, variability}};
+
+% Row 5: outputs
+\node[output, right=2.5cm of mma] (figs) {Figures\\\emph{8 charts, 4 tables}};
+\node[output, right=2.5cm of ia] (stats) {Statistics\\\emph{10+ metrics, per-cat}};
+
+% Arrows
+\draw[->, thick] (dataset) -- (text);
+\draw[->, thick] (dataset) -- (img);
+\draw[->, thick] (text) -- (ta);
+\draw[->, thick] (img) -- (ia);
+\draw[->, thick] (ta) -- (mma);
+\draw[->, thick] (ia) -- (mma);
+\draw[->, thick] (mma) -- (figs);
+\draw[->, thick] (ia) -- (stats);
+\draw[->, thick] (ta) -- (stats);
+
+\end{tikzpicture}
+}
+\caption{EDA Pipeline: from raw RSITMD data to multimodal insights via three parallel tracks.}
+\label{fig:pipeline}
+\end{figure}
