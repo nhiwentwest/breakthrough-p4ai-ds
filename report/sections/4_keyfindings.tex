@@ -14,6 +14,8 @@ This section distills the most important insights from the multimodal analysis i
     \item \textbf{Color is the Dominant Visual Feature in Text.} The word \textit{green} alone accounts for 36.8\% of all color word occurrences, reflecting the pervasive role of vegetation in aerial imagery. Color-object relationships provide a reliable modality bridge for cross-modal alignment.
 
     \item \textbf{Spatial Relationships are Pervasively Annotated.} Spatial prepositions (\textit{near}, \textit{surrounded}, \textit{next to}, \textit{in the middle of}) appear in 31.3\% of captions at the caption level and 52.9\% of images at the image level, offering consistent training signal for spatial reasoning.
+
+    \item \textbf{Pixel-Level Image Statistics Vary Systematically Across Categories.} Brightness ranges from $\mu=0.44$ (industrial) to $\mu=0.71$ (beach); texture (intra-block std) ranges from $\sigma=0.07$ (bareland) to $\sigma=0.18$ (forest); RGB channel dominance distinguishes coastal scenes (B > R > G) from vegetation scenes (G > R > B). These systematic differences confirm that the image modality encodes meaningful, category-discriminative visual information beyond what filenames can convey.
 \end{enumerate}
 
 \subsection{Recommendations for Multimodal Learning on RSITMD}
@@ -30,9 +32,10 @@ This section distills the most important insights from the multimodal analysis i
     \item \textbf{Leverage all five captions per image} in contrastive learning to amplify the training signal and learn semantic equivalence across surface forms.
 
     \item \textbf{Apply caption augmentation} (e.g., back-translation) to expand linguistic diversity beyond the structured annotation template.
+
+    \item \textbf{Use pretrained visual encoders tuned for aerial imagery.} Brightness and texture variations across categories suggest that generic ImageNet-pretrained backbones may benefit from fine-tuning on RSITMD's specific spectral characteristics, particularly for separating visually similar categories (denseresidential vs. mediumresidential).
 \end{itemize}
 
 \subsection{Summary}
 
-RSITMD provides a solid foundation for cross-modal retrieval in aerial imagery: its compact vocabulary, consistent captioning style, and strong visual-linguistic alignment simplify model design. The main challenges are class imbalance and the templated nature of captions --- both of which can be addressed with appropriate preprocessing and training strategies.
-\end{document}
+RSITMD provides a solid foundation for cross-modal retrieval in aerial imagery: its compact vocabulary, consistent captioning style, and strong visual-linguistic alignment simplify model design. The main challenges are class imbalance and the templated nature of captions --- both of which can be addressed with appropriate preprocessing and training strategies. Critically, the pixel-level analysis confirms that satellite images carry substantial category-discriminative information (brightness, texture, channel ratios) that is complementary to the text modality, validating RSITMD as a meaningful benchmark for cross-modal alignment in the aerial domain.
