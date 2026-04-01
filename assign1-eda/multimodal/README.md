@@ -1,18 +1,20 @@
-# Multimodal EDA — RSITMD
+# Multimodal EDA
 
 Phân tích dữ liệu đa phương thức (image + text) trên bộ dữ liệu **RSITMD** (Remote Sensing Image-Text Matching Dataset).
 
 ## Dataset
 
-> Z. Yuan et al., *"RSITMD & RSICD: Updated Benchmarks and State-of-the-Art Method for Remote Sensing Image Text Retrieval"*, IEEE TGRS, 2021.
+> Z. Yuan et al., *RSITMD & RSICD: Updated Benchmarks and State-of-the-Art Method for Remote Sensing Image Text Retrieval*, IEEE TGRS, 2021.
 
-- **Train:** 5,000+ ảnh vệ tinh × 5 captions = ~25,000 cặp image-caption
-- **Test:** 2,000+ ảnh
-- **21 categories** (airport, beach, bridge, ...)
+Source data: [kaggle.com/datasets/unsdsn/world-happiness](https://www.kaggle.com/datasets/unsdsn/world-happiness)
+
+- **Train:** 4,291 ảnh vệ tinh × 5 captions = 21,455 cặp image-caption
+- **Test:** 452 ảnh
+- **33 categories** (airport, beach, bridge, ...)
 
 ## Scripts
 
-### `eda_multimodal.py`
+### `eda_world_happiness.ipynb`
 
 Phân tích 3 góc nhìn:
 
