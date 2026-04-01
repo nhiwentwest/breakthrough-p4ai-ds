@@ -6,6 +6,8 @@ Phân tích dữ liệu dạng bảng (tabular data) trên bộ dữ liệu **Wo
 
 > Gallup World Poll · Published by the Sustainable Development Solutions Network
 
+Source data: [kaggle.com/datasets/unsdsn/world-happiness](https://www.kaggle.com/datasets/unsdsn/world-happiness)
+
 - **Countries:** 156
 - **Features:** 9 (7 numerical + 2 categorical)
 - **Target:** Score — Happiness score (0–10 scale)
@@ -13,7 +15,7 @@ Phân tích dữ liệu dạng bảng (tabular data) trên bộ dữ liệu **Wo
 
 ## Scripts
 
-### `eda_tabular.py`
+### `eda_world_happiness.ipynb`
 
 9 bước phân tích:
 
@@ -50,4 +52,4 @@ python eda_tabular.py
 ## Requirements
 
 - Python 3.8+
-- pandas, numpy, matplotlib, seaborn, plotly
+- pandas, numpy, matplotlib, seaborn, plotly, kagglehub
