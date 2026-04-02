@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,15 +8,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F5F2ED;
-            --bg-subtle: #EDE9E2;
-            --ink: #1A1916;
-            --ink-muted: #6B6560;
-            --ink-faint: #A8A39C;
-            --accent: #B8782A;
-            --accent-light: rgba(184,120,42,0.08);
-            --border: rgba(26,25,22,0.10);
-            --border-strong: rgba(26,25,22,0.18);
+            --bg:           #F0EDE6;
+            --bg-card:      #FAF8F4;
+            --bg-subtle:    #E8E4DC;
+            --ink:          #1C1A16;
+            --ink-muted:    #7A746A;
+            --ink-faint:    #B0A89C;
+            --accent:       #A06820;
+            --accent-light: rgba(160, 104, 32, 0.10);
+            --accent-soft:  rgba(160, 104, 32, 0.20);
+            --teal:         #2A7A70;
+            --teal-light:   rgba(42, 122, 112, 0.10);
+            --blue:         #3D5A80;
+            --blue-light:   rgba(61, 90, 128, 0.10);
+            --green:        #2D6A4F;
+            --amber:        #C47D00;
+            --red:          #C0504A;
+            --border:       rgba(28, 26, 22, 0.09);
+            --border-md:    rgba(28, 26, 22, 0.14);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm:  0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --shadow-md:  0 2px 6px rgba(28,26,22,0.08), 0 6px 20px rgba(28,26,22,0.06);
+            --shadow-lg:  0 4px 12px rgba(28,26,22,0.10), 0 12px 32px rgba(28,26,22,0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,219 +45,758 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Topbar ── */
+        /* ─── Topbar ─────────────────────────────────────────── */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 48px;
-            border-bottom: 1px solid var(--border);
+            padding: 13px 40px;
+            background: var(--bg-card);
+            box-shadow: 0 1px 0 var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .topbar-logo {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             color: var(--ink);
         }
-        .topbar-logo span {
-            color: var(--accent);
+        .topbar-logo span { color: var(--accent); }
+        .topbar-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .topbar-tag {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             color: var(--ink-faint);
         }
-
-        /* ── Hero ── */
-        .hero {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 80px 24px;
-        }
-
-        /* Breakthrough mark — vertical line + horizon */
-        .bt-mark {
-            position: relative;
-            width: 1px;
-            height: 64px;
-            background: linear-gradient(to bottom, transparent, var(--accent) 40%, var(--ink) 60%, transparent);
-            margin-bottom: 52px;
-        }
-        .bt-mark::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: -24px;
-            width: calc(100px + 48px);
-            height: 1px;
-            background: linear-gradient(to right, transparent, var(--accent) 30%, var(--ink) 70%, transparent);
-        }
-
-        h1 {
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: clamp(3.5rem, 8vw, 6rem);
-            font-weight: 700;
-            line-height: 0.95;
-            letter-spacing: -0.02em;
-            color: var(--ink);
-            margin-bottom: 24px;
-        }
-        h1 em {
-            font-style: italic;
-            color: var(--accent);
-        }
-
-        .hero-line {
-            width: 48px;
-            height: 2px;
-            background: var(--accent);
-            margin: 0 auto 28px;
-        }
-
-        .subtitle {
-            font-size: 1rem;
-            font-weight: 300;
-            color: var(--ink-muted);
-            letter-spacing: 0.06em;
-            max-width: 400px;
-            line-height: 1.7;
-            margin-bottom: 64px;
-        }
-
-        /* ── Members ── */
-        .members {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            margin-bottom: 64px;
-        }
-        .member {
-            width: 48px;
-            height: 48px;
+        .topbar-dot {
+            width: 5px; height: 5px;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-            font-weight: 600;
-            border: 1.5px solid var(--bg-subtle);
-            color: var(--ink-muted);
-            background: var(--bg-subtle);
-            transition: all 0.2s;
-            cursor: default;
+            background: var(--green);
+            animation: blink 2s infinite;
         }
-        .member:first-child { border-radius: 24px 4px 4px 24px; }
-        .member:last-child  { border-radius: 4px 24px 24px 4px; }
-        .member:hover {
-            background: var(--ink);
-            color: var(--bg);
-            border-color: var(--ink);
-            transform: translateY(-2px);
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
 
-        /* ── Assignments ── */
-        .section-label {
+        /* ─── Workspace ──────────────────────────────────────── */
+        .workspace {
+            flex: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 40px 44px;
+            width: 100%;
+        }
+
+        /* ─── Page header ─────────────────────────────────────── */
+        .page-head {
+            margin-bottom: 22px;
+        }
+        .page-kicker {
             font-size: 0.68rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-bottom: 6px;
+        }
+        .page-head-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 14px;
+        }
+        .page-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: clamp(2rem, 4.5vw, 2.8rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.05;
+        }
+        .page-title em { font-style: italic; color: var(--accent); }
+
+        /* ─── Chips ───────────────────────────────────────────── */
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            font-size: 0.67rem;
+            padding: 5px 13px;
+            border-radius: 999px;
+            border: 1px solid var(--border-md);
+            background: var(--bg-card);
+            color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--accent {
+            background: var(--accent-light);
+            border-color: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 500;
+        }
+        .chip--ok {
+            background: rgba(45,106,79,0.09);
+            border-color: rgba(45,106,79,0.30);
+            color: var(--green);
+            font-weight: 500;
+        }
+        .chip--blue {
+            background: var(--blue-light);
+            border-color: rgba(61,90,128,0.22);
+            color: var(--blue);
+        }
+
+        /* ─── Bento grid ──────────────────────────────────────── */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: minmax(0,1fr) minmax(280px, 360px);
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* ─── Panel (shared) ──────────────────────────────────── */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-md);
+            border-radius: var(--r);
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .panel-title {
+            font-size: 0.62rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
             color: var(--ink-faint);
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
 
-        .card {
+        /* ─── Live routing: top strip ─────────────────────────── */
+        .routing-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--border-md);
+            border-radius: var(--r-sm);
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+        .routing-metric {
+            padding: 14px 16px;
+            border-right: 1px solid var(--border-md);
+            background: var(--bg-card);
+        }
+        .routing-metric:last-child { border-right: none; }
+        .routing-metric + .routing-metric { background: var(--bg-subtle); }
+        .routing-metric-label {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--ink-faint);
+            margin-bottom: 5px;
+        }
+        .routing-metric-val {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1;
+        }
+        .routing-metric-val.accent { color: var(--accent); }
+        .routing-metric-sub {
+            font-size: 0.65rem;
+            color: var(--ink-faint);
+            margin-top: 2px;
+        }
+
+        /* ─── Assignment cards — pool-card style (gold / teal / blue) ── */
+        .assign-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* All three cards in one 2-col row */
+        .assign-card {
+            border-radius: var(--r-sm);
+            padding: 20px 18px;
+            transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.22s;
+            cursor: pointer;
+            position: relative;
+        }
+        /* Stretched link covers the whole card so hover/click works anywhere */
+        .assign-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+        .assign-card > * { position: relative; z-index: 1; }
+        /* Kill all underlines inside the card */
+        .assign-card,
+        .assign-card *,
+        .assign-card a,
+        .assign-card a * {
+            text-decoration: none !important;
+        }
+        .assign-card:not(.locked):hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        .locked { opacity: 0.55; cursor: default; }
+        .locked:hover { transform: none; }
+
+        /* A01 — gold */
+        .assign-card--a01 {
+            background: var(--accent-light);
+            border: 1px solid var(--accent-soft);
+        }
+        .assign-card--a01:hover { border-color: rgba(160,104,32,0.45); }
+
+        /* A02 — teal */
+        .assign-card--a02 {
+            background: var(--teal-light);
+            border: 1px solid rgba(42,122,112,0.22);
+        }
+        .assign-card--a02:hover { border-color: rgba(42,122,112,0.40); }
+
+        /* A03 — blue */
+        .assign-card--a03 {
+            background: var(--blue-light);
+            border: 1px solid rgba(61,90,128,0.22);
+        }
+        .assign-card--a03:hover { border-color: rgba(61,90,128,0.40); }
+
+        /* Header row */
+        .assign-card-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .assign-card-badge-row { display: flex; align-items: center; gap: 12px; }
+
+        .assign-badge {
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .assign-card--a01 .assign-badge { background: var(--accent); color: #FAF8F4; }
+        .assign-card--a02 .assign-badge { background: var(--teal); color: #FAF8F4; }
+        .assign-card--a03 .assign-badge { background: var(--blue); color: #FAF8F4; }
+
+        .assign-title {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+        .assign-card--a01 .assign-title { color: var(--accent); }
+        .assign-card--a02 .assign-title { color: var(--teal); }
+        .assign-card--a03 .assign-title { color: var(--blue); }
+
+        .assign-subject {
+            font-size: 0.65rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--ink-faint);
+            margin-top: 2px;
+        }
+
+        .assign-tag {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            padding: 4px 11px;
+            border-radius: 999px;
+            border: 1.5px solid;
+            flex-shrink: 0;
+        }
+        .tag-open {
+            border-color: rgba(45,106,79,0.45);
+            color: var(--green);
+            background: rgba(45,106,79,0.10);
+            font-weight: 600;
+        }
+        .tag-locked {
+            border-color: var(--border-md);
+            color: var(--ink-faint);
+            background: transparent;
+            font-weight: 500;
+        }
+
+        /* Stat row */
+        .assign-stat {
+            font-size: 0.80rem;
+            color: var(--ink);
+            line-height: 1.55;
+            margin-bottom: 12px;
+            text-decoration: none;
+        }
+
+        /* Progress bars */
+        .assign-mini-bars { display: flex; flex-direction: column; gap: 6px; }
+        .assign-mini-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .assign-mini-label {
+            font-size: 0.62rem;
+            color: var(--ink-muted);
+            width: 36px;
+            flex-shrink: 0;
+            margin-right: 6px;
+            text-decoration: none;
+        }
+        .assign-mini-track {
+            flex: 1;
+            height: 5px;
+            background: rgba(28,26,22,0.10);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .assign-mini-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+        .assign-card--a01 .assign-mini-fill { background: linear-gradient(90deg, var(--accent), #C8842A); }
+        .assign-card--a02 .assign-mini-fill { background: linear-gradient(90deg, var(--teal), #3A9A90); }
+        .assign-card--a03 .assign-mini-fill { background: linear-gradient(90deg, var(--blue), #6A8AA0); }
+
+        .assign-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .assign-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.65rem;
+            padding: 4px 11px;
+            border-radius: 999px;
+            border: 1px solid;
+            font-weight: 500;
+        }
+        .assign-pill .pill-icon { font-style: normal; }
+        .assign-card--a01 .assign-pill { background: rgba(160,104,32,0.15); border-color: rgba(160,104,32,0.35); color: var(--accent); }
+        .assign-card--a02 .assign-pill { background: rgba(42,122,112,0.12); border-color: rgba(42,122,112,0.30); color: var(--teal); }
+        .assign-card--a03 .assign-pill { background: rgba(61,90,128,0.12); border-color: rgba(61,90,128,0.28); color: var(--blue); }
+
+        /* ─── Pool accounts: bottom-left panels ───────────────── */
+        .pool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .pool-card {
+            border-radius: var(--r-sm);
+            border: 1px solid;
+            padding: 15px 16px;
+        }
+        .pool-card--gold {
+            background: var(--accent-light);
+            border-color: var(--accent-soft);
+        }
+        .pool-card--blue {
+            background: var(--blue-light);
+            border-color: rgba(61,90,128,0.22);
+        }
+        .pool-card-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: transparent;
-            border: 1px solid var(--border-strong);
-            border-radius: 2px;
-            padding: 20px 24px;
-            text-decoration: none;
-            color: var(--ink);
-            width: 100%;
-            max-width: 480px;
-            transition: all 0.2s;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
+            gap: 6px;
         }
-        .card:hover {
-            background: var(--ink);
-            color: var(--bg);
-            border-color: var(--ink);
-            transform: translateX(6px);
+        .pool-card-title {
+            font-size: 0.82rem;
+            font-weight: 600;
         }
-        .card:hover .card-desc   { color: var(--ink-faint); }
-        .card:hover .card-arrow  { color: var(--bg); }
-
-        .card-left  { display: flex; align-items: center; gap: 16px; }
-        .card-num {
-            font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent);
-            line-height: 1;
-            min-width: 32px;
+        .pool-card-stat {
+            font-size: 0.7rem;
+            color: var(--ink-muted);
+            line-height: 1.5;
         }
-        .card:hover .card-num { color: var(--bg); }
-        .card-title { font-weight: 600; font-size: 0.95rem; }
-        .card-desc  { font-size: 0.75rem; color: var(--ink-muted); margin-top: 2px; transition: color 0.2s; }
-        .card-arrow {
-            font-size: 1.1rem;
+        .pool-mini-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        .pool-mini-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pool-mini-label {
+            font-size: 0.62rem;
             color: var(--ink-faint);
-            transition: color 0.2s;
+            width: 36px;
             flex-shrink: 0;
         }
+        .pool-mini-track {
+            flex: 1;
+            height: 4px;
+            background: rgba(28,26,22,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .pool-mini-fill {
+            height: 100%;
+            border-radius: 2px;
+        }
+        .pool-mini-fill--gold {
+            background: linear-gradient(90deg, var(--accent), #C8842A);
+        }
+        .pool-mini-fill--teal {
+            background: linear-gradient(90deg, var(--teal), #3A9A90);
+        }
+        .pool-mini-fill--blue {
+            background: linear-gradient(90deg, var(--blue), #6A8AA0);
+        }
 
-        /* ── Footer ── */
+        /* ─── Right sidebar ───────────────────────────────────── */
+        .col-side { display: flex; flex-direction: column; gap: 16px; }
+
+        /* Segmented control */
+        .seg {
+            display: flex;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-md);
+            overflow: hidden;
+        }
+        .seg-btn {
+            flex: 1;
+            border: none;
+            background: var(--bg-card);
+            color: var(--ink-muted);
+            font-size: 0.73rem;
+            font-weight: 400;
+            padding: 9px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+            border-right: 1px solid var(--border-md);
+        }
+        .seg-btn:last-child { border-right: none; }
+        .seg-btn.active {
+            background: var(--accent);
+            color: #FAF8F4;
+            font-weight: 600;
+        }
+        .seg-btn:not(.active):hover {
+            background: var(--bg-subtle);
+            color: var(--ink);
+        }
+
+        .setup-desc {
+            font-size: 0.76rem;
+            color: var(--ink-muted);
+            line-height: 1.6;
+            margin: 14px 0 16px;
+        }
+
+        /* ─── Members ─────────────────────────────────────────── */
+        .member-list { display: flex; flex-direction: column; gap: 8px; }
+        .member-pill {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            border-radius: var(--r-sm);
+            background: var(--bg);
+            border: 1px solid var(--border-md);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .member-pill:hover {
+            border-color: var(--accent-soft);
+            box-shadow: var(--shadow-sm);
+        }
+        .member-left { display: flex; align-items: center; gap: 10px; }
+        .member-avatar {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: var(--bg-subtle);
+            border: 1.5px solid var(--border-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--accent);
+            flex-shrink: 0;
+            transition: background 0.2s, color 0.2s;
+        }
+        .member-pill:hover .member-avatar {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+        .member-name { font-size: 0.82rem; font-weight: 500; }
+        .member-role {
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 9px;
+            border-radius: 999px;
+            border: 1px solid var(--border-md);
+            color: var(--ink-faint);
+        }
+        .role-lead {
+            border-color: var(--accent-soft);
+            color: var(--accent);
+            background: var(--accent-light);
+            font-weight: 600;
+        }
+
+        /* State legend */
+        .state-bar {
+            display: flex;
+            gap: 0;
+            border-radius: var(--r-sm);
+            overflow: hidden;
+            border: 1px solid var(--border-md);
+            margin-top: 14px;
+        }
+        .state-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 8px 6px;
+            font-size: 0.63rem;
+            color: var(--ink-muted);
+            border-right: 1px solid var(--border-md);
+            background: var(--bg);
+        }
+        .state-item:last-child { border-right: none; }
+        .state-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .state-dot--g { background: var(--green); }
+        .state-dot--a { background: var(--amber); }
+        .state-dot--r { background: var(--red); }
+
+        /* ─── Footer ──────────────────────────────────────────── */
         footer {
             text-align: center;
-            padding: 28px;
-            font-size: 0.7rem;
+            padding: 18px;
+            font-size: 0.63rem;
             letter-spacing: 0.1em;
             color: var(--ink-faint);
             border-top: 1px solid var(--border);
+        }
+
+        /* ─── Responsive ───────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .dash-grid { grid-template-columns: 1fr; }
+            .routing-strip { grid-template-columns: repeat(2, 1fr); }
+            .routing-metric:nth-child(2) { border-right: none; }
+            .routing-metric { border-bottom: 1px solid var(--border-md); }
+            .routing-metric:nth-child(3),
+            .routing-metric:nth-child(4) { border-bottom: none; }
+            .pool-grid { grid-template-columns: 1fr; }
+            .assign-strip { grid-template-columns: 1fr; }
+            .workspace { padding: 20px 20px 32px; }
+            .topbar { padding: 12px 20px; }
         }
     </style>
 </head>
 <body>
     <div class="topbar">
         <div class="topbar-logo">Breakthrough<span>.</span></div>
-        <div class="topbar-tag">CO3135 · P4AI-DS · HCMUT</div>
+        <div class="topbar-meta">
+            <span class="topbar-dot"></span>
+            <span class="topbar-tag">CO3135 · P4AI-DS · HCMUT</span>
+        </div>
     </div>
 
-    <div class="hero">
-        <div class="bt-mark"></div>
-
-        <h1>Break<em>through</em></h1>
-        <div class="hero-line"></div>
-        <p class="subtitle">Nhóm sinh viên HCMUT — Khoa Khoa học Máy tính</p>
-
-        <div class="members">
-            <div class="member">A</div>
-            <div class="member">B</div>
-            <div class="member">C</div>
-            <div class="member">D</div>
-        </div>
-
-        <div class="assignments">
-            <div class="section-label">Assignments</div>
-            <a class="card" href="./assign1-eda/">
-                <div class="card-left">
-                    <div class="card-num">01</div>
-                    <div>
-                        <div class="card-title">Exploratory Data Analysis</div>
-                        <div class="card-desc">Tabular · Text · Image · Multimodal</div>
-                    </div>
+    <main class="workspace">
+        <header class="page-head">
+            <div class="page-kicker">Group workspace · 2025–2026</div>
+            <div class="page-head-row">
+                <h1 class="page-title">Break<em>through</em></h1>
+                <div class="chips">
+                    <span class="chip chip--blue">RSITMD · Multimodal</span>
+                    <span class="chip chip--accent">GitHub Pages</span>
+                    <span class="chip chip--ok">A01 active</span>
                 </div>
-                <span class="card-arrow">→</span>
-            </a>
-        </div>
-    </div>
+            </div>
+        </header>
+
+        <div class="dash-grid">
+
+            <!-- LEFT COLUMN -->
+            <div class="col-main">
+
+                <!-- Live routing panel -->
+                <section class="panel">
+                    <div class="panel-title">Live routing · Assignments</div>
+
+                    <div class="routing-strip">
+                        <div class="routing-metric">
+                            <div class="routing-metric-label">Assignments</div>
+                            <div class="routing-metric-val accent">3</div>
+                            <div class="routing-metric-sub">total</div>
+                        </div>
+                        <div class="routing-metric">
+                            <div class="routing-metric-label">In progress</div>
+                            <div class="routing-metric-val">1</div>
+                            <div class="routing-metric-sub">A01 only</div>
+                        </div>
+                        <div class="routing-metric">
+                            <div class="routing-metric-label">Linked</div>
+                            <div class="routing-metric-val">1</div>
+                            <div class="routing-metric-sub">of 3 pages</div>
+                        </div>
+                        <div class="routing-metric">
+                            <div class="routing-metric-label">Due</div>
+                            <div class="routing-metric-val" style="font-size:1rem;">2025–26</div>
+                            <div class="routing-metric-sub">academic year</div>
+                        </div>
+                    </div>
+
+                    <div class="assign-strip">
+                        <!-- A01 — gold -->
+                        <a class="assign-card assign-card--a01" href="./assign1-eda/">
+                            <div class="assign-card-head">
+                                <div class="assign-card-badge-row">
+                                    <div class="assign-badge">01</div>
+                                    <div>
+                                        <div class="assign-title">Assignment 01</div>
+                                        <div class="assign-subject">Exploratory Data Analysis</div>
+                                    </div>
+                                </div>
+                                <span class="assign-tag tag-open">Open</span>
+                            </div>
+                            <div class="assign-stat">EDA đa phương thức — Tabular, Text, Image &amp; Multimodal (RSITMD).</div>
+                            <div class="assign-mini-bars">
+                                <div class="assign-mini-row">
+                                    <span class="assign-mini-label">EDA</span>
+                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 88%;"></div></div>
+                                </div>
+                                <div class="assign-mini-row">
+                                    <span class="assign-mini-label">Site</span>
+                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 60%;"></div></div>
+                                </div>
+                            </div>
+                            <div class="assign-pills">
+                                <span class="assign-pill"><span class="pill-icon">📊</span> Tabular</span>
+                                <span class="assign-pill"><span class="pill-icon">📝</span> Text</span>
+                                <span class="assign-pill"><span class="pill-icon">🖼</span> Image</span>
+                                <span class="assign-pill"><span class="pill-icon">🔗</span> Multimodal</span>
+                            </div>
+                        </a>
+
+                        <!-- A02 — teal -->
+                        <div class="assign-card assign-card--a02 locked">
+                            <div class="assign-card-head">
+                                <div class="assign-card-badge-row">
+                                    <div class="assign-badge">02</div>
+                                    <div>
+                                        <div class="assign-title">Assignment 02</div>
+                                        <div class="assign-subject">Coming soon</div>
+                                    </div>
+                                </div>
+                                <span class="assign-tag tag-locked">Soon</span>
+                            </div>
+                            <div class="assign-stat">Tạo trang con khi đề bài &amp; nội dung sẵn sàng trên LMS.</div>
+                            <div class="assign-mini-bars">
+                                <div class="assign-mini-row">
+                                    <span class="assign-mini-label">Prep</span>
+                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 0%;"></div></div>
+                                </div>
+                            </div>
+                            <div class="assign-pills">
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
+                            </div>
+                        </div>
+                    </div>
+            </div><!-- /col-main -->
+
+            <!-- RIGHT SIDEBAR -->
+            <aside class="col-side">
+
+                <section class="panel">
+                    <div class="panel-title">Pool setup</div>
+                    <div class="seg" role="group">
+                        <button class="seg-btn active" type="button">Current term</button>
+                        <button class="seg-btn" type="button">Archive</button>
+                    </div>
+                    <p class="setup-desc">
+                        Trọng tâm hiện tại: <strong>Assignment 1</strong> — EDA đa phương thức trên RSITMD.
+                        Chọn assignment ở cột trái để vào trang chi tiết.
+                    </p>
+
+                    <div class="panel-title" style="margin-bottom:10px;">Accounts in pool · Members</div>
+                    <div class="member-list">
+                        <div class="member-pill">
+                            <div class="member-left">
+                                <div class="member-avatar">N</div>
+                                <span class="member-name">Phan Trần Ý Nhi</span>
+                            </div>
+                            <span class="member-role role-lead">Lead · 2252583</span>
+                        </div>
+                        <div class="member-pill">
+                            <div class="member-left">
+                                <div class="member-avatar">B</div>
+                                <span class="member-name">Lê Thanh Bình</span>
+                            </div>
+                            <span class="member-role">2352118</span>
+                        </div>
+                        <div class="member-pill">
+                            <div class="member-left">
+                                <div class="member-avatar">H</div>
+                                <span class="member-name">Lê Mạnh Hưng</span>
+                            </div>
+                            <span class="member-role">2352428</span>
+                        </div>
+                        <div class="member-pill">
+                            <div class="member-left">
+                                <div class="member-avatar">T</div>
+                                <span class="member-name">Nguyễn Anh Minh Tuệ</span>
+                            </div>
+                            <span class="member-role">2353281</span>
+                        </div>
+                    </div>
+
+                    <!-- State legend bar -->
+                    <div class="state-bar">
+                        <div class="state-item">
+                            <span class="state-dot state-dot--g"></span>
+                            Pages live
+                        </div>
+                        <div class="state-item">
+                            <span class="state-dot state-dot--a"></span>
+                            Report
+                        </div>
+                        <div class="state-item">
+                            <span class="state-dot state-dot--r"></span>
+                            A02/A03
+                        </div>
+                    </div>
+                </section>
+
+            </aside>
+        </div><!-- /dash-grid -->
+    </main>
 
     <footer>
         Programming for AI and Data Science · HCMUT · 2025–2026
