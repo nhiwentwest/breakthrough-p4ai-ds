@@ -1,22 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment 1 — EDA | Breakthrough</title>
+    <title>Assignment 01 — EDA | Breakthrough</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #F5F2ED;
-            --bg-subtle: #EDE9E2;
-            --ink: #1A1916;
-            --ink-muted: #6B6560;
-            --ink-faint: #A8A39C;
-            --accent: #B8782A;
-            --accent-light: rgba(184,120,42,0.08);
-            --border: rgba(26,25,22,0.10);
-            --border-strong: rgba(26,25,22,0.18);
+            --bg:           #F0EDE6;
+            --bg-card:      #FAF8F4;
+            --bg-subtle:    #E8E4DC;
+            --ink:          #1C1A16;
+            --ink-muted:    #7A746A;
+            --ink-faint:    #B0A89C;
+            --accent:       #A06820;
+            --accent-light: rgba(160, 104, 32, 0.10);
+            --accent-soft:  rgba(160, 104, 32, 0.20);
+            --teal:         #2A7A70;
+            --teal-light:   rgba(42, 122, 112, 0.10);
+            --teal-soft:    rgba(42, 122, 112, 0.20);
+            --blue:         #3D5A80;
+            --blue-light:   rgba(61, 90, 128, 0.10);
+            --blue-soft:    rgba(61, 90, 128, 0.20);
+            --violet:       #6B4C8E;
+            --violet-light: rgba(107, 76, 142, 0.10);
+            --violet-soft:  rgba(107, 76, 142, 0.20);
+            --green:        #2D6A4F;
+            --border:       rgba(28, 26, 22, 0.09);
+            --border-md:    rgba(28, 26, 22, 0.14);
+            --r-sm:         10px;
+            --r-xs:         6px;
+            --shadow-sm:    0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --shadow-md:    0 2px 6px rgba(28,26,22,0.08), 0 6px 20px rgba(28,26,22,0.06);
+            --shadow-lg:    0 4px 12px rgba(28,26,22,0.10), 0 12px 32px rgba(28,26,22,0.08);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,294 +48,609 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* ── Topbar ── */
+        /* ─── Topbar ─────────────────────────────────────────── */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 48px;
+            padding: 12px 40px;
+            background: var(--bg-card);
             border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         .topbar-logo {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             color: var(--ink);
             text-decoration: none;
         }
         .topbar-logo span { color: var(--accent); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
         .topbar-tag {
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             letter-spacing: 0.12em;
             text-transform: uppercase;
             color: var(--ink-faint);
         }
-
-        /* ── Hero ── */
-        .hero {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 72px 24px;
-        }
-
-        .back {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            color: var(--ink-faint);
-            text-decoration: none;
-            font-size: 0.8rem;
+        .topbar-badge {
+            font-size: 0.62rem;
+            padding: 3px 9px;
+            border-radius: 999px;
+            background: var(--accent-light);
+            border: 1px solid var(--accent-soft);
+            color: var(--accent);
             letter-spacing: 0.06em;
-            margin-bottom: 48px;
-            transition: color 0.2s;
         }
-        .back:hover { color: var(--accent); }
 
-        .badge {
-            display: inline-block;
-            font-size: 0.68rem;
+        /* ─── Workspace ──────────────────────────────────────── */
+        .workspace {
+            flex: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 40px 44px;
+            width: 100%;
+        }
+
+        /* ─── Page header ────────────────────────────────────── */
+        .page-head { margin-bottom: 24px; }
+        .page-eyebrow {
+            font-size: 0.65rem;
             letter-spacing: 0.22em;
             text-transform: uppercase;
             color: var(--accent);
-            margin-bottom: 20px;
+            margin-bottom: 6px;
         }
-
-        h1 {
+        .page-title {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-size: clamp(2rem, 4vw, 3rem);
             font-weight: 700;
             line-height: 1;
             letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+        .page-sub {
+            font-size: 0.80rem;
             color: var(--ink);
-            margin-bottom: 20px;
+            line-height: 1.55;
+            max-width: 560px;
         }
 
-        .subtitle {
-            font-size: 0.9rem;
-            font-weight: 300;
-            color: var(--ink-muted);
-            letter-spacing: 0.04em;
-            max-width: 520px;
-            line-height: 1.75;
-            margin-bottom: 52px;
-        }
-
-        /* ── Draft Banner ── */
-        .draft-banner {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--accent-light);
-            border: 1px solid rgba(184,120,42,0.2);
-            color: var(--accent);
-            font-size: 0.75rem;
-            padding: 5px 16px;
-            border-radius: 2px;
-            margin-bottom: 20px;
-        }
-        .draft-banner .dot {
-            width: 5px;
-            height: 5px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: pulse 1.8s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.25; }
-        }
-
-        /* ── Action Buttons ── */
-        .links {
+        /* ─── Action strip ──────────────────────────────────── */
+        .action-strip {
             display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 60px;
-        }
-        .link-btn {
-            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 22px;
-            border-radius: 2px;
-            text-decoration: none;
-            font-size: 0.82rem;
-            font-weight: 500;
-            letter-spacing: 0.03em;
-            transition: all 0.2s;
-            border: 1px solid;
+            gap: 10px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
         }
-        .link-btn-report {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #F5F2ED;
-        }
-        .link-btn-report:hover {
-            background: var(--ink);
-            border-color: var(--ink);
-        }
-        .link-btn-video {
-            background: transparent;
-            border-color: var(--border-strong);
-            color: var(--ink-muted);
-        }
-        .link-btn-video:hover {
-            border-color: var(--ink);
-            color: var(--ink);
-            background: var(--bg-subtle);
-        }
-        .link-btn-github {
-            background: transparent;
-            border-color: var(--border-strong);
-            color: var(--ink-muted);
-        }
-        .link-btn-github:hover {
-            border-color: var(--ink);
-            color: var(--ink);
-            background: var(--bg-subtle);
-        }
-
-        /* ── Modalities ── */
-        .mod-label {
-            font-size: 0.68rem;
-            letter-spacing: 0.22em;
+        .action-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
             color: var(--ink-faint);
-            margin-bottom: 14px;
-            text-align: left;
-            width: 100%;
-            max-width: 760px;
+            margin-right: 4px;
         }
-
-        .modalities {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 10px;
-            width: 100%;
-            max-width: 760px;
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 12px 22px;
+            border-radius: var(--r-sm);
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            transition: all 0.22s;
+            border: 1.5px solid;
         }
-
-        .mod-card {
+        .action-btn--primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #FAF8F4;
+            box-shadow: var(--shadow-md);
+        }
+        .action-btn--primary:hover {
+            background: var(--ink);
+            border-color: var(--ink);
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+        .action-btn--outline {
             background: transparent;
-            border: 1px solid var(--border-strong);
-            border-radius: 2px;
-            padding: 20px 18px;
-            text-align: left;
-            transition: all 0.2s;
+            border-color: var(--border-md);
+            color: var(--ink-muted);
+            box-shadow: var(--shadow-sm);
+        }
+        .action-btn--outline:hover {
+            border-color: var(--ink);
+            color: var(--ink);
+            background: var(--bg-subtle);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ─── Section label ──────────────────────────────────── */
+        .mods-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--ink-muted);
+            margin-bottom: 10px;
+            padding-left: 2px;
+        }
+
+        /* ─── Modality grid ──────────────────────────────────── */
+        .mods-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+        }
+
+        /* ONE card — no internal borders at all */
+        .mod-card {
+            border-radius: var(--r-sm);
+            border: 1px solid var(--border-md);
+            background: var(--bg-card);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            color: var(--ink);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.22s;
+            position: relative;
+        }
+        /* Stretched link: invisible overlay covers entire card so clicking anywhere navigates */
+        .mod-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        .mod-card > * { position: relative; z-index: 2; }
+        /* Kill all underlines inside the card */
+        .mod-card,
+        .mod-card *,
+        .mod-card a,
+        .mod-card a * {
+            text-decoration: none !important;
         }
         .mod-card:hover {
-            border-color: var(--ink);
-            background: var(--ink);
-            color: var(--bg);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(28,26,22,0.10);
         }
-        .mod-card:hover .mod-desc { color: var(--ink-faint); }
-        .mod-card:hover .mod-tag  { opacity: 0.7; }
+        .mod-card--tabular:hover { border-color: rgba(160,104,32,0.30); }
+        .mod-card--text:hover    { border-color: rgba(42,122,112,0.30); }
+        .mod-card--image:hover   { border-color: rgba(61,90,128,0.30); }
+        .mod-card--multi:hover   { border-color: rgba(107,76,142,0.30); }
 
-        .mod-icon { font-size: 1.4rem; margin-bottom: 8px; }
+        /* Top color bar */
+        .mod-card::before {
+            content: '';
+            display: block;
+            height: 3px;
+        }
+        .mod-card--tabular::before { background: var(--accent); }
+        .mod-card--text::before    { background: var(--teal); }
+        .mod-card--image::before  { background: var(--blue); }
+        .mod-card--multi::before  { background: var(--violet); }
+
+        /* All content in ONE seamless block — NO border between sections */
+        .mod-content {
+            padding: 12px 14px 0;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        /* Inner nav link — must NOT wrap .src-btn (no nested <a>) */
+        .mod-card-main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            color: inherit;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .mod-card-main:hover { color: inherit; }
+        .mod-card-main:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+            border-radius: var(--r-xs);
+        }
+        .mod-card--text .mod-card-main:focus-visible   { outline-color: var(--teal); }
+        .mod-card--image .mod-card-main:focus-visible { outline-color: var(--blue); }
+        .mod-card--multi .mod-card-main:focus-visible { outline-color: var(--violet); }
+
+        /* Header row: icon + title/tag inline */
+        .mod-hdr {
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+            margin-bottom: 10px;
+        }
+        .mod-icon {
+            width: 32px; height: 32px;
+            border-radius: var(--r-xs);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            flex-shrink: 0;
+        }
+        .mod-card--tabular .mod-icon { background: var(--accent-light); }
+        .mod-card--text    .mod-icon { background: var(--teal-light); }
+        .mod-card--image  .mod-icon { background: var(--blue-light); }
+        .mod-card--multi  .mod-icon { background: var(--violet-light); }
+
+        .mod-hdr-txt { flex: 1; min-width: 0; }
         .mod-title {
             font-weight: 700;
-            font-size: 0.92rem;
-            margin-bottom: 4px;
+            font-size: 0.88rem;
+            margin-bottom: 2px;
+            line-height: 1.2;
         }
-        .mod-desc {
-            font-size: 0.73rem;
+        .mod-sub {
+            font-size: 0.67rem;
             color: var(--ink-muted);
-            transition: color 0.2s;
+            line-height: 1.4;
         }
         .mod-tag {
-            display: inline-block;
-            margin-top: 10px;
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 1px;
-            letter-spacing: 0.06em;
-            transition: opacity 0.2s;
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.57rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 3px 7px;
+            border-radius: 999px;
+            border: 1px solid;
+            flex-shrink: 0;
+            margin-top: 1px;
         }
-        .tag-done    { background: rgba(26,25,22,0.07);  color: var(--ink-muted); }
-        .tag-pending { background: var(--accent-light); color: var(--accent); }
+        .tag-done    { border-color: rgba(45,106,79,0.35); color: var(--green); background: rgba(45,106,79,0.08); }
+        .tag-active  { border-color: var(--accent-soft); color: var(--accent); background: var(--accent-light); }
 
-        /* ── Footer ── */
+        /* Stats — NO borders between rows */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 6px;
+            padding: 5px 0;
+            position: relative;
+            z-index: 3;
+        }
+
+        .stat-lbl {
+            font-size: 0.59rem;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: var(--ink-faint);
+            flex-shrink: 0;
+        }
+        .stat-val {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.1;
+            text-align: right;
+        }
+        .mod-card--tabular .stat-val { color: var(--accent); }
+        .mod-card--text    .stat-val { color: var(--teal); }
+        .mod-card--image  .stat-val { color: var(--blue); }
+        .mod-card--multi  .stat-val { color: var(--violet); }
+
+        .stat-desc {
+            font-size: 0.58rem;
+            color: var(--ink-muted);
+            margin-top: 1px;
+            text-align: right;
+        }
+
+        /* Pills */
+        .stat-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+            position: relative;
+            z-index: 3;
+        }
+        .stat-pill {
+            font-size: 0.57rem;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid;
+            font-weight: 500;
+        }
+        .mod-card--tabular .stat-pill { background: var(--accent-light); border-color: var(--accent-soft); color: var(--accent); }
+        .mod-card--text    .stat-pill { background: var(--teal-light); border-color: var(--teal-soft); color: var(--teal); }
+        .mod-card--image  .stat-pill { background: var(--blue-light); border-color: var(--blue-soft); color: var(--blue); }
+        .mod-card--multi  .stat-pill { background: var(--violet-light); border-color: var(--violet-soft); color: var(--violet); }
+
+        /* Dataset source — same card, hairline only (no nested <a> bug, no heavy box border) */
+        .mod-footer {
+            padding: 0 14px 14px;
+        }
+        .src-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px 6px 2px;
+            border: none;
+            border-top: 1px solid var(--border);
+            border-radius: 0;
+            font-size: 0.67rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-decoration: none;
+            background: transparent;
+            transition: color 0.18s, background 0.18s;
+        }
+        .src-btn:hover { background: var(--accent-light); }
+        .mod-card--tabular .src-btn { color: var(--accent); }
+        .mod-card--text    .src-btn { color: var(--teal); }
+        .mod-card--text    .src-btn:hover { background: var(--teal-light); }
+        .mod-card--image  .src-btn { color: var(--blue); }
+        .mod-card--image  .src-btn:hover { background: var(--blue-light); }
+        .mod-card--multi  .src-btn { color: var(--violet); }
+        .mod-card--multi  .src-btn:hover { background: var(--violet-light); }
+
+        /* ─── Footer ──────────────────────────────────────────── */
         footer {
             text-align: center;
-            padding: 28px;
-            font-size: 0.7rem;
+            padding: 18px;
+            font-size: 0.63rem;
             letter-spacing: 0.1em;
             color: var(--ink-faint);
             border-top: 1px solid var(--border);
+        }
+
+        /* ─── Responsive ───────────────────────────────────────── */
+        @media (max-width: 900px) {
+            .mods-grid { grid-template-columns: 1fr 1fr; }
+            .workspace { padding: 20px 20px 32px; }
+            .topbar { padding: 12px 20px; }
+        }
+        @media (max-width: 540px) {
+            .mods-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="topbar">
         <a class="topbar-logo" href="../">Breakthrough<span>.</span></a>
-        <div class="topbar-tag">CO3135 · P4AI-DS</div>
+        <div class="topbar-right">
+            <span class="topbar-badge">A01 · Draft</span>
+            <span class="topbar-tag">CO3135 · P4AI-DS</span>
+        </div>
     </div>
 
-    <div class="hero">
-        <a class="back" href="../">← Trang chủ nhóm</a>
+    <main class="workspace">
 
-        <div class="draft-banner">
-            <span class="dot"></span>
-            Draft — chưa hoàn thiện đủ 4 modality
-        </div>
+        <header class="page-head">
+            <div class="page-eyebrow">Assignment 01 · 2025–2026</div>
+            <h1 class="page-title">Exploratory Data Analysis</h1>
+            <p class="page-sub">
+                EDA đa phương thức trên 4 bộ dữ liệu: Tabular (World Happiness), Text (Multimodal-Textbook),
+                Image (Food Classification), và Multimodal (RSITMD — Remote Sensing).
+            </p>
+        </header>
 
-        <div class="badge">Assignment 01</div>
-        <h1>Exploratory Data Analysis</h1>
-        <p class="subtitle">
-            EDA trên 3 modality: Tabular, Text, Image — và phân tích Multimodal
-            (text + image) trên bộ dữ liệu RSITMD.
-        </p>
-
-        <div class="links">
-            <a class="link-btn link-btn-report" href="./report/main.pdf" target="_blank">
-                📄 PDF Report (Draft)
+        <div class="action-strip">
+            <span class="action-label">Tài liệu</span>
+            <a class="action-btn action-btn--primary" href="./report/main.pdf" target="_blank">
+                📄 PDF Report
             </a>
-            <a class="link-btn link-btn-video" href="#">
+            <a class="action-btn action-btn--outline" href="#">
                 ▶ YouTube Video
             </a>
-            <a class="link-btn link-btn-github" href="#">
-                🐙 GitHub
-            </a>
         </div>
 
-        <div class="modalities">
-            <div class="mod-label">Datasets &amp; Modalities</div>
+        <div class="mods-label">Datasets &amp; Modalities</div>
 
-            <div class="mod-card">
-                <div class="mod-icon">📊</div>
-                <div class="mod-title">Tabular</div>
-                <div class="mod-desc">Structured data — CSV</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
+        <div class="mods-grid">
+
+            <!-- ── Tabular ── -->
+            <div class="mod-card mod-card--tabular">
+                <div class="mod-content">
+                    <a class="mod-card-main" href="./tabular/">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">📊</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Tabular Data</div>
+                            <div class="mod-sub">World Happiness — life scores, GDP &amp; social factors across countries.</div>
+                        </div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">World Happiness</div>
+                            <div class="stat-desc">unsdsn · Kaggle</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Records</span>
+                        <div>
+                            <div class="stat-val">~3,000 rows</div>
+                            <div class="stat-desc">Multiple years · ~150 countries</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Key Features</span>
+                        <div>
+                            <div class="stat-val">Ladder · GDP</div>
+                            <div class="stat-desc">Life eval · Dystopia residual</div>
+                        </div>
+                    </div>
+                    <div class="stat-pills">
+                        <span class="stat-pill">CSV</span>
+                        <span class="stat-pill">Kaggle</span>
+                        <span class="stat-pill">Regression</span>
+                    </div>
+                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://kaggle.com/datasets/unsdsn/world-happiness" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            World Happiness Report — Kaggle
+                        </a>
+                    </div>
+                </div>
             </div>
 
-            <div class="mod-card">
-                <div class="mod-icon">📝</div>
-                <div class="mod-title">Text</div>
-                <div class="mod-desc">Unstructured text data</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
+            <!-- ── Text ── -->
+            <div class="mod-card mod-card--text">
+                <div class="mod-content">
+                    <a class="mod-card-main" href="./text/">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">📝</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Text</div>
+                            <div class="mod-sub">Multimodal-Textbook — structured educational text with visual elements.</div>
+                        </div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">Multimodal-Textbook</div>
+                            <div class="stat-desc">DAMO-NLP-SG · HuggingFace</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Content</span>
+                        <div>
+                            <div class="stat-val">Textbook chapters</div>
+                            <div class="stat-desc">Educational · Visual-enhanced</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Domain</span>
+                        <div>
+                            <div class="stat-val">Education</div>
+                            <div class="stat-desc">K-12 / College · Structured</div>
+                        </div>
+                    </div>
+                    <div class="stat-pills">
+                        <span class="stat-pill">NLP</span>
+                        <span class="stat-pill">Tokenization</span>
+                        <span class="stat-pill">Word freq</span>
+                    </div>
+                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://huggingface.co/datasets/DAMO-NLP-SG/multimodal_textbook" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Multimodal-Textbook — HuggingFace
+                        </a>
+                    </div>
+                </div>
             </div>
 
-            <div class="mod-card">
-                <div class="mod-icon">🖼</div>
-                <div class="mod-title">Image</div>
-                <div class="mod-desc">Remote sensing images</div>
-                <span class="mod-tag tag-done">Hoàn thành</span>
+            <!-- ── Image ── -->
+            <div class="mod-card mod-card--image">
+                <div class="mod-content">
+                    <a class="mod-card-main" href="./image/">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">🖼</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Image</div>
+                            <div class="mod-sub">Food Image Classification — food recognition via PCA &amp; Randomized PCA.</div>
+                        </div>
+                        <span class="mod-tag tag-done">Hoàn thành</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">Food Classification</div>
+                            <div class="stat-desc">minhosong88 · GitHub</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Methods</span>
+                        <div>
+                            <div class="stat-val">PCA · Rand. PCA</div>
+                            <div class="stat-desc">Dimensionality reduction + classification</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Task</span>
+                        <div>
+                            <div class="stat-val">Classification</div>
+                            <div class="stat-desc">Multi-class · Food categories</div>
+                        </div>
+                    </div>
+                    <div class="stat-pills">
+                        <span class="stat-pill">PCA / Rand. PCA</span>
+                        <span class="stat-pill">Classification</span>
+                    </div>
+                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://github.com/minhosong88/food-image-classification?tab=readme-ov-file#usage" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Food Image Classification — GitHub
+                        </a>
+                    </div>
+                </div>
             </div>
 
-            <div class="mod-card">
-                <div class="mod-icon">🔗</div>
-                <div class="mod-title">Multimodal</div>
-                <div class="mod-desc">Text + Image (RSITMD) — đang triển khai</div>
-                <span class="mod-tag tag-pending">Pending</span>
+            <!-- ── Multimodal ── -->
+            <div class="mod-card mod-card--multi">
+                <div class="mod-content">
+                    <a class="mod-card-main" href="./multimodal/">
+                    <div class="mod-hdr">
+                        <div class="mod-icon">🔗</div>
+                        <div class="mod-hdr-txt">
+                            <div class="mod-title">Multimodal</div>
+                            <div class="mod-sub">Cross-modal RS Image Retrieval — AMFMN for text-image matching.</div>
+                        </div>
+                        <span class="mod-tag tag-active">Active</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Dataset</span>
+                        <div>
+                            <div class="stat-val">RSITMD</div>
+                            <div class="stat-desc">xiaoyuan1996 · GitHub</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Task</span>
+                        <div>
+                            <div class="stat-val">Retrieval text→image</div>
+                            <div class="stat-desc">Cross-modal remote sensing</div>
+                        </div>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-lbl">Model</span>
+                        <div>
+                            <div class="stat-val">AMFMN (CVPR)</div>
+                            <div class="stat-desc">Attention-based Multimodal Fusion</div>
+                        </div>
+                    </div>
+                    <div class="stat-pills">
+                        <span class="stat-pill">RSITMD</span>
+                        <span class="stat-pill">Image-Text</span>
+                        <span class="stat-pill">Retrieval</span>
+                    </div>
+                    </a>
+                    <div class="mod-footer">
+                        <a class="src-btn" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            AMFMN — Cross-modal RS Retrieval · GitHub
+                        </a>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
+
+        </div><!-- /mods-grid -->
+    </main>
 
     <footer>
         Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
