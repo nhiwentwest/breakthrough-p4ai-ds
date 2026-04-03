@@ -109,6 +109,26 @@ def run_data_audit(images, train_imgs, test_imgs):
     print(f"  Rows with empty captions: {bad_caption_rows}")
 
 
+def clean_output_dir():
+    """Remove stale figures that are no longer part of the core EDA set."""
+    obsolete = [
+        'txt_01_category_distribution_train.png',
+        'txt_01_category_distribution_test.png',
+        'txt_04_vocabulary_richness_train.png',
+        'txt_04_vocabulary_richness_test.png',
+        'txt_07_bigrams_train.png',
+        'txt_07_bigrams_test.png',
+    ]
+    removed = 0
+    for name in obsolete:
+        p = OUTPUT_DIR / name
+        if p.exists():
+            p.unlink()
+            removed += 1
+    if removed:
+        print(f"  Cleaned {removed} stale figure(s) from output directory")
+
+
 def parse_filename(filename):
     """Extract category from filename."""
     parts = filename.replace('.tif', '').rsplit('_', 1)
@@ -220,24 +240,7 @@ def viz_text(text_stats, split='train'):
     """Generate text analysis visualizations."""
     print(f"\n  Generating text visualizations...")
 
-    # 1. Category Distribution
-    fig, ax = plt.subplots(figsize=(14, 7))
-    cat_df = pd.DataFrame(text_stats['cat_counts'].most_common(),
-                          columns=['Category', 'Count'])
-    colors = plt.cm.viridis(np.linspace(0, 1, len(cat_df)))
-    bars = ax.bar(cat_df['Category'], cat_df['Count'], color=colors)
-    ax.set_xlabel('Category')
-    ax.set_ylabel('Number of Images')
-    ax.set_title(f'RSITMD Caption Distribution by Category ({split.upper()})')
-    ax.tick_params(axis='x', rotation=90)
-    for bar, count in zip(bars, cat_df['Count']):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                str(count), ha='center', va='bottom', fontsize=7)
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / f'txt_01_category_distribution_{split}.png', dpi=150)
-    plt.close()
-
-    # 2. Caption Length Distribution
+    # 1. Caption Length Distribution
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.hist(text_stats['word_counts'], bins=30, edgecolor='white', alpha=0.8, color='#3498db')
     ax.axvline(np.mean(text_stats['word_counts']), color='red', linestyle='--', linewidth=2,
@@ -349,32 +352,7 @@ def viz_text(text_stats, split='train'):
                 bbox_inches='tight', facecolor='#FAFAFA')
     plt.close()
 
-    # 7. Vocabulary Richness by Category
-    fig, ax = plt.subplots(figsize=(14, 6))
-    vocab_data = []
-    for cat, _ in text_stats['cat_counts'].most_common():
-        kw = text_stats['cat_keyword'].get(cat, [])
-        vocab_data.append({
-            'Category': cat,
-            'Unique Words': len(kw),
-            'Total Words': sum(c for w, c in kw)
-        })
-    vocab_df = pd.DataFrame(vocab_data)
-    x = np.arange(len(vocab_df))
-    width = 0.35
-    ax.bar(x - width/2, vocab_df['Unique Words'], width, label='Unique Words', color='#3498db')
-    ax.bar(x + width/2, vocab_df['Total Words'], width, label='Total Words', color='#e74c3c')
-    ax.set_xlabel('Category')
-    ax.set_ylabel('Word Count')
-    ax.set_title(f'Vocabulary Richness by Category ({split.upper()})')
-    ax.set_xticks(x)
-    ax.set_xticklabels(vocab_df['Category'], rotation=90)
-    ax.legend()
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / f'txt_04_vocabulary_richness_{split}.png', dpi=150)
-    plt.close()
-
-    print(f"  Generated 7 text visualizations")
+    print(f"  Generated text visualizations (core set)")
 
 
 # ─────────────────────────────────────────────
@@ -762,6 +740,8 @@ def main():
     print(f"Output: {OUTPUT_DIR}")
     print("="*60)
 
+    clean_output_dir()
+
     if NLTK_AVAILABLE:
         try:
             import nltk
@@ -777,32 +757,33 @@ def main():
     # 0. Data audit
     run_data_audit(images, train_imgs, test_imgs)
 
-    # 1. Text Analysis
+    # Section B1 — Text EDA (analyze + visualize)
     train_text = analyze_text(train_imgs, 'train')
     test_text = analyze_text(test_imgs, 'test')
-
-    # 2. Image Analysis (metadata from filenames)
-    train_img = analyze_image(train_imgs, 'train')
-    test_img = analyze_image(test_imgs, 'test')
-
-    # 2B. Image Pixel Analysis (brightness, texture, RGB channels) — from real TIF images
-    train_pixel = analyze_image_pixel(train_imgs, 'train')
-    test_pixel  = analyze_image_pixel(test_imgs,  'test')
-
-    # 3. Multimodal Analysis
-    train_mm = analyze_multimodal(train_imgs, 'train', cat_keyword_dict=train_text['cat_keyword'], pixel_stats=train_pixel)
-    test_mm = analyze_multimodal(test_imgs, 'test', cat_keyword_dict=test_text['cat_keyword'], pixel_stats=test_pixel)
-
-    # Visualizations
     viz_text(train_text, 'train')
     viz_text(test_text, 'test')
+
+    # Section B2 — Image EDA (metadata + pixel quality, analyze + visualize)
+    train_img = analyze_image(train_imgs, 'train')
+    test_img = analyze_image(test_imgs, 'test')
+    train_pixel = analyze_image_pixel(train_imgs, 'train')
+    test_pixel  = analyze_image_pixel(test_imgs,  'test')
     viz_image(train_img, 'train')
     viz_image(test_img, 'test')
     viz_image_pixel(train_pixel, 'train')
     viz_image_pixel(test_pixel,  'test')
+
+    # Section C — Multimodal EDA (analyze + visualize)
+    train_mm = analyze_multimodal(train_imgs, 'train', cat_keyword_dict=train_text['cat_keyword'], pixel_stats=train_pixel)
+    test_mm = analyze_multimodal(test_imgs, 'test', cat_keyword_dict=test_text['cat_keyword'], pixel_stats=test_pixel)
     viz_multimodal(train_mm, 'train')
     viz_multimodal(test_mm, 'test')
+
+    # Section D — Drift + Sensitivity + Summary export
+    viz_train_test_drift(train_text, test_text, train_pixel, test_pixel)
+    viz_noise_threshold_sensitivity(train_imgs, train_pixel)
     generate_summary_csv(train_text, test_text, train_img, test_img)
+    print_executive_summary(train_text, test_text, train_pixel, test_pixel, train_mm, test_mm)
 
     print("\n" + "="*60)
     print("EDA COMPLETE!")
@@ -812,7 +793,7 @@ def main():
         print(f"  - {f.name}")
 
 
-def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None):
+def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None, layer_a_threshold=0.05):
     print(f"\n{'='*60}")
     print(f"MULTIMODAL ANALYSIS — {split.upper()} SET")
     print(f"{'='*60}")
@@ -984,7 +965,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                     else:
                         sim = 0.0
                     
-                    if sim < 0.05:  # Extremely low similarity threshold
+                    if sim < layer_a_threshold:  # Layer-A threshold
                         layer_a_flag = True
                         reasons.append(f"CosineSim={sim:.3f}")
                 
@@ -1045,6 +1026,8 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'caps_with_spatial': caps_with_spatial,
         'total_caps': total_caps,
         'category_similarity_df': category_similarity_df,
+        'anomalies': anomalies,
+        'layer_a_threshold': layer_a_threshold,
     }
 
 
@@ -1264,6 +1247,85 @@ def generate_summary_csv(train_text, test_text, train_img, test_img):
 
     df = pd.DataFrame(rows)
     df.to_csv(OUTPUT_DIR / 'summary_stats_train_test.csv', index=False)
+
+
+def viz_train_test_drift(train_text, test_text, train_pixel, test_pixel):
+    """Visualize key train-vs-test drift for text and image quality metrics."""
+    train_img_df = train_pixel.get('image_df', pd.DataFrame())
+    test_img_df = test_pixel.get('image_df', pd.DataFrame())
+
+    fig, axs = plt.subplots(1, 3, figsize=(15, 4.5))
+    fig.patch.set_facecolor('#FAFAFA')
+
+    axs[0].hist(train_text['word_counts'], bins=30, alpha=0.55, label='Train', color='#1f77b4')
+    axs[0].hist(test_text['word_counts'], bins=30, alpha=0.55, label='Test', color='#ff7f0e')
+    axs[0].set_title('Caption Length Drift')
+    axs[0].set_xlabel('Words per caption')
+    axs[0].legend()
+
+    if not train_img_df.empty and not test_img_df.empty:
+        axs[1].hist(train_img_df['brightness'], bins=25, alpha=0.55, label='Train', color='#2ca02c')
+        axs[1].hist(test_img_df['brightness'], bins=25, alpha=0.55, label='Test', color='#d62728')
+        axs[1].set_title('Brightness Drift')
+        axs[1].set_xlabel('Mean brightness')
+        axs[1].legend()
+
+        axs[2].hist(train_img_df['blur_score'], bins=25, alpha=0.55, label='Train', color='#9467bd')
+        axs[2].hist(test_img_df['blur_score'], bins=25, alpha=0.55, label='Test', color='#8c564b')
+        axs[2].set_title('Blur Score Drift')
+        axs[2].set_xlabel('Laplacian variance')
+        axs[2].legend()
+    else:
+        axs[1].text(0.5, 0.5, 'No image-level stats', ha='center', va='center')
+        axs[2].text(0.5, 0.5, 'No image-level stats', ha='center', va='center')
+
+    for ax in axs:
+        ax.grid(alpha=0.2)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'drift_01_train_test_core_metrics.png', dpi=180, bbox_inches='tight')
+    plt.close()
+
+
+def viz_noise_threshold_sensitivity(train_imgs, pixel_stats, thresholds=(0.03, 0.05, 0.07, 0.09)):
+    """Plot anomaly count sensitivity against Layer-A thresholds."""
+    counts = []
+    for th in thresholds:
+        mm = analyze_multimodal(train_imgs, split='train', cat_keyword_dict={'_': []}, pixel_stats=pixel_stats, layer_a_threshold=th)
+        counts.append(len(mm.get('anomalies', [])))
+
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    ax.plot(list(thresholds), counts, marker='o', color='#B42318', linewidth=2)
+    for x, y in zip(thresholds, counts):
+        ax.text(x, y, f' {y}', va='bottom', fontsize=8)
+    ax.set_title('Anomaly Count Sensitivity vs Layer-A Threshold')
+    ax.set_xlabel('Layer-A cosine threshold')
+    ax.set_ylabel('Detected anomalies')
+    ax.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / 'mm_04_threshold_sensitivity_train.png', dpi=180, bbox_inches='tight')
+    plt.close()
+
+
+def print_executive_summary(train_text, test_text, train_pixel, test_pixel, train_mm, test_mm):
+    """Print concise findings and implications after EDA run."""
+    t_mean = np.mean(train_text['word_counts'])
+    v_mean = np.mean(train_mm['variabilities'])
+    an_train = len(train_mm.get('anomalies', []))
+    an_test = len(test_mm.get('anomalies', []))
+
+    train_img_df = train_pixel.get('image_df', pd.DataFrame())
+    test_img_df = test_pixel.get('image_df', pd.DataFrame())
+    b_train = float(train_img_df['brightness'].mean()) if not train_img_df.empty else np.nan
+    b_test = float(test_img_df['brightness'].mean()) if not test_img_df.empty else np.nan
+
+    print(f"\n{'='*60}")
+    print("EXECUTIVE SUMMARY — KEY FINDINGS")
+    print(f"{'='*60}")
+    print(f"1) Avg caption length (train): {t_mean:.2f} words")
+    print(f"2) Caption variability mean (train): {v_mean:.2f} std words")
+    print(f"3) Brightness mean train/test: {b_train:.3f} / {b_test:.3f}")
+    print(f"4) Noise flags train/test: {an_train} / {an_test}")
+    print("5) Core drift and threshold sensitivity figures generated for model risk review")
 
 
 # ─────────────────────────────────────────────
