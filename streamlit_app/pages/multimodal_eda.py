@@ -41,7 +41,7 @@ body,.stApp {{ background:{BG}; color:{TEXT}; }}
 </style>
 """, unsafe_allow_html=True)
 
-TOTAL_STEPS = 9
+TOTAL_STEPS = 8
 STEP_LABELS = {
     0: "Dataset + Data Audit",
     1: "Text EDA Core",
@@ -51,7 +51,6 @@ STEP_LABELS = {
     5: "Semantic Consistency",
     6: "Contradiction Map",
     7: "Drift + Threshold Sensitivity",
-    8: "Executive Summary",
 }
 
 STOP_WORDS = {
@@ -477,21 +476,6 @@ elif step == 7:
     else:
         st.warning("scikit-learn unavailable; sensitivity disabled.")
 
-elif step == 8:
-    st.markdown("### Executive summary")
-    n_train = D.get("n_train", len(D.get("train_imgs", [])))
-    n_test = D.get("n_test", len(D.get("test_imgs", [])))
-    n_total = D.get("n_total", n_train + n_test)
-    train_caps = D.get("train_caps", [])
-    variabilities = D.get("variabilities", [])
-
-    st.write(f"- Images: **{n_total:,}** ({n_train:,} train / {n_test:,} test)")
-    if train_caps:
-        st.write(f"- Avg caption words (train): **{np.mean([len(tokenize(c)) for c in train_caps]):.2f}**")
-    if variabilities:
-        st.write(f"- Caption variability mean (train): **{np.mean(variabilities):.2f}**")
-    if not px_df.empty and "brightness" in px_df.columns:
-        st.write(f"- Brightness mean (train categories): **{px_df['brightness'].mean():.3f}**")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -499,6 +483,6 @@ with col1:
         st.session_state.step = max(0, step-1)
         st.rerun()
 with col2:
-    if st.button("Next →", disabled=step == TOTAL_STEPS-1):
+    if step < TOTAL_STEPS - 1 and st.button("Next →"):
         st.session_state.step = min(TOTAL_STEPS-1, step+1)
         st.rerun()
