@@ -329,7 +329,7 @@ elif step == 2:
             "Ratio (%)": st.column_config.NumberColumn("Ratio %", format="%.1f%%")
         }
     )
-    fig, ax = plt.subplots(figsize=(4.2, 4.2))
+    fig, ax = plt.subplots(figsize=(2.5, 2.5))
     ax.pie(
         D["category_table"]["Ratio (%)"],
         labels=D["category_table"].index.astype(str),
@@ -345,7 +345,7 @@ elif step == 3:
     bin_size = st.slider("Word-count bin size", 1, 10, 5)
     max_wc = int(df["word_count"].max())
     bins = np.arange(0, max_wc + bin_size, bin_size)
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(6, 2.5))
     ax.hist(df["word_count"], bins=bins, color="#2563eb", edgecolor="white")
     ax.set_title("Word Count Distribution")
     ax.set_xlabel("Words per text")
@@ -357,7 +357,7 @@ elif step == 4:
     bin_size = st.slider("Character-count bin size", 5, 40, 20)
     max_cc = int(df["char_count"].max())
     bins = np.arange(0, max_cc + bin_size, bin_size)
-    fig, ax = plt.subplots(figsize=(10, 4))
+    fig, ax = plt.subplots(figsize=(6, 2.5))
     ax.hist(df["char_count"], bins=bins, color="#0ea5e9", edgecolor="white")
     ax.set_title("Character Length Distribution")
     ax.set_xlabel("Characters per text")
@@ -379,7 +379,7 @@ elif step == 5:
             "Frequency": st.column_config.ProgressColumn("Frequency 📊", min_value=0, max_value=int(wdf["Frequency"].max()) if not wdf.empty else 100, format="%d")
         }
     )
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(5, 3.5))
     ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#ef4444")
     ax.set_title(f"Top {top_n} Word Frequency")
     right.pyplot(fig)
@@ -397,7 +397,7 @@ elif step == 5:
         }
     )
     if len(tdf) > 0:
-        fig2, ax2 = plt.subplots(figsize=(7, 4))
+        fig2, ax2 = plt.subplots(figsize=(4, 2))
         ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#10b981")
         ax2.set_title("Top 5 Most Mentioned Tickers")
         st.pyplot(fig2)
@@ -425,7 +425,7 @@ elif step == 6:
                 "score": st.column_config.ProgressColumn("TF-IDF Score 🎯", min_value=0.0, max_value=float(table["score"].max()) if not table.empty else 1.0, format="%.3f")
             }
         )
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(5, 3.5))
         ax.barh(table["term"][::-1], table["score"][::-1], color="#f59e0b")
         ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})")
         st.pyplot(fig)
@@ -451,7 +451,7 @@ elif step == 7:
         table = bigram_map[int(label)]
         st.dataframe(table, use_container_width=True)
         if len(table) > 0:
-            fig, ax = plt.subplots(figsize=(8, 6))
+            fig, ax = plt.subplots(figsize=(5, 3.5))
             ax.barh(table["bigram"][::-1], table["score"][::-1], color="#8b5cf6")
             ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})")
             st.pyplot(fig)
@@ -467,7 +467,7 @@ elif step == 8:
             decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
         sim = compute_similarity(df, max_feat)
         st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
-        fig, ax = plt.subplots(figsize=(4.5, 3.5))
+        fig, ax = plt.subplots(figsize=(2.8, 2.2))
         cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
         im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(range(len(sim.columns)))
@@ -509,7 +509,7 @@ elif step == 9:
                 "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
             }
         )
-        fig, ax = plt.subplots(figsize=(5.5, 3.2))
+        fig, ax = plt.subplots(figsize=(3.5, 2))
         ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
         ax.set_title("OOV Rate by Category")
         ax.set_xlabel("Category")
@@ -519,9 +519,7 @@ elif step == 9:
 col1, col2 = st.columns(2)
 with col1:
     if step == 0:
-        if st.button("↺ Start Over"):
-            st.session_state.text_step = 0
-            st.rerun()
+        st.empty()
     else:
         if st.button("← Previous"):
             st.session_state.text_step = max(0, step - 1)
@@ -529,7 +527,7 @@ with col1:
 
 with col2:
     if step == TOTAL_STEPS - 1:
-        if st.button("↺ Start Over"):
+        if st.button("↺ Start Over", type="primary"):
             st.session_state.text_step = 0
             st.rerun()
     else:
