@@ -487,7 +487,7 @@ if st.session_state.phase == "idle":
         st.session_state.phase = "transitioning"
         st.session_state.step  = 0
         st.session_state.log   = []
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown(f"<span class='hero-divider'></span>", unsafe_allow_html=True)
     st.markdown(f"<p class='footer'>IEEE TGRS 2021 · RSITMD · UIT · 2025–2026</p>",
