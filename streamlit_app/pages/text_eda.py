@@ -289,17 +289,19 @@ elif step == 1:
         st.success("No missing values found.")
 
 elif step == 2:
-    st.dataframe(D["category_table"], use_container_width=True)
-    fig, ax = plt.subplots(figsize=(6, 6))
+    left, right = st.columns([1.1, 1.2])
+    left.dataframe(D["category_table"], use_container_width=True)
+    fig, ax = plt.subplots(figsize=(4.2, 4.2))
     ax.pie(
         D["category_table"]["Ratio (%)"],
         labels=D["category_table"].index.astype(str),
         autopct="%1.1f%%",
         startangle=90,
         colors=["#60a5fa", "#34d399", "#f97316"],
+        radius=0.9,
     )
-    ax.set_title("Category Distribution")
-    st.pyplot(fig)
+    ax.set_title("Category Distribution", fontsize=11)
+    right.pyplot(fig)
 
 elif step == 3:
     bin_size = st.slider("Word-count bin size", 1, 10, 5)
@@ -357,7 +359,7 @@ elif step == 6:
             max_feat = st.slider("Max features", 20, 500, 100, 10, key="tfidf_maxfeat")
         with c3:
             top_k = st.slider("Top terms", 5, 30, 20, 1, key="tfidf_topk")
-        ngram_max = st.selectbox("N-gram range", [1, 2, 3], index=1, key="tfidf_ngram_max")
+        ngram_max = st.radio("N-gram range", [1, 2, 3], index=1, horizontal=True, key="tfidf_ngram_max")
         tfidf_map = compute_tfidf_terms(df, max_feat, 1, int(ngram_max), top_k)
         table = tfidf_map[int(label)]
         st.dataframe(table, use_container_width=True)
@@ -370,13 +372,19 @@ elif step == 7:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn is required for bigram TF-IDF views.")
     else:
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
             label = st.selectbox("Label", sorted(df["label"].unique()), index=0, key="bigram_label")
         with c2:
             max_feat = st.slider("Max bigram features", 20, 500, 120, 10, key="bigram_maxfeat")
         with c3:
-            top_k = st.slider("Top bigrams", 5, 30, 15, 1, key="bigram_topk")
+            top_preset = st.selectbox("Top preset", [10, 15, 20, 30], index=1, key="bigram_top_preset")
+        with c4:
+            custom_top = st.toggle("Custom top-k", value=False, key="bigram_custom_top")
+        if custom_top:
+            top_k = st.slider("Top bigrams", 5, 30, int(top_preset), 1, key="bigram_topk")
+        else:
+            top_k = int(top_preset)
         bigram_map = compute_bigram_terms(df, max_feat, top_k)
         table = bigram_map[int(label)]
         st.dataframe(table, use_container_width=True)
