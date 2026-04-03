@@ -284,13 +284,32 @@ elif step == 1:
     c1.metric("Duplicates detected", f"{D['duplicate_count']:,}")
     c2.metric("Rows after cleanup", f"{len(df):,}")
     if len(D["missing_df"]) > 0:
-        st.dataframe(D["missing_df"], use_container_width=True)
+        st.dataframe(
+            D["missing_df"], 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "Column": st.column_config.TextColumn("Column 📝"),
+                "Missing Values": st.column_config.NumberColumn("Missing ⚠️"),
+                "%": st.column_config.ProgressColumn("Missing %", min_value=0.0, max_value=100.0, format="%.2f%%")
+            }
+        )
     else:
         st.success("No missing values found.")
 
 elif step == 2:
     left, right = st.columns([1.1, 1.2])
-    left.dataframe(D["category_table"], use_container_width=True)
+    cat_df = D["category_table"].reset_index()
+    left.dataframe(
+        cat_df, 
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "index": st.column_config.TextColumn("Label 🏷️"),
+            "Count": st.column_config.ProgressColumn("Count 📈", min_value=0, max_value=int(cat_df["Count"].max()), format="%d"),
+            "Ratio (%)": st.column_config.NumberColumn("Ratio %", format="%.1f%%")
+        }
+    )
     fig, ax = plt.subplots(figsize=(4.2, 4.2))
     ax.pie(
         D["category_table"]["Ratio (%)"],
@@ -332,7 +351,15 @@ elif step == 5:
     top_words = D["word_freq"].most_common(top_n)
     wdf = pd.DataFrame(top_words, columns=["Word", "Frequency"])
     left, right = st.columns(2)
-    left.dataframe(wdf, use_container_width=True)
+    left.dataframe(
+        wdf, 
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Word": st.column_config.TextColumn("Word 🔠"),
+            "Frequency": st.column_config.ProgressColumn("Frequency 📊", min_value=0, max_value=int(wdf["Frequency"].max()) if not wdf.empty else 100, format="%d")
+        }
+    )
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#ef4444")
     ax.set_title(f"Top {top_n} Word Frequency")
@@ -341,7 +368,15 @@ elif step == 5:
     st.markdown("### Top Mentioned Tickers")
     top_tickers = D["ticker_freq"].most_common(5)
     tdf = pd.DataFrame(top_tickers, columns=["Ticker", "Frequency"])
-    st.dataframe(tdf, use_container_width=True)
+    st.dataframe(
+        tdf, 
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Ticker": st.column_config.TextColumn("Ticker 📈"),
+            "Frequency": st.column_config.ProgressColumn("Mentions 💬", min_value=0, max_value=int(tdf["Frequency"].max()) if not tdf.empty else 100, format="%d")
+        }
+    )
     if len(tdf) > 0:
         fig2, ax2 = plt.subplots(figsize=(7, 4))
         ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#10b981")
@@ -362,7 +397,15 @@ elif step == 6:
         ngram_max = st.radio("N-gram range", [1, 2, 3], index=1, horizontal=True, key="tfidf_ngram_max")
         tfidf_map = compute_tfidf_terms(df, max_feat, 1, int(ngram_max), top_k)
         table = tfidf_map[int(label)]
-        st.dataframe(table, use_container_width=True)
+        st.dataframe(
+            table, 
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "term": st.column_config.TextColumn("Term 📝"),
+                "score": st.column_config.ProgressColumn("TF-IDF Score 🎯", min_value=0.0, max_value=float(table["score"].max()) if not table.empty else 1.0, format="%.3f")
+            }
+        )
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.barh(table["term"][::-1], table["score"][::-1], color="#f59e0b")
         ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})")
@@ -404,7 +447,7 @@ elif step == 8:
         with c2:
             decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
         sim = compute_similarity(df, max_feat)
-        st.dataframe(sim.round(decimals), use_container_width=True)
+        st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
         fig, ax = plt.subplots(figsize=(6, 5))
         cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
         im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
@@ -435,7 +478,17 @@ elif step == 9:
         oov = compute_oov(df, max_feat, 1, int(ngram_max))
         if selected:
             oov = oov[oov["Category"].isin(selected)]
-        st.dataframe(oov, use_container_width=True)
+        st.dataframe(
+            oov, 
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "category": st.column_config.TextColumn("Label 🏷️"),
+                "vocab_size": st.column_config.NumberColumn("Vocab Size 📚"),
+                "oov_count": st.column_config.ProgressColumn("OOV Count ❌", min_value=0, max_value=int(oov["oov_count"].max()) if not oov.empty else 100, format="%d"),
+                "oov_ratio": st.column_config.NumberColumn("OOV Ratio %", format="%.2f%%")
+            }
+        )
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
         ax.set_title("OOV Rate by Category")
