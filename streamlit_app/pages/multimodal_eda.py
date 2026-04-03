@@ -479,10 +479,23 @@ elif step == 7:
 
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("← Previous", disabled=step == 0):
-        st.session_state.step = max(0, step-1)
-        st.rerun()
+    if step == 0:
+        if st.button("↺ Start Over"):
+            st.session_state.step = 0
+            st.session_state.D = None
+            st.rerun()
+    else:
+        if st.button("← Previous"):
+            st.session_state.step = max(0, step-1)
+            st.rerun()
+
 with col2:
-    if step < TOTAL_STEPS - 1 and st.button("Next →"):
-        st.session_state.step = min(TOTAL_STEPS-1, step+1)
-        st.rerun()
+    if step == TOTAL_STEPS - 1:
+        if st.button("↺ Start Over"):
+            st.session_state.step = 0
+            st.session_state.D = None
+            st.rerun()
+    else:
+        if st.button("Next →"):
+            st.session_state.step = min(TOTAL_STEPS-1, step+1)
+            st.rerun()
