@@ -156,26 +156,34 @@ elif step == 4:
     x = D["x_train"] if split == "train" else D["x_test"]
     y = D["y_train"] if split == "train" else D["y_test"]
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         only_digit = st.selectbox("Digit filter", ["All"] + [str(i) for i in range(10)], index=0)
     with c2:
-        n_show = st.slider("Samples to show", 9, 100, 36, 1, key="sample_n")
+        pick_mode = st.selectbox("Pick mode", ["Random", "Sequential"], index=0)
     with c3:
         seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1)
+    with c4:
+        grid_cols = st.slider("Grid columns", 2, 20, 8, 1, key="sample_cols")
 
     if only_digit == "All":
         idx_pool = np.arange(len(x))
     else:
         idx_pool = np.where(y == int(only_digit))[0]
 
+    max_show = min(len(idx_pool), 400)
+    n_show = st.slider("Samples to show", 1, max_show if max_show > 0 else 1, min(64, max_show if max_show > 0 else 1), 1, key="sample_n")
+
     rng = np.random.default_rng(int(seed))
     if len(idx_pool) > n_show:
-        idx_sel = rng.choice(idx_pool, size=n_show, replace=False)
+        if pick_mode == "Random":
+            idx_sel = rng.choice(idx_pool, size=n_show, replace=False)
+        else:
+            idx_sel = idx_pool[:n_show]
     else:
         idx_sel = idx_pool
 
-    cols = int(np.ceil(np.sqrt(len(idx_sel))))
+    cols = min(int(grid_cols), max(1, len(idx_sel)))
     rows = int(np.ceil(len(idx_sel) / cols))
     fig, axes = plt.subplots(rows, cols, figsize=(cols * 1.6, rows * 1.6))
     axes = np.array(axes).reshape(rows, cols)
@@ -243,7 +251,7 @@ elif step == 7:
     y = D["y_train"] if split == "train" else D["y_test"]
 
     first_or_random = st.selectbox("Selection mode", ["First occurrence", "Random occurrence"], index=0)
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(int(st.number_input("Seed", min_value=0, max_value=99999, value=7, step=1, key="ex_seed")))
 
     fig, axes = plt.subplots(2, 5, figsize=(11, 4.5))
     for digit, ax in enumerate(axes.flatten()):
@@ -255,6 +263,33 @@ elif step == 7:
     fig.suptitle(f"Example for Each Digit ({split})")
     plt.tight_layout()
     st.pyplot(fig)
+
+    st.markdown("### Top-k farthest samples by digit")
+    d = st.slider("Digit", 0, 9, 0, key="outlier_digit")
+    k = st.slider("Top-k", 1, 30, 12, key="outlier_k")
+    mode = st.selectbox("Distance basis", ["To class mean"], index=0)
+
+    dimgs = x[y == d]
+    mean_img = dimgs.mean(axis=0).reshape(-1)
+    dflat = dimgs.reshape(len(dimgs), -1)
+    dist = np.linalg.norm(dflat - mean_img, axis=1)
+    top_idx = np.argsort(dist)[-k:][::-1]
+
+    cols = min(6, k)
+    rows = int(np.ceil(k / cols))
+    fig2, axes2 = plt.subplots(rows, cols, figsize=(cols * 1.8, rows * 1.8))
+    axes2 = np.array(axes2).reshape(rows, cols)
+    for i, ax in enumerate(axes2.flatten()):
+        if i < len(top_idx):
+            idx = int(top_idx[i])
+            ax.imshow(dimgs[idx], cmap="gray")
+            ax.set_title(f"d={dist[idx]:.1f}", fontsize=8)
+            ax.axis("off")
+        else:
+            ax.axis("off")
+    fig2.suptitle(f"Digit {d} · Top-{k} farthest samples ({split})")
+    plt.tight_layout()
+    st.pyplot(fig2)
 
 elif step == 8:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="mean_split")
