@@ -139,7 +139,7 @@ with row1_col2:
 <div class="card">
   <a href="/image_eda" target="_self">
     <div class="card-title">🖼️ Image</div>
-    <div class="card-desc">Phân tích ảnh vệ tinh, đặc trưng thị giác và xu hướng theo scene.</div>
+    <div class="card-desc">Explore image-level EDA: sample diversity, pixel intensity statistics, class-wise visual patterns, and distribution diagnostics.</div>
   </a>
 </div>
 """,
@@ -165,7 +165,7 @@ with row2_col2:
 <div class="card">
   <a href="/multimodal_eda" target="_self">
     <div class="card-title">🔗 Multimodal</div>
-    <div class="card-desc">Đối chiếu ảnh-văn bản, đánh giá mức liên kết và độ tương thích.</div>
+    <div class="card-desc">Run multimodal EDA: image-text alignment checks, semantic consistency, contradiction analysis, and split-aware sensitivity views.</div>
   </a>
 </div>
 """,
