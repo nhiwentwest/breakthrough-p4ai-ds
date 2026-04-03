@@ -42,9 +42,10 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900&family=Source+Sans+3:wght@300;400;600&display=swap');
 :root {{ --bg:{BG}; --card:{CARD}; --text:{TEXT}; --acc:{ACC}; --mut:{MUT}; --bor:{BOR}; --rule:{RULE}; }}
 body,.stApp {{ background:var(--bg); color:var(--text); font-family:'Source Sans 3',sans-serif; }}
-[data-testid="stSidebar"] {{ background:#EDE9E1 !important; border-right:2px solid var(--rule); width:220px !important; }}
+[data-testid="stSidebar"] {{ display:none !important; }}
+[data-testid="stSidebarNav"] {{ display:none !important; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
-.main .block-container {{ padding-left:240px; padding-right:1rem; }}
+.main .block-container {{ padding-left:1rem; padding-right:1rem; }}
 h1,h2,h3 {{ font-family:'Playfair Display',serif; color:var(--text); line-height:1.1; }}
 .eyebrow {{ font-size:0.65rem; font-weight:700; letter-spacing:0.2em;
             text-transform:uppercase; color:var(--acc); margin-bottom:0.4rem; }}
@@ -1165,7 +1166,7 @@ if D is not None:
 
     # ── STEP 3: Caption Vocabulary ───────────────────────────────────────────
     elif st.session_state.step == 3:
-        st.markdown("<p class='section-head'>Step 4 of 7 — Caption Vocabulary</p>",
+        st.markdown("<p class='section-head'>Step 4 of 9 — Multimodal Baseline</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#2E7D32;'>
@@ -1255,13 +1256,30 @@ if D is not None:
 
     # ── STEP 4: Color Words ─────────────────────────────────────────────────
     elif st.session_state.step == 4:
-        st.markdown("<p class='section-head'>Step 5 of 7 — Color Words</p>",
+        st.markdown("<p class='section-head'>Step 5 of 9 — Category Cosine Similarity</p>",
                     unsafe_allow_html=True)
         st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#FF9800;'>
-          Do captions describe visual properties like color?
-          If so, which colors appear most frequently — and what does that reveal about aerial imagery?
+        <div class='insight' style='font-style:normal;border-left-color:#0E7490;'>
+          Category-level caption similarity matrix (TF-IDF + cosine). This is the matrix view aligned with script multimodal.
         </div>""", unsafe_allow_html=True)
+
+        sim_df = build_category_similarity(D["train_imgs"])
+        if not sim_df.empty:
+            view_n = st.slider("Matrix categories", 10, min(33, len(sim_df)), min(20, len(sim_df)), key="sim_mat_n")
+            top_cats = sim_df.mean(axis=1).sort_values(ascending=False).head(view_n).index
+            plot_df = sim_df.loc[top_cats, top_cats]
+            figm, axm = plt.subplots(figsize=(9, 7))
+            figm.patch.set_facecolor(BG)
+            sns.heatmap(plot_df, cmap='YlGnBu', vmin=0, vmax=1, ax=axm)
+            axm.set_title('Category-level Caption Cosine Similarity (Train)')
+            axm.set_xlabel('Category'); axm.set_ylabel('Category')
+            plt.tight_layout()
+            st.pyplot(figm)
+        else:
+            st.warning("Cannot build cosine similarity matrix.")
+
+        st.markdown("---")
+        st.markdown("<p class='section-head'>Color Words (supporting text signal)</p>", unsafe_allow_html=True)
 
         color_pct   = D["caps_with_color"] / D["total_caps"] * 100
         total_color = sum(D["color_freq"].values())
@@ -1420,7 +1438,7 @@ if D is not None:
 
     # ── STEP 5: Spatial Relations ────────────────────────────────────────────
     elif st.session_state.step == 5:
-        st.markdown("<p class='section-head'>Step 6 of 7 — Spatial Relations</p>",
+        st.markdown("<p class='section-head'>Step 6 of 9 — Semantic Consistency</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#4488BB;'>
@@ -1494,7 +1512,7 @@ if D is not None:
 
     # ── STEP 6: Caption Variability ─────────────────────────────────────────
     elif st.session_state.step == 6:
-        st.markdown("<p class='section-head'>Step 7 of 7 — Caption Variability</p>",
+        st.markdown("<p class='section-head'>Step 7 of 9 — Semantic Consistency + Contradiction</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#9b59b6;'>
@@ -1548,6 +1566,12 @@ if D is not None:
         st.markdown("##### One Image — Five Perspectives")
 
         # User controls for Step 7
+        import random
+        random.seed(99)
+        all_train = D["train_imgs"]
+        variabilities = D["variabilities"]
+        idx_var_pairs = list(enumerate(variabilities))
+
         ctrl1, ctrl2, ctrl3 = st.columns([1, 1, 1])
         with ctrl1:
             gallery_mode = st.selectbox(
@@ -1556,19 +1580,15 @@ if D is not None:
                 index=0,
             )
         with ctrl2:
-            n_pick = st.slider("Number of samples", 8, 40, 20, 4)
+            max_pick = max(8, len(idx_var_pairs))
+            default_pick = min(120, max_pick)
+            n_pick = st.slider("Number of samples (full-data)", 8, max_pick, default_pick, 4)
         with ctrl3:
             only_category = st.selectbox(
                 "Filter category",
                 ["All"] + sorted(D["train_cats"].keys()),
                 index=0,
             )
-
-        import random
-        random.seed(99)
-        all_train = D["train_imgs"]
-        variabilities = D["variabilities"]
-        idx_var_pairs = list(enumerate(variabilities))
 
         if only_category != "All":
             idx_var_pairs = [
@@ -1624,16 +1644,41 @@ if D is not None:
                     unsafe_allow_html=True,
                 )
 
+        sem_df = build_semantic_consistency(D["train_imgs"])
+        if not sem_df.empty:
+            fig_sem, ax_sem = plt.subplots(figsize=(8, 4.5))
+            fig_sem.patch.set_facecolor(BG)
+            ax_sem.hist(sem_df['score'].dropna(), bins=30, color='#16a085', alpha=0.85, edgecolor='white')
+            ax_sem.axvline(sem_df['score'].mean(), color=ACC, linestyle='--', linewidth=2)
+            ax_sem.set_title('Intra-image Semantic Consistency (Train)')
+            ax_sem.set_xlabel('Mean pairwise cosine (5 captions/image)')
+            ax_sem.set_ylabel('Image count')
+            st.pyplot(fig_sem)
+
+        contr_df = build_contradiction_map(D["train_imgs"], D.get("fast_dom_channels", {}))
+        if not contr_df.empty:
+            top_cd = contr_df.copy()
+            top_cd['combined'] = 0.5*top_cd['blue_mismatch_rate'] + 0.5*top_cd['green_mismatch_rate']
+            top_cd = top_cd.sort_values('combined', ascending=False).head(20)
+            heat_df = top_cd.set_index('category')[['blue_mismatch_rate', 'green_mismatch_rate']]
+            fig_c, ax_c = plt.subplots(figsize=(8.2, 6.2))
+            fig_c.patch.set_facecolor(BG)
+            sns.heatmap(heat_df, annot=True, fmt='.2f', cmap='OrRd', vmin=0, vmax=1, ax=ax_c)
+            ax_c.set_title('Cross-modal Contradiction Map (Train)')
+            ax_c.set_xlabel('Caption claim type')
+            ax_c.set_ylabel('Category')
+            st.pyplot(fig_c)
+
         st.markdown("")
-        if st.button("Next: Noise Detection →", key="view_noise"):
+        if st.button("Next: Drift + Threshold Sensitivity →", key="view_noise"):
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Variability: mean std={D['mean_var']} words")
+                                        f"Semantic + contradiction reviewed")
             st.session_state.step = 7
             st.rerun()
 
     # ── STEP 7: Noise Detection ───────────────────────────────────────────────
     elif st.session_state.step == 7:
-        st.markdown("<p class='section-head'>Step 8 of 8 — Noise Detection</p>",
+        st.markdown("<p class='section-head'>Step 8 of 9 — Drift + Threshold Sensitivity</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#C0392B;'>
@@ -2008,7 +2053,7 @@ if D is not None:
         )
         col_left, col_btn = st.columns([1, 1])
         with col_left:
-            st.success("Analysis Complete — all 7 steps finished.")
+            st.success("Analysis Complete — all 9 steps finished.")
         with col_btn:
             if st.button("← Start Over", key="start_over_done"):
                 for key in list(st.session_state.keys()):
