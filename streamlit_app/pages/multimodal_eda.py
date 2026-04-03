@@ -289,7 +289,7 @@ def parse_category(filename):
 # ══════════════════════════════════════════════════════════════════════════════
 #  DATA LOADING
 # ══════════════════════════════════════════════════════════════════════════════
-@st.cache
+@st.cache_data
 def load_data():
     with open(DATA_FILE, encoding="utf-8") as f:
         data = json.load(f)
@@ -510,7 +510,7 @@ if st.session_state.phase == "transitioning":
     st.session_state.D = load_data()
     st.session_state.phase = "running"
     st.session_state.data_loaded = True
-    st.experimental_rerun()
+    st.rerun()
 
 # Restore D from session_state on every run (module-level D is reset after rerun)
 D = st.session_state.get("D")
@@ -613,7 +613,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ Dataset: "
                                         f"{D['n_train']:,} train / {D['n_test']:,} test")
             st.session_state.step = 1
-            st.experimental_rerun()
+            st.rerun()
     # ── STEP 1: Category Distribution ─────────────────────────────────────────
     elif st.session_state.step == 1:
         st.markdown("<p class='section-head'>Step 2 of 7 — Category Distribution</p>",
@@ -842,7 +842,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Categories: {D['n_cats']} classes, imbalance {imb_ratio:.0f}:1")
             st.session_state.step = 2
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 2: Image Properties ──────────────────────────────────────────────
     elif st.session_state.step == 2:
@@ -874,7 +874,7 @@ if D is not None:
         random.shuffle(sampled)
         sampled = sampled[:n_sample]
 
-        @st.cache(ttl=300)
+        @st.cache_data(ttl=300)
         def compute_img_stats(img_list):
             brightness, r_ratio, g_ratio, b_ratio = [], [], [], []
             entropy_vals = []
@@ -1079,7 +1079,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Image Properties: brightness, RGB, texture computed")
             st.session_state.step = 3
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 3: Caption Vocabulary ───────────────────────────────────────────
     elif st.session_state.step == 3:
@@ -1169,7 +1169,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Vocab: {D['vocab_clean']:,} words · Top: '{top_word[0]}'")
             st.session_state.step = 4
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 4: Color Words ─────────────────────────────────────────────────
     elif st.session_state.step == 4:
@@ -1334,7 +1334,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Colors: {color_pct:.1f}% caps · Top: '{top_color[0]}'")
             st.session_state.step = 5
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 5: Spatial Relations ────────────────────────────────────────────
     elif st.session_state.step == 5:
@@ -1408,7 +1408,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Spatial: {sp_pct:.1f}% caps · Top: '{top_sp[0]}'")
             st.session_state.step = 6
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 6: Caption Variability ─────────────────────────────────────────
     elif st.session_state.step == 6:
@@ -1520,7 +1520,7 @@ if D is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Variability: mean std={D['mean_var']} words")
             st.session_state.step = 7
-            st.experimental_rerun()
+            st.rerun()
 
     # ── STEP 7: Noise Detection ───────────────────────────────────────────────
     elif st.session_state.step == 7:
@@ -1643,7 +1643,7 @@ if D is not None:
             # Store anomaly count for dashboard
             st.session_state.anomaly_count = len(anomalies)
             st.session_state.phase = "done"
-            st.experimental_rerun()
+            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  DONE STATE
@@ -1852,4 +1852,4 @@ if D is not None:
             if st.button("← Start Over", key="start_over_done"):
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
-                st.experimental_rerun()
+                st.rerun()
