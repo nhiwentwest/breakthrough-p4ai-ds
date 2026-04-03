@@ -1,192 +1,443 @@
-"""
-Text EDA — RSITMD Caption Corpus
-Editorial layout: newspaper-style, warm paper, Playfair Display typography
-"""
-import streamlit as st
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
+"""Text EDA demo aligned to eda_textbook.ipynb pipeline."""
+
 from collections import Counter
 import re
 
-st.set_page_config(page_title="Text EDA", page_icon="📝", layout="wide", initial_sidebar_state="collapsed")
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import streamlit as st
 
-# ── Palette ────────────────────────────────────────────────────────────────────
-BG, CARD, TEXT, ACCENT, MUTED, BORDER, RULE = (
-    "#F7F3EB","#EFE8DC","#111111","#B42318","#6B6560","#D4C9B8","#C8BBB0")
+try:
+    from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except Exception:
+    SKLEARN_AVAILABLE = False
 
-# ── Global CSS ─────────────────────────────────────────────────────────────────
-st.markdown(f"""
+try:
+    st.set_page_config(page_title="Text EDA", page_icon="📝", layout="wide", initial_sidebar_state="collapsed")
+except Exception:
+    pass
+
+st.markdown(
+    """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Source+Sans+3:wght@300;400;600;700&display=swap');
-:root {{ --bg:{BG}; --card:{CARD}; --text:{TEXT}; --accent:{ACCENT}; --muted:{MUTED}; --border:{BORDER}; --rule:{RULE}; }}
-*, {{ box-sizing: border-box; }}
-body,.stApp {{ background:var(--bg); color:var(--text); font-family:'Source Sans 3',sans-serif; }}
-[data-testid="stSidebar"] {{ background:#EDE9E1 !important; border-right:2px solid var(--rule); }}
-h1,h2,h3,h4 {{ font-family:'Playfair Display',serif; color:var(--text); line-height:1.15; }}
-.section-label {{ font-size:0.68rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); margin-bottom:0.3rem; }}
-.hero-kicker {{ font-size:0.7rem; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--accent); margin-bottom:0.4rem; font-family:'Source Sans 3',sans-serif; }}
-.hero-headline {{ font-family:'Playfair Display',serif; font-size:clamp(2rem,4vw,3.4rem); font-weight:900; line-height:1.1; margin:0 0 0.5rem; }}
-.hero-sub {{ font-size:1.05rem; font-weight:300; color:var(--muted); margin:0; }}
-.edition-rule {{ border:none; border-top:1.5px solid var(--rule); margin:1.8rem 0; }}
-.pullquote {{ border-left:3.5px solid var(--accent); padding:0.6rem 1.2rem; background:var(--card); margin:1.2rem 0;
-              font-family:'Playfair Display',serif; font-size:1.05rem; font-style:italic; line-height:1.5; }}
-.hero-metric {{ text-align:left; padding:0; }}
-.hero-metric .number {{ font-family:'Playfair Display',serif; font-size:3.8rem; font-weight:900; color:var(--accent); line-height:1; display:block; }}
-.hero-metric .label {{ font-size:0.72rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); margin-top:0.2rem; display:block; }}
-.dataframe {{ background:transparent!important; color:var(--text)!important; border:none!important; font-size:0.88rem; }}
-thead th {{ background:var(--card)!important; color:var(--accent)!important; font-weight:700; letter-spacing:0.06em; font-size:0.78rem; border-bottom:2px solid var(--rule)!important; text-transform:uppercase; }}
-tbody tr:hover {{ background:rgba(180,35,24,0.04)!important; }}
-tbody td {{ border-bottom:1px solid var(--border)!important; }}
-.stTabs [data-baseweb="tab-list"] {{ gap:2px; border-bottom:2px solid var(--border); padding-bottom:0; }}
-.stTabs [data-baseweb="tab"] {{ color:var(--muted); font-weight:700; font-size:0.85rem; border-radius:0; }}
-.stTabs [aria-selected="true"] {{ color:var(--accent)!important; border-bottom:2.5px solid var(--accent)!important; margin-bottom:-2px; }}
-[data-testid="stMetricValue"] {{ font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:900; color:var(--accent); line-height:1; }}
-[data-testid="stMetricLabel"] {{ font-size:0.72rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }}
-code {{ color:var(--accent); background:var(--card); padding:1px 5px; border-radius:3px; font-size:0.85em; }}
-#MainMenu,footer,header {{ visibility:hidden; }}
-</style>""", unsafe_allow_html=True)
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("[🏠 Home](app)")
-    st.markdown("[📝 Text](pages/text_eda)")
-    st.markdown("[🖼️ Image](pages/image_eda)")
-    st.markdown("[📊 Tabular](pages/tabular_eda)")
-    st.markdown("[🔗 Multimodal](pages/multimodal_eda)")
-    st.markdown("---")
-    st.caption("IEEE TGRS 2021 · UIT")
-
-# ── Page Header ───────────────────────────────────────────────────────────────
-st.markdown('<p class="hero-kicker">§ Text Analysis &nbsp;·&nbsp; RSITMD</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-headline">The Language<br>of Satellite</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-sub">How human-written captions describe remote sensing imagery — '
-            'vocabulary, grammar, and thematic focus.</p>', unsafe_allow_html=True)
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-
-# ── Metrics ───────────────────────────────────────────────────────────────────
-m1, m2, m3, m4 = st.columns(4)
-m1.markdown('<div class="hero-metric"><span class="number">3,842</span><span class="label">Unique Words</span></div>', unsafe_allow_html=True)
-m2.markdown('<div class="hero-metric"><span class="number">7</span><span class="label">Avg Sentence Length</span></div>', unsafe_allow_html=True)
-m3.markdown('<div class="hero-metric"><span class="number">12</span><span class="label">Noun Phrase Types</span></div>', unsafe_allow_html=True)
-m4.markdown('<div class="hero-metric"><span class="number">10</span><span class="label">Sample Captions</span></div>', unsafe_allow_html=True)
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-
-# ── Primary insight ───────────────────────────────────────────────────────────
-st.markdown("""
-<div class="pullquote">
-  Nouns dominate captions — 'area', 'vegetation', 'buildings' — reflecting how remote sensing
-  descriptions prioritize identifying land-cover entities over narrative structure.
-</div>""", unsafe_allow_html=True)
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-
-# ── Vocabulary Analysis ───────────────────────────────────────────────────────
-st.markdown('<p class="section-label">§1 — Vocabulary</p>', unsafe_allow_html=True)
-st.markdown("## Word Frequency & N-grams")
-
-SAMPLE_CAPTIONS = [
-    "A dense urban area with tall buildings, roads, and parking lots arranged in a grid pattern.",
-    "Circular agricultural fields with different crop types, surrounded by vegetation and bare soil.",
-    "Coastal region with shoreline, beach, water, and coastal vegetation near an urban settlement.",
-    "Industrial zone with large warehouses, roads, and storage tanks surrounded by sparse vegetation.",
-    "Dense forest area with varied tree cover, visible roads cutting through the vegetation.",
-    "Residential area with houses, small gardens, and tree-lined streets near a river.",
-    "Airport with runways, terminals, and surrounding infrastructure in an open landscape.",
-    "Mountainous terrain with rocky outcrops, sparse vegetation, and winding roads.",
-    "Port area with docking facilities, cargo containers, and adjacent water bodies.",
-    "Agricultural land with rectangular fields, irrigation channels, and farm buildings.",
-]
-
-raw_words  = re.findall(r"\b[a-z]{3,}\b", " ".join(SAMPLE_CAPTIONS).lower())
-STOP = {"the","and","is","in","at","of","a","to","for","with","on","this","that","are",
-        "by","an","as","from","it","or","was","were","near","has","have","had"}
-filtered   = [w for w in raw_words if w not in STOP]
-freq       = Counter(filtered)
-top20      = freq.most_common(20)
-
-tab_wc, tab_ng, tab_pos = st.tabs(["Word Cloud", "N-grams", "Part-of-Speech"])
-
-with tab_wc:
-    wc_l, wc_r = st.columns([1, 2])
-    wc_l.dataframe(pd.DataFrame(top20, columns=["Word", "Count"]))
-    try:
-        from wordcloud import WordCloud
-        wc = WordCloud(width=900, height=400, background_color=BG, colormap="Reds",
-                       max_words=60, prefer_horizontal=0.85, min_font_size=10, max_font_size=90
-                       ).generate_from_frequencies(freq)
-        fig, ax = plt.subplots(figsize=(13, 5))
-        ax.imshow(wc, interpolation="bilinear"); ax.axis("off")
-        fig.patch.set_facecolor(BG)
-        wc_r.pyplot(fig)
-    except ImportError:
-        wc_r.info("Run: `pip install wordcloud`")
-
-with tab_ng:
-    u = Counter(filtered).most_common(10)
-    b = Counter(zip(raw_words, raw_words[1:])).most_common(10)
-    t = Counter(zip(raw_words, raw_words[1:], raw_words[2:])).most_common(10)
-    n1, n2, n3 = st.columns(3)
-    n1.dataframe(pd.DataFrame([(" ".join(g), c) for g, c in u], columns=["Unigram","Count"]))
-    n2.dataframe(pd.DataFrame([(" ".join(g), c) for g, c in b], columns=["Bigram","Count"]))
-    n3.dataframe(pd.DataFrame([(" ".join(g), c) for g, c in t], columns=["Trigram","Count"]))
-    st.markdown("""
-    <div class="pullquote">
-      Bigrams like <em>urban area</em> and <em>agricultural fields</em> show the dominant
-      compound-noun pattern: space type + land cover, the basic semantic unit of image captioning.
-    </div>""", unsafe_allow_html=True)
-
-with tab_pos:
-    pos = [("NN",892),("JJ",347),("IN",289),("DT",241),("NNS",198),
-           ("CC",156),("RB",134),("VBZ",112),("VBG",98),("VBN",87)]
-    labels, vals = zip(*pos)
-    fig, ax = plt.subplots(figsize=(9, 5))
-    ax.barh(list(labels)[::-1], list(vals)[::-1], color=ACCENT, edgecolor="none", height=0.6)
-    ax.set_xlabel("Count", color=TEXT, fontsize=9)
-    ax.set_title("Part-of-Speech Distribution in Captions", color=TEXT, fontsize=11, fontfamily="serif")
-    ax.tick_params(colors=MUTED, labelsize=9)
-    ax.set_facecolor(BG); fig.patch.set_facecolor(BG)
-    for spine in ax.spines.values(): spine.set_visible(False)
-    ax.xaxis.set_visible(False)
-    st.pyplot(fig)
-    st.markdown("""
-    <div class="pullquote">
-      Nouns (NN, NNS) carry 60%+ of content. Prepositions (IN) reveal spatial relations;
-      adjectives (JJ) encode visual attributes — both critical for cross-modal alignment.
-    </div>""", unsafe_allow_html=True)
-
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-
-# ── Thematic Analysis ─────────────────────────────────────────────────────────
-st.markdown('<p class="section-label">§2 — Themes</p>', unsafe_allow_html=True)
-st.markdown("## Semantic Categories")
-
-cats   = ["Urban","Agriculture","Coastal","Forest","Industrial","Residential"]
-counts = [38, 25, 12, 10, 8, 7]
-
-t_left, t_right = st.columns([1, 1])
-t_left.dataframe(pd.DataFrame({"Category":cats,"Share (%)":counts}))
-
-fig, ax = plt.subplots(figsize=(5, 4))
-wedges, texts, autotexts = ax.pie(counts, labels=cats, autopct="%1.0f%%",
-    colors=["#B42318","#D4534A","#E89088","#F0B0A8","#F5C8C4","#FAE0DD"],
-    textprops={"color":TEXT,"fontsize":9})
-for t in texts: t.set_fontfamily("sans-serif")
-for a in autotexts: a.set_fontsize(8)
-ax.set_title("Scene Category Share", color=TEXT, fontsize=11, fontfamily="serif")
-fig.patch.set_facecolor(BG)
-t_right.pyplot(fig)
-
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-
-# ── Sample Captions ───────────────────────────────────────────────────────────
-st.markdown('<p class="section-label">§3 — The Source Material</p>', unsafe_allow_html=True)
-st.markdown("## Sample Captions")
-
-st.dataframe(
-    pd.DataFrame({"#": range(1, len(SAMPLE_CAPTIONS)+1), "Caption": SAMPLE_CAPTIONS}),
+[data-testid="stSidebar"] { display:none !important; }
+[data-testid="stSidebarNav"] { display:none !important; }
+#MainMenu, footer, header { visibility:hidden; }
+.main .block-container { padding:1rem; }
+</style>
+""",
+    unsafe_allow_html=True,
 )
 
-st.markdown('<hr class="edition-rule"/>', unsafe_allow_html=True)
-st.markdown(f"<p style='text-align:center;color:{MUTED};font-size:0.72rem;"
-            f"letter-spacing:0.1em;text-transform:uppercase;'>"
-            f"RSITMD EDA · Text Analysis · P4AI-DS · UIT · 2025–2026</p>", unsafe_allow_html=True)
+DATA_URL = "https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment/raw/main/sent_train.csv"
+STEP_LABELS = {
+    0: "Dataset Overview",
+    1: "Missing + Duplicate Check",
+    2: "Category Distribution",
+    3: "Word Count Distribution",
+    4: "Character Length Distribution",
+    5: "Top Word Frequency + Tickers",
+    6: "TF-IDF Top Terms by Category",
+    7: "Bigram TF-IDF by Category",
+    8: "Category Similarity Matrix",
+    9: "OOV Rate",
+    10: "Text Statistics",
+}
+TOTAL_STEPS = len(STEP_LABELS)
+
+STOP_WORDS = set([
+    "i", "me", "my", "myself", "we", "our", "ours", "ourselves", "you", "you're",
+    "you've", "you'll", "you'd", "your", "yours", "yourself", "yourselves", "he",
+    "him", "his", "himself", "she", "she's", "her", "hers", "herself", "it", "it's",
+    "its", "itself", "they", "them", "their", "theirs", "themselves", "what", "which",
+    "who", "whom", "this", "that", "that'll", "these", "those", "am", "is", "are",
+    "was", "were", "be", "been", "being", "have", "has", "had", "having", "do",
+    "does", "did", "doing", "a", "an", "the", "and", "but", "if", "or", "because",
+    "as", "until", "while", "of", "at", "by", "for", "with", "about", "against",
+    "between", "into", "through", "during", "before", "after", "above", "below",
+    "to", "from", "up", "down", "in", "out", "on", "off", "over", "under", "again",
+    "further", "then", "once", "here", "there", "when", "where", "why", "how", "all",
+    "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not",
+    "only", "own", "same", "so", "than", "too", "very", "can", "will", "just",
+    "should", "now", "one", "also",
+])
+
+
+def remove_urls(text: str) -> str:
+    return re.sub(r"https?://\S+|www\.\S+", "", str(text))
+
+
+def handle_company(text: str) -> str:
+    return re.sub(r"\$\w+", "<code>", str(text))
+
+
+def clean_text(text: str) -> str:
+    text = re.sub(r"<code>", "", str(text))
+    text = re.sub(r"[^a-zA-Z\s]", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def take_company(text: str):
+    return re.findall(r"\$[A-Za-z]+", str(text))
+
+
+@st.cache_data(show_spinner=False)
+def load_and_prepare():
+    raw_df = pd.read_csv(DATA_URL)
+    base_df = raw_df.copy()
+
+    df = raw_df.copy()
+    df["tickers"] = df["text"].apply(take_company)
+    df["text"] = df["text"].apply(remove_urls)
+    df["text"] = df["text"].apply(handle_company)
+    df["text"] = df["text"].astype(str).str.lower()
+    df["text"] = df["text"].apply(clean_text)
+    df["text"] = df["text"].apply(lambda x: " ".join([w for w in x.split() if w not in STOP_WORDS]))
+
+    duplicate_count = int(df.astype(str).duplicated().sum())
+    if duplicate_count > 0:
+        df = df[~df.astype(str).duplicated()].reset_index(drop=True)
+
+    missing_counts = df.isnull().sum()
+    missing_pct = (missing_counts / len(df) * 100.0)
+    missing_df = pd.DataFrame(
+        {
+            "column": missing_counts[missing_counts > 0].index,
+            "count": missing_counts[missing_counts > 0].values,
+            "percentage": missing_pct[missing_counts > 0].values,
+        }
+    ).sort_values("percentage", ascending=False)
+    if len(missing_df) > 0:
+        df = df.dropna().reset_index(drop=True)
+
+    label_counts = df["label"].value_counts().sort_index()
+    category_table = label_counts.to_frame(name="Frequency")
+    category_table["Ratio (%)"] = (label_counts / label_counts.sum()) * 100.0
+
+    df["word_count"] = df["text"].fillna("").apply(lambda x: len(x.split()))
+    df["char_count"] = df["text"].fillna("").str.len()
+
+    all_words = " ".join(df["text"].fillna("")).split()
+    word_freq = Counter(all_words)
+    ticker_freq = Counter([t for row in df["tickers"] for t in row])
+
+    return {
+        "raw_df": raw_df,
+        "base_df": base_df,
+        "df": df,
+        "duplicate_count": duplicate_count,
+        "missing_df": missing_df,
+        "category_table": category_table,
+        "word_freq": word_freq,
+        "ticker_freq": ticker_freq,
+    }
+
+
+@st.cache_data(show_spinner=False)
+def compute_tfidf_terms(df: pd.DataFrame):
+    if not SKLEARN_AVAILABLE:
+        return {}
+    out = {}
+    vectorizer = TfidfVectorizer(max_features=50, stop_words=list(STOP_WORDS), ngram_range=(1, 2))
+    tfidf_matrix = vectorizer.fit_transform(df["text"])
+    features = vectorizer.get_feature_names_out()
+    for label in sorted(df["label"].unique()):
+        idx = df[df["label"] == label].index
+        cat_tfidf = tfidf_matrix[idx]
+        mean_scores = np.asarray(cat_tfidf.mean(axis=0)).flatten()
+        top_idx = mean_scores.argsort()[-20:][::-1]
+        out[int(label)] = pd.DataFrame(
+            {"term": [features[i] for i in top_idx], "score": [float(mean_scores[i]) for i in top_idx]}
+        )
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def compute_bigram_terms(df: pd.DataFrame):
+    if not SKLEARN_AVAILABLE:
+        return {}
+    out = {}
+    vectorizer = TfidfVectorizer(ngram_range=(2, 2), max_features=50, stop_words=list(STOP_WORDS))
+    for label in sorted(df["label"].unique()):
+        cat_df = df[df["label"] == label]
+        text_blob = " ".join(cat_df["text"].values)
+        if not text_blob.strip():
+            out[int(label)] = pd.DataFrame(columns=["bigram", "score"])
+            continue
+        matrix = vectorizer.fit_transform([text_blob])
+        features = vectorizer.get_feature_names_out()
+        scores = matrix.toarray()[0]
+        top_idx = scores.argsort()[-15:][::-1]
+        out[int(label)] = pd.DataFrame(
+            {"bigram": [features[i] for i in top_idx], "score": [float(scores[i]) for i in top_idx]}
+        )
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def compute_similarity(df: pd.DataFrame):
+    if not SKLEARN_AVAILABLE:
+        return pd.DataFrame()
+    labels = sorted(df["label"].unique())
+    label_names = [str(x) for x in labels]
+    vectorizer = TfidfVectorizer(max_features=5000, stop_words=list(STOP_WORDS))
+    tfidf_matrix = vectorizer.fit_transform(df["text"])
+    n_labels = len(labels)
+    sim_matrix = np.zeros((n_labels, n_labels))
+    for i, label_i in enumerate(labels):
+        idx_i = df[df["label"] == label_i].index
+        vec_i = tfidf_matrix[idx_i]
+        for j, label_j in enumerate(labels):
+            idx_j = df[df["label"] == label_j].index
+            vec_j = tfidf_matrix[idx_j]
+            pairwise = cosine_similarity(vec_i, vec_j)
+            sim_matrix[i, j] = float(np.mean(pairwise))
+    return pd.DataFrame(sim_matrix, index=label_names, columns=label_names)
+
+
+@st.cache_data(show_spinner=False)
+def compute_oov(df: pd.DataFrame):
+    if not SKLEARN_AVAILABLE:
+        return pd.DataFrame()
+    vectorizer_50 = CountVectorizer(ngram_range=(1, 2), max_features=5000)
+    vectorizer_50.fit(df["text"])
+    kept_vocab = set(vectorizer_50.get_feature_names_out())
+
+    rows = []
+    for label in sorted(df["label"].unique()):
+        cat_texts = df[df["label"] == label]["text"]
+        cat_vectorizer = CountVectorizer(ngram_range=(1, 2))
+        try:
+            cat_matrix = cat_vectorizer.fit_transform(cat_texts)
+            cat_features = cat_vectorizer.get_feature_names_out()
+            total_occurrences = float(cat_matrix.sum())
+            kept_idx = [i for i, feat in enumerate(cat_features) if feat in kept_vocab]
+            kept_occurrences = float(cat_matrix[:, kept_idx].sum()) if kept_idx else 0.0
+        except ValueError:
+            total_occurrences = 0.0
+            kept_occurrences = 0.0
+        retention = (kept_occurrences / total_occurrences * 100.0) if total_occurrences > 0 else 0.0
+        rows.append(
+            {
+                "Category": int(label),
+                "Total Bigram Freq": int(total_occurrences),
+                "Kept Freq": int(kept_occurrences),
+                "Retention Rate (%)": round(retention, 2),
+                "OOV Rate (%)": round(100.0 - retention, 2),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+if "text_step" not in st.session_state:
+    st.session_state.text_step = 0
+
+with st.spinner("Loading and analyzing text dataset..."):
+    D = load_and_prepare()
+
+df = D["df"]
+step = st.session_state.text_step
+
+st.markdown("## Text EDA — Twitter Financial News Sentiment")
+st.caption(f"Step {step + 1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
+
+if step == 0:
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Training samples", f"{len(df):,}")
+    m2.metric("Number of columns", f"{len(df.columns):,}")
+    m3.metric("Unique labels", f"{df['label'].nunique():,}")
+    m4.metric("Unique words", f"{len(D['word_freq']):,}")
+    st.markdown("### Dataset Samples")
+    c1, c2 = st.columns(2)
+    with c1:
+        full_sample = st.checkbox("Show full sample", value=False, key="text_full_sample")
+    with c2:
+        sample_mode = st.selectbox("Sample mode", ["Sequential", "Random"], index=0, key="text_sample_mode")
+
+    if full_sample:
+        show_n = len(df)
+    else:
+        max_preview = min(len(df), 500)
+        show_n = st.slider("Rows to show", 1, max_preview if max_preview > 0 else 1, min(50, max_preview if max_preview > 0 else 1), 1)
+
+    if sample_mode == "Random" and show_n < len(df):
+        seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1, key="text_sample_seed")
+        view_df = df.sample(n=show_n, random_state=int(seed))
+    else:
+        view_df = df.head(show_n)
+    st.caption(f"Showing {len(view_df):,}/{len(df):,} rows")
+    st.dataframe(view_df, use_container_width=True)
+
+elif step == 1:
+    st.write("Duplicate and missing-value check after preprocessing.")
+    c1, c2 = st.columns(2)
+    c1.metric("Duplicates detected", f"{D['duplicate_count']:,}")
+    c2.metric("Rows after cleanup", f"{len(df):,}")
+    if len(D["missing_df"]) > 0:
+        st.dataframe(D["missing_df"], use_container_width=True)
+    else:
+        st.success("No missing values found.")
+
+elif step == 2:
+    st.dataframe(D["category_table"], use_container_width=True)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.pie(
+        D["category_table"]["Ratio (%)"],
+        labels=D["category_table"].index.astype(str),
+        autopct="%1.1f%%",
+        startangle=90,
+        colors=["#60a5fa", "#34d399", "#f97316"],
+    )
+    ax.set_title("Category Distribution")
+    st.pyplot(fig)
+
+elif step == 3:
+    bin_size = st.slider("Word-count bin size", 1, 10, 5)
+    max_wc = int(df["word_count"].max())
+    bins = np.arange(0, max_wc + bin_size, bin_size)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.hist(df["word_count"], bins=bins, color="#2563eb", edgecolor="white")
+    ax.set_title("Word Count Distribution")
+    ax.set_xlabel("Words per text")
+    ax.set_ylabel("Samples")
+    st.pyplot(fig)
+    st.dataframe(df["word_count"].describe().to_frame("value"), use_container_width=True)
+
+elif step == 4:
+    bin_size = st.slider("Character-count bin size", 5, 40, 20)
+    max_cc = int(df["char_count"].max())
+    bins = np.arange(0, max_cc + bin_size, bin_size)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.hist(df["char_count"], bins=bins, color="#0ea5e9", edgecolor="white")
+    ax.set_title("Character Length Distribution")
+    ax.set_xlabel("Characters per text")
+    ax.set_ylabel("Samples")
+    st.pyplot(fig)
+    st.dataframe(df["char_count"].describe().to_frame("value"), use_container_width=True)
+
+elif step == 5:
+    top_n = st.slider("Top words", 10, 50, 20)
+    top_words = D["word_freq"].most_common(top_n)
+    wdf = pd.DataFrame(top_words, columns=["Word", "Frequency"])
+    left, right = st.columns(2)
+    left.dataframe(wdf, use_container_width=True)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#ef4444")
+    ax.set_title(f"Top {top_n} Word Frequency")
+    right.pyplot(fig)
+
+    st.markdown("### Top Mentioned Tickers")
+    top_tickers = D["ticker_freq"].most_common(5)
+    tdf = pd.DataFrame(top_tickers, columns=["Ticker", "Frequency"])
+    st.dataframe(tdf, use_container_width=True)
+    if len(tdf) > 0:
+        fig2, ax2 = plt.subplots(figsize=(7, 4))
+        ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#10b981")
+        ax2.set_title("Top 5 Most Mentioned Tickers")
+        st.pyplot(fig2)
+
+elif step == 6:
+    if not SKLEARN_AVAILABLE:
+        st.error("scikit-learn is required for TF-IDF views.")
+    else:
+        tfidf_map = compute_tfidf_terms(df)
+        label = st.selectbox("Label", sorted(tfidf_map.keys()), index=0)
+        table = tfidf_map[int(label)]
+        st.dataframe(table, use_container_width=True)
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.barh(table["term"][::-1], table["score"][::-1], color="#f59e0b")
+        ax.set_title(f"Top 20 TF-IDF Terms (Label {label})")
+        st.pyplot(fig)
+
+elif step == 7:
+    if not SKLEARN_AVAILABLE:
+        st.error("scikit-learn is required for bigram TF-IDF views.")
+    else:
+        bigram_map = compute_bigram_terms(df)
+        label = st.selectbox("Label", sorted(bigram_map.keys()), index=0)
+        table = bigram_map[int(label)]
+        st.dataframe(table, use_container_width=True)
+        if len(table) > 0:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.barh(table["bigram"][::-1], table["score"][::-1], color="#8b5cf6")
+            ax.set_title(f"Top 15 Bigrams by TF-IDF (Label {label})")
+            st.pyplot(fig)
+
+elif step == 8:
+    if not SKLEARN_AVAILABLE:
+        st.error("scikit-learn is required for similarity matrix.")
+    else:
+        sim = compute_similarity(df)
+        st.dataframe(sim.round(4), use_container_width=True)
+        fig, ax = plt.subplots(figsize=(6, 5))
+        im = ax.imshow(sim.values, cmap="YlGnBu", vmin=0, vmax=1)
+        ax.set_xticks(range(len(sim.columns)))
+        ax.set_yticks(range(len(sim.index)))
+        ax.set_xticklabels(sim.columns)
+        ax.set_yticklabels(sim.index)
+        ax.set_title("Category Similarity Matrix")
+        fig.colorbar(im, ax=ax)
+        st.pyplot(fig)
+
+elif step == 9:
+    if not SKLEARN_AVAILABLE:
+        st.error("scikit-learn is required for OOV analysis.")
+    else:
+        oov = compute_oov(df)
+        st.dataframe(oov, use_container_width=True)
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
+        ax.set_title("OOV Rate by Category")
+        ax.set_xlabel("Category")
+        ax.set_ylabel("OOV Rate (%)")
+        st.pyplot(fig)
+
+elif step == 10:
+    raw_word_counts = D["base_df"]["text"].apply(lambda x: len(str(x).split()))
+    stats = pd.DataFrame(
+        {
+            "metric": ["Max words", "Min words", "Mean words", "Std words"],
+            "value": [
+                int(raw_word_counts.max()),
+                int(raw_word_counts.min()),
+                float(raw_word_counts.mean()),
+                float(raw_word_counts.std()),
+            ],
+        }
+    )
+    st.dataframe(stats, use_container_width=True)
+    st.markdown(
+        """
+- Dataset is imbalanced (neutral label dominates).
+- Texts are short, headline-like financial snippets.
+- Vocabulary is finance-specific with many ticker mentions.
+- Raw data quality is clean (very low/no missing values).
+"""
+    )
+
+col1, col2 = st.columns(2)
+with col1:
+    if step == 0:
+        if st.button("↺ Start Over"):
+            st.session_state.text_step = 0
+            st.rerun()
+    else:
+        if st.button("← Previous"):
+            st.session_state.text_step = max(0, step - 1)
+            st.rerun()
+
+with col2:
+    if step == TOTAL_STEPS - 1:
+        if st.button("↺ Start Over"):
+            st.session_state.text_step = 0
+            st.rerun()
+    else:
+        if st.button("Next →"):
+            st.session_state.text_step = min(TOTAL_STEPS - 1, step + 1)
+            st.rerun()
