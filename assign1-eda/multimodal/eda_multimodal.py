@@ -41,7 +41,12 @@ plt.rcParams['axes.labelsize'] = 11
 
 # Paths
 PROJECT_ROOT = Path(__file__).parent.parent
-DATA_FILE = PROJECT_ROOT / "RSITMD" / "dataset_RSITMD.json"
+DATA_CANDIDATES = [
+    PROJECT_ROOT / "RSITMD" / "dataset_RSITMD.json",
+    Path("/Users/nhi/Documents/school/252/p4/btl/RSITMD/dataset_RSITMD.json"),
+]
+DATA_FILE = next((p for p in DATA_CANDIDATES if p.exists()), DATA_CANDIDATES[0])
+IMG_DIR = DATA_FILE.parent / "images"
 OUTPUT_DIR = PROJECT_ROOT / "report" / "figures"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -74,6 +79,34 @@ def load_data():
     test_imgs = [img for img in images if img['split'] == 'test']
 
     return images, train_imgs, test_imgs
+
+
+def run_data_audit(images, train_imgs, test_imgs):
+    """Basic data integrity audit for EDA step 0."""
+    print(f"\n{'='*60}")
+    print("DATA AUDIT — INTEGRITY & SPLIT CHECK")
+    print(f"{'='*60}")
+
+    total_caps = sum(len(img.get('sentences', [])) for img in images)
+    unique_files = len({img.get('filename') for img in images})
+    duplicate_filenames = len(images) - unique_files
+
+    missing_img_files = 0
+    bad_caption_rows = 0
+    for img in images:
+        fname = img.get('filename', '')
+        if not (IMG_DIR / fname).exists():
+            missing_img_files += 1
+        sents = img.get('sentences', [])
+        if len(sents) == 0:
+            bad_caption_rows += 1
+
+    print(f"  Total images: {len(images)}")
+    print(f"  Total captions: {total_caps}")
+    print(f"  Train/Test images: {len(train_imgs)}/{len(test_imgs)}")
+    print(f"  Duplicate filenames: {duplicate_filenames}")
+    print(f"  Missing image files: {missing_img_files}")
+    print(f"  Rows with empty captions: {bad_caption_rows}")
 
 
 def parse_filename(filename):
@@ -232,6 +265,18 @@ def viz_text(text_stats, split='train'):
     plt.savefig(OUTPUT_DIR / f'txt_03_char_distribution_{split}.png', dpi=150)
     plt.close()
 
+    # 3b. Word vs Character count correlation
+    fig, ax = plt.subplots(figsize=(8, 6))
+    ax.scatter(text_stats['word_counts'], text_stats['char_counts'], s=10, alpha=0.35, color='#8e44ad')
+    corr_wc = np.corrcoef(text_stats['word_counts'], text_stats['char_counts'])[0, 1]
+    ax.set_xlabel('Word Count per Caption')
+    ax.set_ylabel('Character Count per Caption')
+    ax.set_title(f'Words vs Characters Correlation ({split.upper()}) | r={corr_wc:.3f}')
+    ax.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.savefig(OUTPUT_DIR / f'txt_03b_words_vs_chars_{split}.png', dpi=180)
+    plt.close()
+
     # 4. Top 10 Words (no stopwords)
     fig, ax = plt.subplots(figsize=(8, 5))
     top10_words = text_stats['top_words'][:10]
@@ -252,7 +297,7 @@ def viz_text(text_stats, split='train'):
     ax.grid(axis='x', color='#EEEEEE', linewidth=0.7, zorder=0)
     ax.set_axisbelow(True)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / f'ta_02_word_frequency_train.png', dpi=180, bbox_inches='tight', facecolor='#FAFAFA')
+    plt.savefig(OUTPUT_DIR / f'ta_02_word_frequency_{split}.png', dpi=180, bbox_inches='tight', facecolor='#FAFAFA')
     plt.close()
 
     # 5. Category Keywords Heatmap (Top 15 categories)
@@ -281,19 +326,7 @@ def viz_text(text_stats, split='train'):
     plt.savefig(OUTPUT_DIR / f'txt_06_category_keywords_{split}.png', dpi=150)
     plt.close()
 
-    # 6. Bigrams
-    fig, ax = plt.subplots(figsize=(12, 8))
-    bigrams = [' '.join(bg) for bg, c in text_stats['top_bigrams'][:20]]
-    bigram_counts = [c for bg, c in text_stats['top_bigrams'][:20]]
-    colors = plt.cm.Oranges(np.linspace(0.3, 0.9, len(bigrams)))[::-1]
-    ax.barh(bigrams[::-1], bigram_counts[::-1], color=colors)
-    ax.set_xlabel('Frequency')
-    ax.set_title(f'Top 20 Bigrams ({split.upper()})')
-    plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / f'txt_07_bigrams_{split}.png', dpi=150)
-    plt.close()
-
-    # 6b. Top-10 Bigrams (clean standalone chart)
+    # 6. Top-10 Bigrams (clean standalone chart)
     fig, ax = plt.subplots(figsize=(9, 5))
     top10_bgs = text_stats['top_bigrams'][:10]
     labels = [' '.join(bg) for bg, _ in top10_bgs]
@@ -312,7 +345,7 @@ def viz_text(text_stats, split='train'):
         s.set_visible(False)
     ax.xaxis.set_visible(False)
     plt.tight_layout()
-    plt.savefig(OUTPUT_DIR / f'ta_04_bigram_frequency_train.png', dpi=180,
+    plt.savefig(OUTPUT_DIR / f'ta_04_bigram_frequency_{split}.png', dpi=180,
                 bbox_inches='tight', facecolor='#FAFAFA')
     plt.close()
 
@@ -347,7 +380,54 @@ def viz_text(text_stats, split='train'):
 # ─────────────────────────────────────────────
 # 2B. IMAGE PIXEL ANALYSIS (visual features from raw TIF files)
 # ─────────────────────────────────────────────
-IMG_DIR = PROJECT_ROOT / "RSITMD" / "images"
+def compute_image_level_stats(imgs, max_images_per_cat=30):
+    """Compute image-level quality stats: size, aspect, brightness, texture, blur, RGB means."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return pd.DataFrame()
+
+    cat_to_files = defaultdict(list)
+    for img in imgs:
+        cat_to_files[parse_filename(img['filename'])].append(img['filename'])
+
+    rows = []
+    for cat, filenames in cat_to_files.items():
+        for fname in filenames[:max_images_per_cat]:
+            path = IMG_DIR / fname
+            if not path.exists():
+                continue
+            try:
+                pil = Image.open(path).convert('RGB')
+                arr = np.array(pil, dtype=np.float32) / 255.0
+                h, w = arr.shape[:2]
+                gray = 0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]
+                lap = (
+                    -4.0 * gray
+                    + np.roll(gray, 1, axis=0)
+                    + np.roll(gray, -1, axis=0)
+                    + np.roll(gray, 1, axis=1)
+                    + np.roll(gray, -1, axis=1)
+                )
+                blur_score = float(np.var(lap))
+
+                rows.append({
+                    'filename': fname,
+                    'category': cat,
+                    'width': int(w),
+                    'height': int(h),
+                    'aspect_ratio': float(w / h) if h > 0 else 0.0,
+                    'brightness': float(np.mean(arr)),
+                    'texture': float(np.std(arr)),
+                    'blur_score': blur_score,
+                    'r_mean': float(np.mean(arr[:, :, 0])),
+                    'g_mean': float(np.mean(arr[:, :, 1])),
+                    'b_mean': float(np.mean(arr[:, :, 2])),
+                })
+            except Exception:
+                continue
+
+    return pd.DataFrame(rows)
 
 
 def compute_category_pixel_stats(imgs):
@@ -430,6 +510,11 @@ def analyze_image_pixel(imgs, split='train'):
     cats = [parse_filename(img['filename']) for img in imgs]
     cat_counts = Counter(cats)
     brightness, texture, dom_channel = compute_category_pixel_stats(imgs)
+    image_df = compute_image_level_stats(imgs)
+
+    blur_by_cat = {}
+    if not image_df.empty:
+        blur_by_cat = image_df.groupby('category')['blur_score'].mean().to_dict()
 
     rows = []
     for cat, count in sorted(cat_counts.items(), key=lambda x: -x[1]):
@@ -437,13 +522,18 @@ def analyze_image_pixel(imgs, split='train'):
             'Category': cat,
             'Images': count,
             'Brightness': round(brightness.get(cat, 0.50), 3),
-            'Texture':    round(texture.get(cat, 0.12), 3),
+            'Texture': round(texture.get(cat, 0.12), 3),
+            'Blur': round(float(blur_by_cat.get(cat, 0.0)), 4),
             'Dom. Channel': dom_channel.get(cat, 'R≈G>B'),
         })
 
     vis_df = pd.DataFrame(rows)
     print(f"\nBrightness range: {vis_df['Brightness'].min():.3f} – {vis_df['Brightness'].max():.3f}")
     print(f"Texture range   : {vis_df['Texture'].min():.3f} – {vis_df['Texture'].max():.3f}")
+    if not image_df.empty:
+        print(f"Blur range      : {image_df['blur_score'].min():.4f} – {image_df['blur_score'].max():.4f}")
+        print(f"Image size      : {image_df['width'].min()}x{image_df['height'].min()} to "
+              f"{image_df['width'].max()}x{image_df['height'].max()}")
     print("\nDominant RGB channel distribution:")
     for ch, cnt in vis_df['Dom. Channel'].value_counts().items():
         print(f"  {ch}: {cnt} categories")
@@ -451,7 +541,13 @@ def analyze_image_pixel(imgs, split='train'):
     print(f"\nPer-Category Visual Statistics ({split.upper()})")
     print(vis_df.sort_values('Brightness', ascending=False).to_string(index=False))
 
-    return {'vis_df': vis_df, 'brightness': brightness, 'texture': texture, 'dom_channel': dom_channel}
+    return {
+        'vis_df': vis_df,
+        'brightness': brightness,
+        'texture': texture,
+        'dom_channel': dom_channel,
+        'image_df': image_df,
+    }
 
 
 def viz_image_pixel(pixel_stats, split='train'):
@@ -539,7 +635,43 @@ def viz_image_pixel(pixel_stats, split='train'):
     plt.savefig(OUTPUT_DIR / f'ia_03_rgb_channel_dominance.png', dpi=180, bbox_inches='tight')
     plt.close()
 
-    print(f"  Generated ia_02_image_visual_analysis.png, ia_02b_texture_top10.png, ia_03_rgb_channel_dominance.png")
+    # ── Image geometry + blur distributions (image-level) ──
+    image_df = pixel_stats.get('image_df', pd.DataFrame())
+    if not image_df.empty:
+        fig3, axs = plt.subplots(2, 2, figsize=(12, 9))
+        fig3.patch.set_facecolor(BG)
+
+        axs[0, 0].hist(image_df['width'], bins=20, color='#5DA5DA', edgecolor='white')
+        axs[0, 0].set_title('Width Distribution')
+
+        axs[0, 1].hist(image_df['height'], bins=20, color='#60BD68', edgecolor='white')
+        axs[0, 1].set_title('Height Distribution')
+
+        axs[1, 0].hist(image_df['aspect_ratio'], bins=20, color='#F17CB0', edgecolor='white')
+        axs[1, 0].set_title('Aspect Ratio Distribution')
+
+        axs[1, 1].hist(image_df['blur_score'], bins=20, color='#B2912F', edgecolor='white')
+        axs[1, 1].set_title('Blur Score Distribution (Laplacian Variance)')
+
+        for a in axs.ravel():
+            a.grid(alpha=0.2)
+        plt.tight_layout()
+        plt.savefig(OUTPUT_DIR / f'ia_04_geometry_blur_distribution_{split}.png', dpi=180, bbox_inches='tight')
+        plt.close()
+
+        # RGB mean channel correlation at image-level
+        rgb_corr = image_df[['r_mean', 'g_mean', 'b_mean']].corr()
+        fig4, ax4 = plt.subplots(figsize=(5.5, 4.5))
+        fig4.patch.set_facecolor(BG)
+        sns.heatmap(rgb_corr, annot=True, fmt='.2f', cmap='RdYlBu_r', vmin=-1, vmax=1, ax=ax4)
+        ax4.set_title('RGB Mean Channel Correlation')
+        plt.tight_layout()
+        plt.savefig(OUTPUT_DIR / f'ia_05_rgb_channel_corr_{split}.png', dpi=180, bbox_inches='tight')
+        plt.close()
+
+    print("  Generated ia_02_image_visual_analysis.png, ia_02b_texture_top10.png, "
+          "ia_03_rgb_channel_dominance.png, ia_04_geometry_blur_distribution_*.png, "
+          "ia_05_rgb_channel_corr_*.png")
 
 
 def analyze_image(imgs, split='train'):
@@ -614,11 +746,11 @@ def viz_image(image_stats, split='train'):
              f'Group 4: {get_cnt(25)}-{get_cnt(32)} imgs',
              ha='center', fontsize=8, color='#666', style='italic')
     plt.tight_layout(rect=[0, 0.025, 1, 1], pad=1.2)
-    plt.savefig(OUTPUT_DIR / f'ia_01_category_distribution_train.png',
+    plt.savefig(OUTPUT_DIR / f'ia_01_category_distribution_{split}.png',
                 dpi=180, bbox_inches='tight', facecolor=BG)
     plt.close()
 
-    print(f"  Generated ia_01_category_distribution_train.png")
+    print(f"  Generated ia_01_category_distribution_{split}.png")
 
 
 def main():
@@ -641,6 +773,9 @@ def main():
 
     images, train_imgs, test_imgs = load_data()
     print(f"\nLoaded {len(images)} total images: {len(train_imgs)} train, {len(test_imgs)} test")
+
+    # 0. Data audit
+    run_data_audit(images, train_imgs, test_imgs)
 
     # 1. Text Analysis
     train_text = analyze_text(train_imgs, 'train')
@@ -667,6 +802,7 @@ def main():
     viz_image_pixel(test_pixel,  'test')
     viz_multimodal(train_mm, 'train')
     viz_multimodal(test_mm, 'test')
+    generate_summary_csv(train_text, test_text, train_img, test_img)
 
     print("\n" + "="*60)
     print("EDA COMPLETE!")
@@ -770,13 +906,35 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         if cnt > 0:
             print(f"    {prep}: {cnt}")
 
+    # ===== CATEGORY-LEVEL TEXT SIMILARITY (for multimodal interpretation) =====
+    category_similarity_df = pd.DataFrame()
+    try:
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+
+        cat_to_captions_for_sim = defaultdict(list)
+        for img in imgs:
+            cat = parse_filename(img['filename'])
+            for s in img['sentences']:
+                cat_to_captions_for_sim[cat].append(s['raw'])
+
+        cat_names = sorted(cat_to_captions_for_sim.keys())
+        cat_docs = [' '.join(cat_to_captions_for_sim[c]) for c in cat_names]
+        if len(cat_docs) >= 2:
+            vec_cat = TfidfVectorizer(stop_words='english', min_df=1)
+            cat_mat = vec_cat.fit_transform(cat_docs)
+            sim_mat = cosine_similarity(cat_mat)
+            category_similarity_df = pd.DataFrame(sim_mat, index=cat_names, columns=cat_names)
+    except Exception:
+        category_similarity_df = pd.DataFrame()
+
     # ===== DUAL-LAYER NOISE DETECTION (TF-IDF & CROSS-MODAL) =====
     anomalies = []
-    
+
     if cat_keyword_dict:
         from sklearn.feature_extraction.text import TfidfVectorizer
         from sklearn.metrics.pairwise import cosine_similarity
-        
+
         # 1. Prepare Category Text Profiles (Centroids)
         cat_to_captions = {}
         for img in imgs:
@@ -886,6 +1044,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'caps_with_color': caps_with_color,
         'caps_with_spatial': caps_with_spatial,
         'total_caps': total_caps,
+        'category_similarity_df': category_similarity_df,
     }
 
 
@@ -1044,35 +1203,67 @@ def viz_multimodal(mm_stats, split='train'):
                     dpi=180, bbox_inches='tight', facecolor=BG)
         plt.close()
 
-    print(f"  Generated mm_01_caption_variability_{split}.png, mm_02_sample_pairs_{split}.png")
+    # ── 3. Category-level text cosine similarity matrix ──
+    sim_df = mm_stats.get('category_similarity_df', pd.DataFrame())
+    if not sim_df.empty:
+        plot_df = sim_df
+        if sim_df.shape[0] > 20:
+            top_cats = sim_df.mean(axis=1).sort_values(ascending=False).head(20).index
+            plot_df = sim_df.loc[top_cats, top_cats]
+
+        fig_s, ax_s = plt.subplots(figsize=(10, 8))
+        fig_s.patch.set_facecolor(BG)
+        sns.heatmap(plot_df, cmap='YlGnBu', vmin=0, vmax=1, ax=ax_s)
+        ax_s.set_title(f'Category-level Caption Cosine Similarity ({split.upper()})')
+        ax_s.set_xlabel('Category')
+        ax_s.set_ylabel('Category')
+        plt.tight_layout()
+        plt.savefig(OUTPUT_DIR / f'mm_03_category_cosine_similarity_{split}.png', dpi=180, bbox_inches='tight')
+        plt.close()
+
+    print(f"  Generated mm_01_caption_variability_{split}.png, mm_02_sample_pairs_{split}.png, "
+          f"mm_03_category_cosine_similarity_{split}.png")
 
 
-def generate_summary_csv(train_text, test_text, train_img, test_img, split='train'):
-    """Save summary statistics CSV."""
-    summary = {
-        'Metric': [
-            'Total Images', 'Total Captions', 'Captions per Image',
-            'Categories', 'Total Words', 'Vocabulary (raw)', 'Vocabulary (clean)',
-            'Avg Words/Caption', 'Median Words/Caption', 'Std Dev',
-            'Min Words/Caption', 'Max Words/Caption',
-        ],
-        f'{split.capitalize()}': [
-            train_img['num_imgs'],
-            train_text['word_counts'].__len__() * 0 if split == 'train' else 0,
-            5,
-            train_img['num_imgs'] // train_img['num_imgs'] * len(train_img['cat_counts']),
-            len(train_text['raw_words']),
-            len(set(train_text['raw_words'])),
-            len(set(train_text['clean_words'])),
-            round(np.mean(train_text['word_counts']), 1),
-            round(np.median(train_text['word_counts']), 1),
-            round(np.std(train_text['word_counts']), 1),
-            min(train_text['word_counts']),
-            max(train_text['word_counts']),
-        ]
-    }
-    df = pd.DataFrame(summary)
-    df.to_csv(OUTPUT_DIR / f'summary_stats_{split}.csv', index=False)
+def generate_summary_csv(train_text, test_text, train_img, test_img):
+    """Save concise train/test summary statistics CSV."""
+
+    def pack(text_stats, img_stats):
+        return {
+            'Total Images': img_stats['num_imgs'],
+            'Total Captions': len(text_stats['captions']),
+            'Captions per Image': round(len(text_stats['captions']) / max(img_stats['num_imgs'], 1), 2),
+            'Categories': len(img_stats['cat_counts']),
+            'Total Words': len(text_stats['raw_words']),
+            'Vocabulary (raw)': len(set(text_stats['raw_words'])),
+            'Vocabulary (clean)': len(set(text_stats['clean_words'])),
+            'Avg Words/Caption': round(np.mean(text_stats['word_counts']), 2),
+            'Median Words/Caption': round(np.median(text_stats['word_counts']), 2),
+            'Std Words/Caption': round(np.std(text_stats['word_counts']), 2),
+            'Min Words/Caption': int(min(text_stats['word_counts'])),
+            'Max Words/Caption': int(max(text_stats['word_counts'])),
+        }
+
+    train_pack = pack(train_text, train_img)
+    test_pack = pack(test_text, test_img)
+
+    rows = []
+    for metric in train_pack.keys():
+        train_val = train_pack[metric]
+        test_val = test_pack[metric]
+        if isinstance(train_val, (int, float)) and isinstance(test_val, (int, float)) and train_val != 0:
+            drift_pct = round((test_val - train_val) / train_val * 100, 2)
+        else:
+            drift_pct = np.nan
+        rows.append({
+            'Metric': metric,
+            'Train': train_val,
+            'Test': test_val,
+            'Test_vs_Train_%': drift_pct,
+        })
+
+    df = pd.DataFrame(rows)
+    df.to_csv(OUTPUT_DIR / 'summary_stats_train_test.csv', index=False)
 
 
 # ─────────────────────────────────────────────
