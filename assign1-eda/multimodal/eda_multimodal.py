@@ -32,6 +32,15 @@ except ImportError:
     NLTK_AVAILABLE = False
     print("Warning: NLTK not available.")
 
+# Optional sklearn
+try:
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    print("Warning: scikit-learn not available. TF-IDF/cosine-based multimodal analyses will be skipped.")
+
 # Visualization settings
 plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'seaborn-whitegrid')
 plt.rcParams['figure.figsize'] = (12, 8)
@@ -376,8 +385,8 @@ def compute_image_level_stats(imgs, max_images_per_cat=30):
             if not path.exists():
                 continue
             try:
-                pil = Image.open(path).convert('RGB')
-                arr = np.array(pil, dtype=np.float32) / 255.0
+                with Image.open(path) as pil:
+                    arr = np.array(pil.convert('RGB'), dtype=np.float32) / 255.0
                 h, w = arr.shape[:2]
                 gray = 0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]
                 lap = (
@@ -438,8 +447,8 @@ def compute_category_pixel_stats(imgs):
                 continue
             try:
                 if PIL_AVAILABLE:
-                    img_pil = Image.open(path)
-                    arr = np.array(img_pil.convert('RGB'), dtype=np.float32) / 255.0
+                    with Image.open(path) as img_pil:
+                        arr = np.array(img_pil.convert('RGB'), dtype=np.float32) / 255.0
                 else:
                     continue
 
@@ -781,7 +790,7 @@ def main():
 
     # Section D — Drift + Sensitivity + Summary export
     viz_train_test_drift(train_text, test_text, train_pixel, test_pixel)
-    viz_noise_threshold_sensitivity(train_imgs, train_pixel)
+    viz_noise_threshold_sensitivity(train_mm)
     generate_summary_csv(train_text, test_text, train_img, test_img)
     print_executive_summary(train_text, test_text, train_pixel, test_pixel, train_mm, test_mm)
 
@@ -794,9 +803,6 @@ def main():
 
 
 def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None, layer_a_threshold=0.05):
-    from sklearn.feature_extraction.text import TfidfVectorizer
-    from sklearn.metrics.pairwise import cosine_similarity
-
     print(f"\n{'='*60}")
     print(f"MULTIMODAL ANALYSIS — {split.upper()} SET")
     print(f"{'='*60}")
@@ -947,8 +953,8 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
     # ===== CATEGORY-LEVEL TEXT SIMILARITY (for multimodal interpretation) =====
     category_similarity_df = pd.DataFrame()
     try:
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
+        if not SKLEARN_AVAILABLE:
+            raise RuntimeError("scikit-learn unavailable")
 
         cat_to_captions_for_sim = defaultdict(list)
         for img in imgs:
@@ -968,11 +974,9 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
 
     # ===== DUAL-LAYER NOISE DETECTION (TF-IDF & CROSS-MODAL) =====
     anomalies = []
+    anomaly_probe = []  # store per-caption diagnostics to avoid rerunning full analysis for sensitivity
 
-    if cat_keyword_dict:
-        from sklearn.feature_extraction.text import TfidfVectorizer
-        from sklearn.metrics.pairwise import cosine_similarity
-
+    if cat_keyword_dict and SKLEARN_AVAILABLE:
         # 1. Prepare Category Text Profiles (Centroids)
         cat_to_captions = {}
         for img in imgs:
@@ -1010,6 +1014,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                 layer_a_flag = False
                 layer_b_flag = False
                 reasons = []
+                sim = np.nan
                 
                 # --- LAYER A: Local Text Noise (Cosine Similarity) ---
                 if cat in category_vectorizers:
@@ -1042,6 +1047,15 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                     layer_b_flag = True
                     reasons.append(f"Says '{'|'.join([w for w in green_forest_kws if w in cap_lower])}', but Pixels={img_dom_channel}")
                 
+                anomaly_probe.append({
+                    'filename': filename,
+                    'category': cat,
+                    'caption_idx': i + 1,
+                    'caption': cap,
+                    'sim': sim if 'sim' in locals() else np.nan,
+                    'layer_b': layer_b_flag,
+                })
+
                 # --- EVALUATION RULE (Soft-flagging) ---
                 if layer_a_flag or layer_b_flag:
                     confidence = "HIGH CONFIDENCE MISMATCH" if (layer_a_flag and layer_b_flag) else "LOW CONFIDENCE"
@@ -1072,6 +1086,8 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                 for a in anomalies_sorted:
                     writer.writerow([a['filename'], a['category'], a['caption_idx'], a['confidence'], a['reason'], a['caption']])
             print(f"    Saved list of noisy samples to: {out_file.name}")
+    elif cat_keyword_dict and not SKLEARN_AVAILABLE:
+        print("  Warning: skipped TF-IDF/cosine anomaly detection because scikit-learn is unavailable.")
 
     contradiction_df = pd.DataFrame(contradiction_rows)
 
@@ -1088,6 +1104,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'category_similarity_df': category_similarity_df,
         'contradiction_df': contradiction_df,
         'anomalies': anomalies,
+        'anomaly_probe': anomaly_probe,
         'layer_a_threshold': layer_a_threshold,
     }
 
@@ -1153,9 +1170,9 @@ def viz_multimodal(mm_stats, split='train'):
             img_path = IMG_DIR / sample['filename']
             if img_path.exists():
                 try:
-                    img = PILImage.open(img_path)
-                    img.thumbnail((320, 320), PILImage.LANCZOS)
-                    thumbs.append(np.array(img.convert('RGB')))
+                    with PILImage.open(img_path) as img:
+                        img.thumbnail((320, 320), PILImage.LANCZOS)
+                        thumbs.append(np.array(img.convert('RGB')))
                 except Exception:
                     thumbs.append(np.full((200, 320, 3), 220, dtype=np.uint8))
             else:
@@ -1382,12 +1399,22 @@ def viz_train_test_drift(train_text, test_text, train_pixel, test_pixel):
     plt.close()
 
 
-def viz_noise_threshold_sensitivity(train_imgs, pixel_stats, thresholds=(0.03, 0.05, 0.07, 0.09)):
-    """Plot anomaly count sensitivity against Layer-A thresholds."""
+def viz_noise_threshold_sensitivity(train_mm, thresholds=(0.03, 0.05, 0.07, 0.09)):
+    """Plot anomaly count sensitivity using cached probes (no full re-run)."""
+    probes = train_mm.get('anomaly_probe', [])
+    if not probes:
+        return
+
     counts = []
     for th in thresholds:
-        mm = analyze_multimodal(train_imgs, split='train', cat_keyword_dict={'_': []}, pixel_stats=pixel_stats, layer_a_threshold=th)
-        counts.append(len(mm.get('anomalies', [])))
+        cnt = 0
+        for p in probes:
+            sim = p.get('sim', np.nan)
+            layer_b = bool(p.get('layer_b', False))
+            layer_a = (not np.isnan(sim)) and (sim < th)
+            if layer_a or layer_b:
+                cnt += 1
+        counts.append(cnt)
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
     ax.plot(list(thresholds), counts, marker='o', color='#B42318', linewidth=2)
