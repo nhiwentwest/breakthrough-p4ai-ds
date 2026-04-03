@@ -169,7 +169,7 @@ with st.sidebar:
             if k not in ["phase"]:
                 del st.session_state[k]
         st.session_state.phase = "idle"
-        st.experimental_rerun()
+        st.rerun()
 
     if phase == "done":
         st.markdown("---")
