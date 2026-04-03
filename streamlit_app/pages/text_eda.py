@@ -468,7 +468,7 @@ elif step == 8:
             decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
         sim = compute_similarity(df, max_feat)
         st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
-        fig, ax = plt.subplots(figsize=(6, 5))
+        fig, ax = plt.subplots(figsize=(5.5, 4.2))
         cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
         im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(range(len(sim.columns)))
@@ -503,10 +503,11 @@ elif step == 9:
             use_container_width=True,
             hide_index=True,
             column_config={
-                "category": st.column_config.TextColumn("Label 🏷️"),
-                "vocab_size": st.column_config.NumberColumn("Vocab Size 📚"),
-                "oov_count": st.column_config.ProgressColumn("OOV Count ❌", min_value=0, max_value=int(oov["oov_count"].max()) if not oov.empty else 100, format="%d"),
-                "oov_ratio": st.column_config.NumberColumn("OOV Ratio %", format="%.2f%%")
+                "Category": st.column_config.TextColumn("Label 🏷️"),
+                "Total Bigram Freq": st.column_config.NumberColumn("Total Freq 📚"),
+                "Kept Freq": st.column_config.ProgressColumn("Kept Freq ✔️", min_value=0, max_value=int(oov["Kept Freq"].max()) if not oov.empty else 100, format="%d"),
+                "Retention Rate (%)": st.column_config.NumberColumn("Retention Rate %", format="%.2f%%"),
+                "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
             }
         )
         fig, ax = plt.subplots(figsize=(8, 4))
