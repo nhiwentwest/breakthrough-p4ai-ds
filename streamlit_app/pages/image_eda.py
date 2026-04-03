@@ -264,15 +264,43 @@ elif step == 7:
     plt.tight_layout()
     st.pyplot(fig)
 
-    st.markdown("### Top-k farthest samples by digit")
-    d = st.slider("Digit", 0, 9, 0, key="outlier_digit")
-    k = st.slider("Top-k", 1, 30, 12, key="outlier_k")
-    mode = st.selectbox("Distance basis", ["To class mean"], index=0)
+    st.markdown("### Top-k sample analytics")
+    d = st.slider("Target Digit", 0, 9, 0, key="outlier_digit")
+    k = st.slider("Top-k samples", 1, 30, 12, key="outlier_k")
+    
+    basis_opts = ["To class mean", "To class median", "To nearest other class (Ambiguity)"]
+    mode = st.selectbox("Distance basis / Metric", basis_opts, index=0)
 
     dimgs = x[y == d]
-    mean_img = dimgs.mean(axis=0).reshape(-1)
     dflat = dimgs.reshape(len(dimgs), -1)
-    dist = np.linalg.norm(dflat - mean_img, axis=1)
+    
+    if mode == "To class mean":
+        ref = dimgs.mean(axis=0).reshape(-1)
+        dist = np.linalg.norm(dflat - ref, axis=1)
+        title_suffix = "farthest from mean"
+    elif mode == "To class median":
+        ref = np.median(dimgs, axis=0).reshape(-1)
+        dist = np.linalg.norm(dflat - ref, axis=1)
+        title_suffix = "farthest from median"
+    else:
+        # Nearest other class: find samples that look most like another digit
+        other_means = []
+        for other_d in range(10):
+            if other_d == d: continue
+            other_means.append(x[y == other_d].mean(axis=0).reshape(-1))
+        other_means = np.array(other_means)
+        
+        # For each image of digit 'd', find distance to the CLOSEST mean of a DIFFERENT digit
+        # High similarity (low distance) to another class mean = Ambiguous
+        dists_to_others = []
+        for i in range(len(dflat)):
+            dists_to_others.append(np.linalg.norm(other_means - dflat[i], axis=1).min())
+        dist = np.array(dists_to_others)
+        # We want the SMALLEST distances to other classes (most ambiguous)
+        # To reuse the "top_idx" logic (which takes largest), we invert or just change the sort
+        dist = -dist # Smallest distance becomes largest value
+        title_suffix = "most ambiguous (nearest to other classes)"
+
     top_idx = np.argsort(dist)[-k:][::-1]
 
     cols = min(6, k)
@@ -282,12 +310,13 @@ elif step == 7:
     for i, ax in enumerate(axes2.flatten()):
         if i < len(top_idx):
             idx = int(top_idx[i])
+            actual_dist = -dist[idx] if mode == "To nearest other class (Ambiguity)" else dist[idx]
             ax.imshow(dimgs[idx], cmap="gray")
-            ax.set_title(f"d={dist[idx]:.1f}", fontsize=8)
+            ax.set_title(f"dist={actual_dist:.1f}", fontsize=8)
             ax.axis("off")
         else:
             ax.axis("off")
-    fig2.suptitle(f"Digit {d} · Top-{k} farthest samples ({split})")
+    fig2.suptitle(f"Digit {d} · Top-{k} {title_suffix} ({split})")
     plt.tight_layout()
     st.pyplot(fig2)
 
