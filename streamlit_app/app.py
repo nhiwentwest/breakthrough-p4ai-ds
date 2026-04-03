@@ -125,7 +125,7 @@ with row1_col1:
     st.markdown(
         """
 <div class="card">
-  <a href="pages/tabular_eda" target="_self">
+  <a href="/tabular_eda" target="_self">
     <div class="card-title">📊 Tabular</div>
     <div class="card-desc">Khám phá thống kê bảng, phân phối thuộc tính và tương quan dữ liệu.</div>
   </a>
@@ -137,7 +137,7 @@ with row1_col2:
     st.markdown(
         """
 <div class="card">
-  <a href="pages/image_eda" target="_self">
+  <a href="/image_eda" target="_self">
     <div class="card-title">🖼️ Image</div>
     <div class="card-desc">Phân tích ảnh vệ tinh, đặc trưng thị giác và xu hướng theo scene.</div>
   </a>
@@ -151,7 +151,7 @@ with row2_col1:
     st.markdown(
         """
 <div class="card">
-  <a href="pages/text_eda" target="_self">
+  <a href="/text_eda" target="_self">
     <div class="card-title">📝 Text</div>
     <div class="card-desc">Khảo sát caption, từ khóa nổi bật, n-gram và độ dài mô tả.</div>
   </a>
@@ -163,7 +163,7 @@ with row2_col2:
     st.markdown(
         """
 <div class="card">
-  <a href="pages/multimodal_eda" target="_self">
+  <a href="/multimodal_eda" target="_self">
     <div class="card-title">🔗 Multimodal</div>
     <div class="card-desc">Đối chiếu ảnh-văn bản, đánh giá mức liên kết và độ tương thích.</div>
   </a>
