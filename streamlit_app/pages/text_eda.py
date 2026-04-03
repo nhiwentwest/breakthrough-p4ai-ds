@@ -140,18 +140,22 @@ def load_and_prepare():
 
 
 @st.cache_data(show_spinner=False)
-def compute_tfidf_terms(df: pd.DataFrame):
+def compute_tfidf_terms(df: pd.DataFrame, max_features: int, ngram_min: int, ngram_max: int, top_k: int):
     if not SKLEARN_AVAILABLE:
         return {}
     out = {}
-    vectorizer = TfidfVectorizer(max_features=50, stop_words=list(STOP_WORDS), ngram_range=(1, 2))
+    vectorizer = TfidfVectorizer(
+        max_features=max_features,
+        stop_words=list(STOP_WORDS),
+        ngram_range=(ngram_min, ngram_max),
+    )
     tfidf_matrix = vectorizer.fit_transform(df["text"])
     features = vectorizer.get_feature_names_out()
     for label in sorted(df["label"].unique()):
         idx = df[df["label"] == label].index
         cat_tfidf = tfidf_matrix[idx]
         mean_scores = np.asarray(cat_tfidf.mean(axis=0)).flatten()
-        top_idx = mean_scores.argsort()[-20:][::-1]
+        top_idx = mean_scores.argsort()[-top_k:][::-1]
         out[int(label)] = pd.DataFrame(
             {"term": [features[i] for i in top_idx], "score": [float(mean_scores[i]) for i in top_idx]}
         )
@@ -159,11 +163,11 @@ def compute_tfidf_terms(df: pd.DataFrame):
 
 
 @st.cache_data(show_spinner=False)
-def compute_bigram_terms(df: pd.DataFrame):
+def compute_bigram_terms(df: pd.DataFrame, max_features: int, top_k: int):
     if not SKLEARN_AVAILABLE:
         return {}
     out = {}
-    vectorizer = TfidfVectorizer(ngram_range=(2, 2), max_features=50, stop_words=list(STOP_WORDS))
+    vectorizer = TfidfVectorizer(ngram_range=(2, 2), max_features=max_features, stop_words=list(STOP_WORDS))
     for label in sorted(df["label"].unique()):
         cat_df = df[df["label"] == label]
         text_blob = " ".join(cat_df["text"].values)
@@ -173,7 +177,7 @@ def compute_bigram_terms(df: pd.DataFrame):
         matrix = vectorizer.fit_transform([text_blob])
         features = vectorizer.get_feature_names_out()
         scores = matrix.toarray()[0]
-        top_idx = scores.argsort()[-15:][::-1]
+        top_idx = scores.argsort()[-top_k:][::-1]
         out[int(label)] = pd.DataFrame(
             {"bigram": [features[i] for i in top_idx], "score": [float(scores[i]) for i in top_idx]}
         )
@@ -181,12 +185,12 @@ def compute_bigram_terms(df: pd.DataFrame):
 
 
 @st.cache_data(show_spinner=False)
-def compute_similarity(df: pd.DataFrame):
+def compute_similarity(df: pd.DataFrame, max_features: int):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
     labels = sorted(df["label"].unique())
     label_names = [str(x) for x in labels]
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words=list(STOP_WORDS))
+    vectorizer = TfidfVectorizer(max_features=max_features, stop_words=list(STOP_WORDS))
     tfidf_matrix = vectorizer.fit_transform(df["text"])
     n_labels = len(labels)
     sim_matrix = np.zeros((n_labels, n_labels))
@@ -202,17 +206,17 @@ def compute_similarity(df: pd.DataFrame):
 
 
 @st.cache_data(show_spinner=False)
-def compute_oov(df: pd.DataFrame):
+def compute_oov(df: pd.DataFrame, max_features: int, ngram_min: int, ngram_max: int):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
-    vectorizer_50 = CountVectorizer(ngram_range=(1, 2), max_features=5000)
+    vectorizer_50 = CountVectorizer(ngram_range=(ngram_min, ngram_max), max_features=max_features)
     vectorizer_50.fit(df["text"])
     kept_vocab = set(vectorizer_50.get_feature_names_out())
 
     rows = []
     for label in sorted(df["label"].unique()):
         cat_texts = df[df["label"] == label]["text"]
-        cat_vectorizer = CountVectorizer(ngram_range=(1, 2))
+        cat_vectorizer = CountVectorizer(ngram_range=(ngram_min, ngram_max))
         try:
             cat_matrix = cat_vectorizer.fit_transform(cat_texts)
             cat_features = cat_vectorizer.get_feature_names_out()
@@ -346,37 +350,56 @@ elif step == 6:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn is required for TF-IDF views.")
     else:
-        tfidf_map = compute_tfidf_terms(df)
-        label = st.selectbox("Label", sorted(tfidf_map.keys()), index=0)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            label = st.selectbox("Label", sorted(df["label"].unique()), index=0)
+        with c2:
+            max_feat = st.slider("Max features", 20, 500, 100, 10, key="tfidf_maxfeat")
+        with c3:
+            top_k = st.slider("Top terms", 5, 30, 20, 1, key="tfidf_topk")
+        ngram_max = st.selectbox("N-gram range", [1, 2, 3], index=1, key="tfidf_ngram_max")
+        tfidf_map = compute_tfidf_terms(df, max_feat, 1, int(ngram_max), top_k)
         table = tfidf_map[int(label)]
         st.dataframe(table, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 6))
         ax.barh(table["term"][::-1], table["score"][::-1], color="#f59e0b")
-        ax.set_title(f"Top 20 TF-IDF Terms (Label {label})")
+        ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})")
         st.pyplot(fig)
 
 elif step == 7:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn is required for bigram TF-IDF views.")
     else:
-        bigram_map = compute_bigram_terms(df)
-        label = st.selectbox("Label", sorted(bigram_map.keys()), index=0)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            label = st.selectbox("Label", sorted(df["label"].unique()), index=0, key="bigram_label")
+        with c2:
+            max_feat = st.slider("Max bigram features", 20, 500, 120, 10, key="bigram_maxfeat")
+        with c3:
+            top_k = st.slider("Top bigrams", 5, 30, 15, 1, key="bigram_topk")
+        bigram_map = compute_bigram_terms(df, max_feat, top_k)
         table = bigram_map[int(label)]
         st.dataframe(table, use_container_width=True)
         if len(table) > 0:
             fig, ax = plt.subplots(figsize=(8, 6))
             ax.barh(table["bigram"][::-1], table["score"][::-1], color="#8b5cf6")
-            ax.set_title(f"Top 15 Bigrams by TF-IDF (Label {label})")
+            ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})")
             st.pyplot(fig)
 
 elif step == 8:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn is required for similarity matrix.")
     else:
-        sim = compute_similarity(df)
-        st.dataframe(sim.round(4), use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            max_feat = st.slider("Max TF-IDF features", 100, 10000, 5000, 100, key="sim_maxfeat")
+        with c2:
+            decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
+        sim = compute_similarity(df, max_feat)
+        st.dataframe(sim.round(decimals), use_container_width=True)
         fig, ax = plt.subplots(figsize=(6, 5))
-        im = ax.imshow(sim.values, cmap="YlGnBu", vmin=0, vmax=1)
+        cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
+        im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(range(len(sim.columns)))
         ax.set_yticks(range(len(sim.index)))
         ax.set_xticklabels(sim.columns)
@@ -389,7 +412,21 @@ elif step == 9:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn is required for OOV analysis.")
     else:
-        oov = compute_oov(df)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            max_feat = st.slider("Reference vocab size", 100, 10000, 5000, 100, key="oov_maxfeat")
+        with c2:
+            ngram_max = st.selectbox("N-gram max", [1, 2, 3], index=1, key="oov_ngrammax")
+        with c3:
+            selected = st.multiselect(
+                "Categories",
+                options=sorted(df["label"].unique()),
+                default=sorted(df["label"].unique()),
+                key="oov_categories",
+            )
+        oov = compute_oov(df, max_feat, 1, int(ngram_max))
+        if selected:
+            oov = oov[oov["Category"].isin(selected)]
         st.dataframe(oov, use_container_width=True)
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
@@ -400,6 +437,12 @@ elif step == 9:
 
 elif step == 10:
     raw_word_counts = D["base_df"]["text"].apply(lambda x: len(str(x).split()))
+    percentiles = st.multiselect(
+        "Percentiles to display",
+        options=[10, 25, 50, 75, 90, 95, 99],
+        default=[25, 50, 75, 90, 95, 99],
+        key="stats_percentiles",
+    )
     stats = pd.DataFrame(
         {
             "metric": ["Max words", "Min words", "Mean words", "Std words"],
@@ -412,6 +455,14 @@ elif step == 10:
         }
     )
     st.dataframe(stats, use_container_width=True)
+    if percentiles:
+        pct_rows = pd.DataFrame(
+            {
+                "percentile": percentiles,
+                "word_count": [float(raw_word_counts.quantile(p / 100.0)) for p in percentiles],
+            }
+        )
+        st.dataframe(pct_rows, use_container_width=True)
     st.markdown(
         """
 - Dataset is imbalanced (neutral label dominates).
