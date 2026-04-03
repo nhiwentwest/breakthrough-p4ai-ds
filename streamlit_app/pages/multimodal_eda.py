@@ -388,8 +388,8 @@ elif step == 3:
                     st.image(im.convert("RGB"), width=280)
             except Exception:
                 pass
-        for i, s in enumerate(img["sentences"][:3]):
-            st.write(f"- [{i}] {s['raw']}")
+        for i, s in enumerate(img["sentences"]):
+            st.write(f"- [{i+1}] {s['raw']}")
 
 elif step == 4:
     if not SKLEARN_AVAILABLE:
