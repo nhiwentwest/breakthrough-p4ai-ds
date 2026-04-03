@@ -152,16 +152,46 @@ elif step == 3:
     st.pyplot(fig)
 
 elif step == 4:
-    start_idx = st.slider("Start index", 0, len(D["x_train"]) - 9, 0, key="sample_start")
-    fig, axes = plt.subplots(3, 3, figsize=(7, 7))
+    split = st.radio("Split", ["train", "test"], horizontal=True, key="sample_split")
+    x = D["x_train"] if split == "train" else D["x_test"]
+    y = D["y_train"] if split == "train" else D["y_test"]
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        only_digit = st.selectbox("Digit filter", ["All"] + [str(i) for i in range(10)], index=0)
+    with c2:
+        n_show = st.slider("Samples to show", 9, 100, 36, 1, key="sample_n")
+    with c3:
+        seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1)
+
+    if only_digit == "All":
+        idx_pool = np.arange(len(x))
+    else:
+        idx_pool = np.where(y == int(only_digit))[0]
+
+    rng = np.random.default_rng(int(seed))
+    if len(idx_pool) > n_show:
+        idx_sel = rng.choice(idx_pool, size=n_show, replace=False)
+    else:
+        idx_sel = idx_pool
+
+    cols = int(np.ceil(np.sqrt(len(idx_sel))))
+    rows = int(np.ceil(len(idx_sel) / cols))
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 1.6, rows * 1.6))
+    axes = np.array(axes).reshape(rows, cols)
     for i, ax in enumerate(axes.flatten()):
-        idx = start_idx + i
-        ax.imshow(D["images_reshaped"][idx], cmap="gray")
-        ax.set_title(f"Label: {D['y_train'][idx]}")
-        ax.axis("off")
-    fig.suptitle("Sample MNIST Images")
+        if i < len(idx_sel):
+            idx = int(idx_sel[i])
+            ax.imshow(x[idx], cmap="gray")
+            ax.set_title(str(int(y[idx])), fontsize=8)
+            ax.axis("off")
+        else:
+            ax.axis("off")
+    fig.suptitle(f"Sample MNIST Images ({split})")
     plt.tight_layout()
     st.pyplot(fig)
+
+    st.caption(f"Showing {len(idx_sel):,} samples from pool of {len(idx_pool):,}.")
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="dist_split")
@@ -182,7 +212,7 @@ elif step == 6:
     x = D["x_train"] if split == "train" else D["x_test"]
     pixels = x.flatten()
 
-    bins = st.slider("Bins", 20, 100, 50, key="pix_bins")
+    bins = st.slider("Bins", 20, 150, 50, key="pix_bins")
     log_scale = st.toggle("Log y-scale", value=True, key="pix_log")
 
     fig, ax = plt.subplots(figsize=(9, 3.8))
@@ -193,6 +223,19 @@ elif step == 6:
     ax.set_xlabel("Pixel value")
     ax.set_ylabel("Frequency")
     st.pyplot(fig)
+
+    digit_stats = []
+    for d in range(10):
+        dimgs = x[(D["y_train"] if split == "train" else D["y_test"]) == d]
+        digit_stats.append(
+            {
+                "digit": d,
+                "mean_pixel": float(dimgs.mean()),
+                "std_pixel": float(dimgs.std()),
+                "ink_ratio_(>0)": float((dimgs > 0).mean()),
+            }
+        )
+    st.dataframe(pd.DataFrame(digit_stats), use_container_width=True)
 
 elif step == 7:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="ex_split")
@@ -220,15 +263,30 @@ elif step == 8:
 
     cmap = st.selectbox("Colormap", ["inferno", "viridis", "magma", "gray"], index=0)
 
+    means = []
     fig, axes = plt.subplots(2, 5, figsize=(11, 4.5))
     for digit, ax in enumerate(axes.flatten()):
         mean_image = x[y == digit].mean(axis=0)
+        means.append(mean_image.reshape(-1))
         ax.imshow(mean_image, cmap=cmap)
         ax.set_title(f"Mean {digit}")
         ax.axis("off")
     fig.suptitle(f"Mean Image per Digit ({split})")
     plt.tight_layout()
     st.pyplot(fig)
+
+    means = np.array(means)
+    norm = np.linalg.norm(means, axis=1, keepdims=True)
+    cosine = (means @ means.T) / np.clip(norm @ norm.T, 1e-8, None)
+
+    fig2, ax2 = plt.subplots(figsize=(6, 5))
+    im = ax2.imshow(cosine, cmap="YlGnBu", vmin=0, vmax=1)
+    ax2.set_xticks(range(10)); ax2.set_yticks(range(10))
+    ax2.set_xticklabels([str(i) for i in range(10)])
+    ax2.set_yticklabels([str(i) for i in range(10)])
+    ax2.set_title(f"Cosine Similarity between Mean Digits ({split})")
+    fig2.colorbar(im, ax=ax2)
+    st.pyplot(fig2)
 
 elif step == 9:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="std_split")
@@ -238,14 +296,32 @@ elif step == 9:
     cmap = st.selectbox("Colormap", ["magma", "inferno", "plasma", "gray"], index=0)
 
     fig, axes = plt.subplots(2, 5, figsize=(11, 4.5))
+    outlier_rows = []
     for digit, ax in enumerate(axes.flatten()):
-        std_image = x[y == digit].std(axis=0)
+        dimgs = x[y == digit]
+        std_image = dimgs.std(axis=0)
+        mean_image = dimgs.mean(axis=0)
+        d_flat = dimgs.reshape(len(dimgs), -1)
+        m_flat = mean_image.reshape(-1)
+        dist = np.linalg.norm(d_flat - m_flat, axis=1)
+        near_idx = int(np.argmin(dist))
+        far_idx = int(np.argmax(dist))
+        outlier_rows.append({
+            "digit": digit,
+            "nearest_to_mean_idx": near_idx,
+            "farthest_from_mean_idx": far_idx,
+            "nearest_dist": float(dist[near_idx]),
+            "farthest_dist": float(dist[far_idx]),
+        })
+
         ax.imshow(std_image, cmap=cmap)
         ax.set_title(f"Std {digit}")
         ax.axis("off")
     fig.suptitle(f"Std Deviation per Digit ({split})")
     plt.tight_layout()
     st.pyplot(fig)
+
+    st.dataframe(pd.DataFrame(outlier_rows), use_container_width=True)
 
 
 col1, col2 = st.columns(2)
