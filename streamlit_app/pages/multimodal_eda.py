@@ -329,12 +329,14 @@ if step == 0:
     st.dataframe(audit, use_container_width=True)
 
 elif step == 1:
-    top_w = D["word_freq"].most_common(15)
+    wn = st.slider("Top words", 10, 40, 15, key="top_words_n")
+    bn = st.slider("Top bigrams", 8, 30, 12, key="top_bigrams_n")
+    top_w = D["word_freq"].most_common(wn)
     words, counts = zip(*top_w)
     fig, ax = plt.subplots(figsize=(9,5)); fig.patch.set_facecolor(BG)
-    ax.barh(words[::-1], counts[::-1], color="#3b82f6"); ax.set_title("Top 15 words (train)")
+    ax.barh(words[::-1], counts[::-1], color="#3b82f6"); ax.set_title(f"Top {wn} words (train)")
     st.pyplot(fig)
-    top_b = D["bigram_freq"].most_common(12)
+    top_b = D["bigram_freq"].most_common(bn)
     bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
     fig2, ax2 = plt.subplots(figsize=(9,5)); fig2.patch.set_facecolor(BG)
     ax2.barh(bl[::-1], bc[::-1], color="#f59e0b"); ax2.set_title("Top 12 bigrams (train)")
@@ -353,12 +355,23 @@ elif step == 2:
         st.pyplot(fig2)
 
 elif step == 3:
+    bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
     fig, ax = plt.subplots(figsize=(9,4)); fig.patch.set_facecolor(BG)
-    ax.hist(D["variabilities"], bins=30, color="#8b5cf6")
+    ax.hist(D["variabilities"], bins=bins_n, color="#8b5cf6")
     ax.set_title("Caption variability within image (train)")
     st.pyplot(fig)
-    st.markdown("### Sample pairs (first 3 train images)")
-    for img in D["train_imgs"][:3]:
+
+    st.markdown("### Sample pairs")
+    cats = ["All"] + sorted({parse_category(i["filename"]) for i in D["train_imgs"]})
+    c1, c2 = st.columns(2)
+    with c1:
+        pick_cat = st.selectbox("Category", cats, index=0, key="sample_cat")
+    with c2:
+        nshow = st.slider("Samples to show", 1, 10, 3, key="sample_n")
+
+    candidates = D["train_imgs"] if pick_cat == "All" else [i for i in D["train_imgs"] if parse_category(i["filename"]) == pick_cat]
+    show_list = candidates[:nshow]
+    for img in show_list:
         st.write(f"**{img['filename']}** ({parse_category(img['filename'])})")
         p = IMG_DIR / img["filename"]
         if p.exists():
@@ -393,11 +406,17 @@ elif step == 5:
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
     else:
+        bsem = st.slider("Semantic bins", 15, 60, 30, key="sem_bins")
         fig, ax = plt.subplots(figsize=(9,4)); fig.patch.set_facecolor(BG)
-        ax.hist(sem["score"].dropna(), bins=30, color="#10b981", edgecolor="white")
+        ax.hist(sem["score"].dropna(), bins=bsem, color="#10b981", edgecolor="white")
         ax.axvline(sem["score"].mean(), color=ACC, linestyle="--")
         ax.set_title("Intra-image semantic consistency (train)")
         st.pyplot(fig)
+
+        q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
+        n_low = max(1, int(len(sem) * q / 100))
+        low_df = sem.sort_values("score", ascending=True).head(n_low)
+        st.dataframe(low_df[["filename", "category", "score"]], use_container_width=True)
 
 elif step == 6:
     cdf = contradiction_map(D["train_imgs"], dom_map)
@@ -439,7 +458,8 @@ elif step == 7:
     st.dataframe(drift_df, use_container_width=True)
 
     st.markdown("### Threshold sensitivity")
-    ths = [0.03,0.05,0.07,0.09]
+    thresholds = st.multiselect("Threshold set", [0.01,0.03,0.05,0.07,0.09,0.11,0.13], default=[0.03,0.05,0.07,0.09])
+    ths = sorted(thresholds) if thresholds else [0.03,0.05,0.07,0.09]
     probes = anomaly_probe(D["train_imgs"], dom_map)
     if probes:
         counts = []
