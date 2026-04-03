@@ -9,6 +9,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
+import seaborn as sns
+
+sns.set_theme(style="whitegrid", rc={
+    "figure.facecolor": "#F7F3EB",
+    "axes.facecolor": "#F7F3EB",
+    "axes.edgecolor": "#D4C9B8",
+    "axes.linewidth": 1.2,
+    "axes.spines.top": False,
+    "axes.spines.right": False,
+    "grid.color": "#E5DFD3",
+    "grid.linestyle": "--",
+    "grid.linewidth": 0.8,
+    "xtick.colors": "#6B6560",
+    "ytick.colors": "#6B6560",
+    "text.color": "#111111",
+    "axes.labelcolor": "#111111",
+    "axes.titlesize": 13,
+    "axes.titleweight": "bold",
+    "font.family": "sans-serif"
+})
 
 st.set_page_config(page_title="Image EDA · MNIST", page_icon="🖼️", layout="wide", initial_sidebar_state="collapsed")
 
