@@ -313,8 +313,12 @@ st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
 step = st.session_state.step
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
-px_df = image_pixel_stats(D["train_imgs"])
-dom_map = {r["category"]: r["dom"] for _, r in px_df.iterrows()}
+px_train_df = image_pixel_stats(D["train_imgs"])
+px_test_df = image_pixel_stats(D["test_imgs"])
+dom_map_train = {r["category"]: r["dom"] for _, r in px_train_df.iterrows()}
+dom_map_test = {r["category"]: r["dom"] for _, r in px_test_df.iterrows()}
+px_df = px_train_df
+dom_map = dom_map_train
 
 if step == 0:
     st.metric("Total images", f"{D['n_total']:,}")
@@ -354,21 +358,26 @@ elif step == 2:
         st.pyplot(fig2)
 
 elif step == 3:
+    split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
+    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+    vars_split = D["variabilities"] if split == "train" else [float(np.std([len(s["tokens"]) for s in img["sentences"]])) for img in D["test_imgs"]]
+
     bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
     fig, ax = plt.subplots(figsize=(9,4)); fig.patch.set_facecolor(BG)
-    ax.hist(D["variabilities"], bins=bins_n, color="#8b5cf6")
-    ax.set_title("Caption variability within image (train)")
+    ax.hist(vars_split, bins=bins_n, color="#8b5cf6")
+    ax.set_title(f"Caption variability within image ({split})")
     st.pyplot(fig)
 
     st.markdown("### Sample pairs")
-    cats = ["All"] + sorted({parse_category(i["filename"]) for i in D["train_imgs"]})
+    cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
     c1, c2 = st.columns(2)
     with c1:
         pick_cat = st.selectbox("Category", cats, index=0, key="sample_cat")
+    candidates = imgs_split if pick_cat == "All" else [i for i in imgs_split if parse_category(i["filename"]) == pick_cat]
+    max_show = max(1, len(candidates))
     with c2:
-        nshow = st.slider("Samples to show", 1, 10, 3, key="sample_n")
+        nshow = st.slider("Samples to show", 1, max_show, min(20, max_show), key="sample_n")
 
-    candidates = D["train_imgs"] if pick_cat == "All" else [i for i in D["train_imgs"] if parse_category(i["filename"]) == pick_cat]
     show_list = candidates[:nshow]
     for img in show_list:
         st.write(f"**{img['filename']}** ({parse_category(img['filename'])})")
@@ -386,7 +395,8 @@ elif step == 4:
     if not SKLEARN_AVAILABLE:
         st.error("scikit-learn unavailable; cannot compute matrix.")
     else:
-        sim = category_similarity(D["train_imgs"])
+        split = st.radio("Split", ["train", "test"], horizontal=True, key="sim_split")
+        sim = category_similarity(D["train_imgs"] if split == "train" else D["test_imgs"])
         n = st.slider("Matrix categories", 10, min(33, len(sim)), min(20, len(sim)))
         top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
         view = sim.loc[top, top]
@@ -401,7 +411,8 @@ elif step == 4:
         st.pyplot(fig)
 
 elif step == 5:
-    sem = semantic_consistency(D["train_imgs"])
+    split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
+    sem = semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"])
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
     else:
@@ -418,7 +429,10 @@ elif step == 5:
         st.dataframe(low_df[["filename", "category", "score"]], use_container_width=True)
 
 elif step == 6:
-    cdf = contradiction_map(D["train_imgs"], dom_map)
+    split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
+    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+    dom_map_split = dom_map_train if split == "train" else dom_map_test
+    cdf = contradiction_map(imgs_split, dom_map_split)
     if cdf.empty:
         st.warning("No contradiction data available.")
     else:
