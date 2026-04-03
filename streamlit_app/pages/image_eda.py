@@ -108,7 +108,7 @@ elif step == 1:
             ],
         }
     )
-    st.dataframe(info, use_container_width=True)
+    st.dataframe(info.style.set_properties(**{'background-color': '#fafafa', 'color': '#333'}), use_container_width=True, hide_index=True)
 
 elif step == 2:
     x_flat = D["images_np"]
@@ -134,7 +134,7 @@ elif step == 2:
             ],
         }
     )
-    st.dataframe(props, use_container_width=True)
+    st.dataframe(props.style.set_properties(**{'background-color': '#f8f9fa', 'color': '#222'}), use_container_width=True, hide_index=True)
 
 elif step == 3:
     sums_per_image = D["images_np"].sum(axis=1)
@@ -225,7 +225,16 @@ elif step == 5:
     ax.set_ylabel("Count")
     st.pyplot(fig)
 
-    st.dataframe(pd.DataFrame({"digit": counts.index, "count": counts.values}), use_container_width=True)
+    df_counts = pd.DataFrame({"digit": counts.index, "count": counts.values})
+    st.dataframe(
+        df_counts, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "digit": st.column_config.TextColumn("Digit 🔢"),
+            "count": st.column_config.ProgressColumn("Count 📊", min_value=0, max_value=int(df_counts["count"].max()), format="%d")
+        }
+    )
 
 elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="pix_split")
@@ -255,7 +264,18 @@ elif step == 6:
                 "ink_ratio_(>0)": float((dimgs > 0).mean()),
             }
         )
-    st.dataframe(pd.DataFrame(digit_stats), use_container_width=True)
+    df_stats = pd.DataFrame(digit_stats)
+    st.dataframe(
+        df_stats, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "digit": st.column_config.TextColumn("Digit 🔢"),
+            "mean_pixel": st.column_config.ProgressColumn("Mean Pixel 💡", min_value=0, max_value=255, format="%.2f"),
+            "std_pixel": st.column_config.NumberColumn("Std Dev 📉", format="%.2f"),
+            "ink_ratio_(>0)": st.column_config.ProgressColumn("Ink Ratio 🖋️", min_value=0.0, max_value=1.0, format="%.3f")
+        }
+    )
 
 elif step == 7:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="ex_split")
@@ -397,7 +417,19 @@ elif step == 9:
     plt.tight_layout()
     st.pyplot(fig)
 
-    st.dataframe(pd.DataFrame(outlier_rows), use_container_width=True)
+    df_outliers = pd.DataFrame(outlier_rows)
+    st.dataframe(
+        df_outliers, 
+        use_container_width=True, 
+        hide_index=True,
+        column_config={
+            "digit": st.column_config.TextColumn("Digit 🔢"),
+            "nearest_to_mean_idx": st.column_config.NumberColumn("Nearest Idx"),
+            "farthest_from_mean_idx": st.column_config.NumberColumn("Farthest Idx"),
+            "nearest_dist": st.column_config.NumberColumn("Min Dist 🎯", format="%.1f"),
+            "farthest_dist": st.column_config.ProgressColumn("Max Dist 🚀", min_value=0.0, max_value=float(df_outliers["farthest_dist"].max()), format="%.1f"),
+        }
+    )
 
 
 col1, col2 = st.columns(2)
