@@ -66,7 +66,6 @@ STEP_LABELS = {
     7: "Bigram TF-IDF by Category",
     8: "Category Similarity Matrix",
     9: "OOV Rate",
-    10: "Text Statistics",
 }
 TOTAL_STEPS = len(STEP_LABELS)
 
@@ -468,7 +467,7 @@ elif step == 8:
             decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
         sim = compute_similarity(df, max_feat)
         st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
-        fig, ax = plt.subplots(figsize=(5.5, 4.2))
+        fig, ax = plt.subplots(figsize=(4.5, 3.5))
         cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
         im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(range(len(sim.columns)))
@@ -510,49 +509,12 @@ elif step == 9:
                 "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
             }
         )
-        fig, ax = plt.subplots(figsize=(8, 4))
+        fig, ax = plt.subplots(figsize=(5.5, 3.2))
         ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
         ax.set_title("OOV Rate by Category")
         ax.set_xlabel("Category")
         ax.set_ylabel("OOV Rate (%)")
         st.pyplot(fig)
-
-elif step == 10:
-    raw_word_counts = D["base_df"]["text"].apply(lambda x: len(str(x).split()))
-    percentiles = st.multiselect(
-        "Percentiles to display",
-        options=[10, 25, 50, 75, 90, 95, 99],
-        default=[25, 50, 75, 90, 95, 99],
-        key="stats_percentiles",
-    )
-    stats = pd.DataFrame(
-        {
-            "metric": ["Max words", "Min words", "Mean words", "Std words"],
-            "value": [
-                int(raw_word_counts.max()),
-                int(raw_word_counts.min()),
-                float(raw_word_counts.mean()),
-                float(raw_word_counts.std()),
-            ],
-        }
-    )
-    st.dataframe(stats, use_container_width=True)
-    if percentiles:
-        pct_rows = pd.DataFrame(
-            {
-                "percentile": percentiles,
-                "word_count": [float(raw_word_counts.quantile(p / 100.0)) for p in percentiles],
-            }
-        )
-        st.dataframe(pct_rows, use_container_width=True)
-    st.markdown(
-        """
-- Dataset is imbalanced (neutral label dominates).
-- Texts are short, headline-like financial snippets.
-- Vocabulary is finance-specific with many ticker mentions.
-- Raw data quality is clean (very low/no missing values).
-"""
-    )
 
 col1, col2 = st.columns(2)
 with col1:
