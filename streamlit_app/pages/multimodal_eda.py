@@ -10,7 +10,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import streamlit as st
 from PIL import Image
 
@@ -370,8 +369,13 @@ elif step == 4:
         top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
         view = sim.loc[top, top]
         fig, ax = plt.subplots(figsize=(8,7)); fig.patch.set_facecolor(BG)
-        sns.heatmap(view, cmap="YlGnBu", vmin=0, vmax=1, ax=ax)
+        im = ax.imshow(view.values, cmap="YlGnBu", vmin=0, vmax=1, aspect='auto')
+        ax.set_xticks(range(len(view.columns)))
+        ax.set_yticks(range(len(view.index)))
+        ax.set_xticklabels(view.columns, rotation=90, fontsize=7)
+        ax.set_yticklabels(view.index, fontsize=7)
         ax.set_title("Category-level caption cosine similarity (train)")
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         st.pyplot(fig)
 
 elif step == 5:
@@ -394,8 +398,16 @@ elif step == 6:
         top = cdf.sort_values("combined", ascending=False).head(20)
         heat = top.set_index("category")[["blue_mismatch_rate","green_mismatch_rate"]]
         fig, ax = plt.subplots(figsize=(8,6)); fig.patch.set_facecolor(BG)
-        sns.heatmap(heat, annot=True, fmt=".2f", cmap="OrRd", vmin=0, vmax=1, ax=ax)
+        im = ax.imshow(heat.values, cmap="OrRd", vmin=0, vmax=1, aspect='auto')
+        ax.set_xticks(range(len(heat.columns)))
+        ax.set_yticks(range(len(heat.index)))
+        ax.set_xticklabels(heat.columns, fontsize=9)
+        ax.set_yticklabels(heat.index, fontsize=7)
+        for i in range(heat.shape[0]):
+            for j in range(heat.shape[1]):
+                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=7, color='black')
         ax.set_title("Cross-modal contradiction map (train)")
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         st.pyplot(fig)
 
 elif step == 7:
