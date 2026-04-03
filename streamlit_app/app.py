@@ -139,7 +139,7 @@ with row1_col2:
 <div class="card">
   <a href="/image_eda" target="_self">
     <div class="card-title">🖼️ Image</div>
-    <div class="card-desc">Explore image-level EDA: sample diversity, pixel intensity statistics, class-wise visual patterns, and distribution diagnostics.</div>
+    <div class="card-desc">Dataset: MNIST</div>
   </a>
 </div>
 """,
@@ -153,7 +153,7 @@ with row2_col1:
 <div class="card">
   <a href="/text_eda" target="_self">
     <div class="card-title">📝 Text</div>
-    <div class="card-desc">Khảo sát caption, từ khóa nổi bật, n-gram và độ dài mô tả.</div>
+    <div class="card-desc">Dataset: Twitter Financial News Sentiment</div>
   </a>
 </div>
 """,
@@ -165,7 +165,7 @@ with row2_col2:
 <div class="card">
   <a href="/multimodal_eda" target="_self">
     <div class="card-title">🔗 Multimodal</div>
-    <div class="card-desc">Run multimodal EDA: image-text alignment checks, semantic consistency, contradiction analysis, and split-aware sensitivity views.</div>
+    <div class="card-desc">Dataset: RSITMD</div>
   </a>
 </div>
 """,
