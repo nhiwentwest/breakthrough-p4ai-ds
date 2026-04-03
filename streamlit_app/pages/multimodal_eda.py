@@ -93,7 +93,6 @@ def resolve_data_paths():
     if cached_json:
         return cached_json[0], cached_json[0].parent / "images"
 
-    st.warning("📡 Downloading RSITMD to cloud cache (~916MB), one-time setup...")
     import gdown, zipfile
     zip_path = cache_root / "RSITMD.zip"
     gdown.download(id="1NJY86TAAUd8BVs7hyteImv8I2_Lh95W6", output=str(zip_path), quiet=True)
@@ -104,12 +103,15 @@ def resolve_data_paths():
 
     cached_json = list(cache_root.rglob("dataset_RSITMD.json"))
     if not cached_json:
-        st.error("Cannot find dataset_RSITMD.json after download.")
-        st.stop()
+        raise RuntimeError("Cannot find dataset_RSITMD.json after download.")
     return cached_json[0], cached_json[0].parent / "images"
 
 
-DATA_FILE, IMG_DIR = resolve_data_paths()
+try:
+    DATA_FILE, IMG_DIR = resolve_data_paths()
+except Exception as e:
+    st.error(f"Dataset init failed: {e}")
+    st.stop()
 
 
 @st.cache_data
@@ -300,9 +302,17 @@ if st.session_state.D is None:
         st.session_state.D = load_data()
 
 D = st.session_state.D
+# Backfill for older cached/session dicts to avoid KeyError
+if "n_train" not in D:
+    D["n_train"] = len(D.get("train_imgs", []))
+if "n_test" not in D:
+    D["n_test"] = len(D.get("test_imgs", []))
+if "n_total" not in D:
+    D["n_total"] = D["n_train"] + D["n_test"]
+
 st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
 step = st.session_state.step
-st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
+st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
 px_df = image_pixel_stats(D["train_imgs"])
 dom_map = {r["category"]: r["dom"] for _, r in px_df.iterrows()}
@@ -394,8 +404,17 @@ elif step == 6:
     if cdf.empty:
         st.warning("No contradiction data available.")
     else:
-        cdf["combined"] = 0.5*cdf["blue_mismatch_rate"] + 0.5*cdf["green_mismatch_rate"]
-        top = cdf.sort_values("combined", ascending=False).head(20)
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="contr_top_n")
+        with c2:
+            blue_w = st.slider("Blue claim weight", 0.0, 1.0, 0.5, 0.05, key="contr_blue_w")
+        with c3:
+            green_w = 1.0 - blue_w
+            st.metric("Green claim weight", f"{green_w:.2f}")
+
+        cdf["combined"] = blue_w*cdf["blue_mismatch_rate"] + green_w*cdf["green_mismatch_rate"]
+        top = cdf.sort_values("combined", ascending=False).head(top_n)
         heat = top.set_index("category")[["blue_mismatch_rate","green_mismatch_rate"]]
         fig, ax = plt.subplots(figsize=(8,6)); fig.patch.set_facecolor(BG)
         im = ax.imshow(heat.values, cmap="OrRd", vmin=0, vmax=1, aspect='auto')
@@ -409,6 +428,8 @@ elif step == 6:
         ax.set_title("Cross-modal contradiction map (train)")
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         st.pyplot(fig)
+
+        st.dataframe(top[["category", "blue_mismatch_rate", "green_mismatch_rate", "combined"]], use_container_width=True)
 
 elif step == 7:
     st.markdown("### Train/Test drift")
@@ -438,10 +459,18 @@ elif step == 7:
 
 elif step == 8:
     st.markdown("### Executive summary")
-    st.write(f"- Images: **{D['n_total']:,}** ({D['n_train']:,} train / {D['n_test']:,} test)")
-    st.write(f"- Avg caption words (train): **{np.mean([len(tokenize(c)) for c in D['train_caps']]):.2f}**")
-    st.write(f"- Caption variability mean (train): **{np.mean(D['variabilities']):.2f}**")
-    if not px_df.empty:
+    n_train = D.get("n_train", len(D.get("train_imgs", [])))
+    n_test = D.get("n_test", len(D.get("test_imgs", [])))
+    n_total = D.get("n_total", n_train + n_test)
+    train_caps = D.get("train_caps", [])
+    variabilities = D.get("variabilities", [])
+
+    st.write(f"- Images: **{n_total:,}** ({n_train:,} train / {n_test:,} test)")
+    if train_caps:
+        st.write(f"- Avg caption words (train): **{np.mean([len(tokenize(c)) for c in train_caps]):.2f}**")
+    if variabilities:
+        st.write(f"- Caption variability mean (train): **{np.mean(variabilities):.2f}**")
+    if not px_df.empty and "brightness" in px_df.columns:
         st.write(f"- Brightness mean (train categories): **{px_df['brightness'].mean():.3f}**")
 
 col1, col2 = st.columns(2)
