@@ -1465,27 +1465,54 @@ if D is not None:
 
         st.markdown("##### One Image — Five Perspectives")
 
-        # pick a representative subset to offer in the gallery
+        # User controls for Step 7
+        ctrl1, ctrl2, ctrl3 = st.columns([1, 1, 1])
+        with ctrl1:
+            gallery_mode = st.selectbox(
+                "Gallery mode",
+                ["Balanced", "Most variable", "Least variable"],
+                index=0,
+            )
+        with ctrl2:
+            n_pick = st.slider("Number of samples", 8, 40, 20, 4)
+        with ctrl3:
+            only_category = st.selectbox(
+                "Filter category",
+                ["All"] + sorted(D["train_cats"].keys()),
+                index=0,
+            )
+
         import random
         random.seed(99)
         all_train = D["train_imgs"]
-        # select diverse sample: first from each decile of variability
         variabilities = D["variabilities"]
-        sorted_by_var = sorted(enumerate(variabilities), key=lambda x: x[1])
-        n_pick = min(20, len(sorted_by_var))
-        step = max(1, len(sorted_by_var) // n_pick)
-        indices = [sorted_by_var[i][0] for i in range(0, len(sorted_by_var), step)][:n_pick]
-        gallery_pool = [all_train[i] for i in indices]
-        # shuffle for variety but keep reproducible
+        idx_var_pairs = list(enumerate(variabilities))
+
+        if only_category != "All":
+            idx_var_pairs = [
+                (i, v) for i, v in idx_var_pairs
+                if parse_category(all_train[i]["filename"]) == only_category
+            ]
+
+        if not idx_var_pairs:
+            st.warning("No sample available for this category filter.")
+            st.stop()
+
+        sorted_by_var = sorted(idx_var_pairs, key=lambda x: x[1])
+
+        if gallery_mode == "Most variable":
+            selected_pairs = sorted_by_var[-n_pick:][::-1]
+        elif gallery_mode == "Least variable":
+            selected_pairs = sorted_by_var[:n_pick]
+        else:
+            step = max(1, len(sorted_by_var) // max(1, n_pick))
+            selected_pairs = [sorted_by_var[i] for i in range(0, len(sorted_by_var), step)][:n_pick]
+
+        gallery_pool = [all_train[i] for i, _ in selected_pairs]
         random.shuffle(gallery_pool)
 
-        default_idx = 0
-        opts = [
-            f"{parse_category(img['filename'])} — {img['filename']}"
-            for img in gallery_pool
-        ]
-        sel = st.selectbox("Select an image to view its 5 captions", opts,
-                           index=default_idx)
+        opts = [f"{parse_category(img['filename'])} — {img['filename']}" for img in gallery_pool]
+        sel = st.selectbox("Select an image to view its 5 captions", opts, index=0)
         sample = gallery_pool[opts.index(sel)]
         img_path = IMG_DIR / sample["filename"]
         cat = parse_category(sample["filename"])
@@ -1535,8 +1562,25 @@ if D is not None:
 
         st.info("Note: Dominant Colors (RGB Channel) are dynamically fetched via fast 5-image sampling per Category to ensure real-time performance on this tool.")
 
-        threshold = st.slider("Cosine Similarity Threshold (Layer A)", 
-                              min_value=0.0, max_value=0.15, value=0.05, step=0.01)
+        ncol1, ncol2 = st.columns(2)
+        with ncol1:
+            threshold = st.slider(
+                "Cosine Similarity Threshold (Layer A)",
+                min_value=0.0,
+                max_value=0.15,
+                value=0.05,
+                step=0.01,
+            )
+        with ncol2:
+            layer_b_enabled = st.toggle("Enable Layer B (Cross-Modal Mismatch)", value=True)
+            layer_b_strict = st.selectbox(
+                "Layer B strictness",
+                ["Strict", "Balanced", "Sensitive"],
+                index=1,
+                disabled=not layer_b_enabled,
+            )
+
+        st.caption("Layer A checks text outliers within category; Layer B checks caption color words vs dominant image channel.")
 
         with st.spinner("Detecting anomalies..."):
             anomalies = []
@@ -1580,13 +1624,24 @@ if D is not None:
                     has_blue = any(w in cap_lower.replace(',', ' ').replace('.', ' ').split() for w in water_blue_kws)
                     has_green = any(w in cap_lower.replace(',', ' ').replace('.', ' ').split() for w in green_forest_kws)
                     
-                    if has_blue and img_dom_channel in ['R>G>B', 'G>R>B']:
-                        layer_b_flag = True
-                        reasons.append(f"Says Blue/Water, Pixels={img_dom_channel}")
-                    
-                    if has_green and img_dom_channel in ['R>G>B', 'B>R>G']:
-                        layer_b_flag = True
-                        reasons.append(f"Says Green/Forest, Pixels={img_dom_channel}")
+                    if layer_b_enabled:
+                        if layer_b_strict == "Strict":
+                            blue_mismatch_channels = ['R>G>B']
+                            green_mismatch_channels = ['R>G>B', 'B>R>G']
+                        elif layer_b_strict == "Sensitive":
+                            blue_mismatch_channels = ['R>G>B', 'G>R>B', 'B>R>G']
+                            green_mismatch_channels = ['R>G>B', 'B>R>G', 'R≈G>B']
+                        else:  # Balanced
+                            blue_mismatch_channels = ['R>G>B', 'G>R>B']
+                            green_mismatch_channels = ['R>G>B', 'B>R>G']
+
+                        if has_blue and img_dom_channel in blue_mismatch_channels:
+                            layer_b_flag = True
+                            reasons.append(f"LayerB Blue/Water mismatch: Pixels={img_dom_channel}")
+
+                        if has_green and img_dom_channel in green_mismatch_channels:
+                            layer_b_flag = True
+                            reasons.append(f"LayerB Green/Forest mismatch: Pixels={img_dom_channel}")
                     
                     if layer_a_flag or layer_b_flag:
                         confidence = "HIGH" if (layer_a_flag and layer_b_flag) else "LOW"
@@ -1601,11 +1656,15 @@ if D is not None:
 
         high_conf = sum(1 for a in anomalies if a['confidence'] == 'HIGH')
         low_conf = len(anomalies) - high_conf
+        layer_a_only = sum(1 for a in anomalies if ('CosineSim=' in a['reason']) and ('LayerB ' not in a['reason']))
+        layer_b_only = sum(1 for a in anomalies if ('LayerB ' in a['reason']) and ('CosineSim=' not in a['reason']))
 
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4, c5 = st.columns(5)
         c1.metric("Total Anomalies", len(anomalies))
-        c2.metric("High Confidence Mismatch", high_conf)
-        c3.metric("Low Confidence Mismatch", low_conf)
+        c2.metric("High Confidence", high_conf)
+        c3.metric("Low Confidence", low_conf)
+        c4.metric("Layer A only", layer_a_only)
+        c5.metric("Layer B only", layer_b_only)
 
         if len(anomalies) > 0:
             df_anomalies = pd.DataFrame(anomalies)
