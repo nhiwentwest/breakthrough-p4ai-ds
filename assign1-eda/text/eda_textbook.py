@@ -62,7 +62,49 @@ if df is not None:
     print("Training samples:", f"{len(df):,}")
     print("Number of columns:", f"{len(df.columns)}")
     print(f"Shape: {df.shape}\n")
-    
+    duplicate_count = df.astype(str).duplicated().sum()
+    duplicate_pct = (duplicate_count / len(df)) * 100
+    if duplicate_count > 0: 
+        print(f"⚠️ Detect {duplicate_count} duplicates ({duplicate_pct:.2f}% dataset).")
+        df = df[~df.astype(str).duplicated()].reset_index(drop=True)
+        print(f"✅ Done Cleaning! The remaining dataset size is: {df.shape}")
+    else:
+        print("✅ Dataset is clean. No duplicate noise found.\n")
+    missing_counts = df.isnull().sum()
+    missing_pct = (df.isnull().sum() / len(df) * 100)
+
+    missing_df = pd.DataFrame({
+        'column': missing_counts[missing_counts > 0].index,
+        'count': missing_counts[missing_counts > 0].values,
+        'percentage': missing_pct[missing_counts > 0].values
+    }).sort_values('percentage', ascending=False)
+    if len(missing_df) > 0:
+        print("Missing Values Summary:")
+        print(missing_df)
+
+        fig = go.Figure(data=[go.Bar(
+            x=missing_df['column'],
+            y=missing_df['percentage'],
+            marker_color='#f093fb',
+            text=[f"{p:.2f}%" for p in missing_df['percentage']],
+            textposition='outside'
+        )])
+
+        fig.update_layout(
+            title='Missing Values by Feature (%)',
+            xaxis_title='Features',
+            yaxis_title='Missing Percentage',
+            width=800,
+            height=400
+        )
+        print("Removing Mising Values")
+        df.dropna(inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        print(f"✅ Done Cleaning! The remaining dataset size is: {df.shape}")
+        fig.show()
+    else:
+        print("✅ Dataset is clean. No missing values reported.")
+
     #══════════════════════════════════════════════════════════════════════════════
     # CATEGORY DISTRIBUTION
     #══════════════════════════════════════════════════════════════════════════════
@@ -220,9 +262,9 @@ if df is not None:
     #══════════════════════════════════════════════════════════════════════════════
     # TF - IDF
     #══════════════════════════════════════════════════════════════════════════════
-    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
     label_name = {0: "0", 1: "1", 2: "2"}
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words=list(STOP_WORDS))
+    vectorizer = TfidfVectorizer(max_features=50, stop_words=list(STOP_WORDS), ngram_range=(1, 2))
     tfidf_matrix = vectorizer.fit_transform(df['text'])
     feature_names = vectorizer.get_feature_names_out()
 
@@ -344,6 +386,57 @@ if df is not None:
         yaxis={'autorange': 'reversed'})
 
     fig.show()
+
+    #══════════════════════════════════════════════════════════════════════════════
+    # OOV RATE
+    #══════════════════════════════════════════════════════════════════════════════
+    vectorizer_50 = CountVectorizer(ngram_range=(2, 2), max_features=50)
+    vectorizer_50.fit(df['text'])
+    kept_vocab = set(vectorizer_50.get_feature_names_out())
+
+    results = []
+
+
+    for cat in sorted(df['label'].unique()):
+        cat_texts = df[df['label'] == cat]['text']
+        
+  
+        cat_vectorizer = CountVectorizer(ngram_range=(2, 2))
+        
+        try:
+            cat_matrix = cat_vectorizer.fit_transform(cat_texts)
+            cat_features = cat_vectorizer.get_feature_names_out()
+            
+
+            total_occurrences = cat_matrix.sum() 
+            
+
+            kept_indices = [i for i, feat in enumerate(cat_features) if feat in kept_vocab]
+            
+
+            if len(kept_indices) > 0:
+                kept_occurrences = cat_matrix[:, kept_indices].sum()
+            else:
+                kept_occurrences = 0
+                
+        except ValueError:
+            # Xử lý trường hợp ngoại lệ: Category trống hoặc không có bigram hợp lệ
+            total_occurrences = 0
+            kept_occurrences = 0
+            
+        # Tính toán tỷ lệ
+        retention_rate = (kept_occurrences / total_occurrences * 100) if total_occurrences > 0 else 0
+        oov_rate = 100 - retention_rate
+        
+        results.append({
+            'Category': cat,
+            'Total Bigram Freq': total_occurrences,
+            'Kept Freq': kept_occurrences,
+            'Retention Rate (%)': round(retention_rate, 2),
+            'OOV Rate (%)': round(oov_rate, 2)
+        })
+    retention_df = pd.DataFrame(results)
+    print(retention_df.to_string(index=False))
 
 
 
