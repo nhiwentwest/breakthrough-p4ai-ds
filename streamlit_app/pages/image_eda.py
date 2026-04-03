@@ -171,7 +171,8 @@ elif step == 4:
     else:
         idx_pool = np.where(y == int(only_digit))[0]
 
-    max_show = min(len(idx_pool), 400)
+    allow_unlimited = st.checkbox("🔥 Mở khóa giới hạn Max Samples (Cho phép kéo tới mức tối đa)")
+    max_show = len(idx_pool) if allow_unlimited else min(len(idx_pool), 400)
     n_show = st.slider("Samples to show", 1, max_show if max_show > 0 else 1, min(64, max_show if max_show > 0 else 1), 1, key="sample_n")
 
     rng = np.random.default_rng(int(seed))
@@ -185,19 +186,30 @@ elif step == 4:
 
     cols = min(int(grid_cols), max(1, len(idx_sel)))
     rows = int(np.ceil(len(idx_sel) / cols))
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 1.6, rows * 1.6))
-    axes = np.array(axes).reshape(rows, cols)
-    for i, ax in enumerate(axes.flatten()):
-        if i < len(idx_sel):
+
+    if n_show > 500:
+        st.warning("⚡ Đang Render bằng Fast Canvas (Raw NumPy Grid) do số lượng quá lớn. (Đã ẩn nhãn để chống Crash/Freeze)")
+        img_h, img_w = x[0].shape
+        grid = np.zeros((rows * img_h, cols * img_w), dtype=x.dtype)
+        for i in range(len(idx_sel)):
+            r, c = i // cols, i % cols
             idx = int(idx_sel[i])
-            ax.imshow(x[idx], cmap="gray")
-            ax.set_title(str(int(y[idx])), fontsize=8)
-            ax.axis("off")
-        else:
-            ax.axis("off")
-    fig.suptitle(f"Sample MNIST Images ({split})")
-    plt.tight_layout()
-    st.pyplot(fig)
+            grid[r*img_h:(r+1)*img_h, c*img_w:(c+1)*img_w] = x[idx]
+        st.image(grid, width=min(cols * 40, 1200), clamp=True)
+    else:
+        fig, axes = plt.subplots(rows, cols, figsize=(cols * 1.6, rows * 1.6))
+        axes = np.array(axes).reshape(rows, cols)
+        for i, ax in enumerate(axes.flatten()):
+            if i < len(idx_sel):
+                idx = int(idx_sel[i])
+                ax.imshow(x[idx], cmap="gray")
+                ax.set_title(str(int(y[idx])), fontsize=8)
+                ax.axis("off")
+            else:
+                ax.axis("off")
+        fig.suptitle(f"Sample MNIST Images ({split})")
+        plt.tight_layout()
+        st.pyplot(fig)
 
     st.caption(f"Showing {len(idx_sel):,} samples from pool of {len(idx_pool):,}.")
 
