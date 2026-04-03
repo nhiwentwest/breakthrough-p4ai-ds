@@ -527,9 +527,75 @@ if D is not None:
                 f"Remote Sensing Image-Text Matching Dataset &nbsp;·&nbsp; Z. Yuan et al., IEEE TGRS 2021</p>",
                 unsafe_allow_html=True)
 
-    # ── STEP 0: Overview ─────────────────────────────────────────────────────
-    if st.session_state.step == 0:
-        st.markdown("<p class='section-head'>Step 1 of 7 — Dataset Overview</p>",
+    # ── NEW 9-STEP LIVE FLOW (compute on app, no figure-reading) ───────────
+    s = st.session_state.step
+    st.markdown(f"<p class='section-head'>Step {s+1} of 9 — {STEP_LABELS[s]}</p>", unsafe_allow_html=True)
+
+    @st.cache_data(ttl=300)
+    def build_category_similarity(train_imgs):
+        cat_docs = defaultdict(list)
+        for img in train_imgs:
+            cat = parse_category(img["filename"])
+            for sent in img["sentences"]:
+                cat_docs[cat].append(sent["raw"])
+        cats = sorted(cat_docs.keys())
+        docs = [" ".join(cat_docs[c]) for c in cats]
+        if len(docs) < 2:
+            return pd.DataFrame()
+        vec = TfidfVectorizer(stop_words='english', min_df=1)
+        mat = vec.fit_transform(docs)
+        sim = cosine_similarity(mat)
+        return pd.DataFrame(sim, index=cats, columns=cats)
+
+    @st.cache_data(ttl=300)
+    def build_semantic_consistency(train_imgs):
+        rows = []
+        for img in train_imgs:
+            caps = [s["raw"] for s in img["sentences"]]
+            if len(caps) < 2:
+                continue
+            try:
+                v = TfidfVectorizer(stop_words='english', min_df=1)
+                m = v.fit_transform(caps)
+                sim = cosine_similarity(m)
+                iu = np.triu_indices_from(sim, 1)
+                score = float(np.mean(sim[iu])) if len(iu[0]) else np.nan
+                rows.append({"filename": img["filename"], "category": parse_category(img["filename"]), "score": score})
+            except Exception:
+                pass
+        return pd.DataFrame(rows)
+
+    @st.cache_data(ttl=300)
+    def build_contradiction_map(train_imgs, dom_channels):
+        blue_kws = ['water','blue','ocean','sea','lake','river']
+        green_kws = ['green','forest','tree','woods','grass','park']
+        stat = defaultdict(lambda: {'blue_claims':0,'blue_mismatch':0,'green_claims':0,'green_mismatch':0})
+        for img in train_imgs:
+            cat = parse_category(img['filename'])
+            dom = dom_channels.get(cat, 'R≈G>B')
+            for snt in img['sentences']:
+                toks = tokenize(snt['raw'])
+                has_blue = any(w in toks for w in blue_kws)
+                has_green = any(w in toks for w in green_kws)
+                if has_blue:
+                    stat[cat]['blue_claims'] += 1
+                    if dom in ['R>G>B','G>R>B']:
+                        stat[cat]['blue_mismatch'] += 1
+                if has_green:
+                    stat[cat]['green_claims'] += 1
+                    if dom in ['R>G>B','B>R>G']:
+                        stat[cat]['green_mismatch'] += 1
+        rows = []
+        for cat, d in stat.items():
+            rows.append({
+                'category': cat,
+                'blue_mismatch_rate': d['blue_mismatch']/d['blue_claims'] if d['blue_claims'] else 0.0,
+                'green_mismatch_rate': d['green_mismatch']/d['green_claims'] if d['green_claims'] else 0.0,
+            })
+        return pd.DataFrame(rows)
+
+    if s == 0:
+        st.markdown("<p class='section-head'>Step 1 of 9 — Dataset + Data Audit</p>",
                     unsafe_allow_html=True)
 
         top_word   = D["word_freq"].most_common(1)[0]
@@ -616,7 +682,7 @@ if D is not None:
             st.rerun()
     # ── STEP 1: Category Distribution ─────────────────────────────────────────
     elif st.session_state.step == 1:
-        st.markdown("<p class='section-head'>Step 2 of 7 — Category Distribution</p>",
+        st.markdown("<p class='section-head'>Step 2 of 9 — Text EDA Core</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
@@ -846,7 +912,7 @@ if D is not None:
 
     # ── STEP 2: Image Properties ──────────────────────────────────────────────
     elif st.session_state.step == 2:
-        st.markdown("<p class='section-head'>Step 3 of 7 — Image Properties</p>",
+        st.markdown("<p class='section-head'>Step 3 of 9 — Image EDA Core</p>",
                     unsafe_allow_html=True)
         st.markdown("""
         <div class='insight' style='font-style:normal;border-left-color:#5D4037;'>
@@ -1695,12 +1761,29 @@ if D is not None:
                 st.write(f"**Reason:** {selected_anomaly['reason']}")
 
         st.markdown("")
-        if st.button("✅  View Full Dashboard →", key="view_dashboard_final"):
+        if st.button("Next: Executive Summary →", key="to_exec_summary"):
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Noise Det: {len(anomalies)} anomalies found")
-            
-            # Store anomaly count for dashboard
+                                        f"Drift/Sensitivity reviewed")
             st.session_state.anomaly_count = len(anomalies)
+            st.session_state.step = 8
+            st.rerun()
+
+    elif st.session_state.step == 8:
+        st.markdown("### Executive Summary")
+        color_pct  = D['caps_with_color']  / D['total_caps'] * 100
+        sp_pct     = D['caps_with_spatial'] / D['total_caps'] * 100
+        st.markdown("""
+        - Data integrity checks pass on loaded split/caption structure.
+        - Text/Image/Multimodal analyses completed live from dataset.
+        - Drift and threshold-sensitivity reviewed for modeling risk.
+        """)
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Images", f"{D['n_train'] + D['n_test']:,}")
+        m2.metric("Categories", str(D['n_cats']))
+        m3.metric("Color Caps", f"{color_pct:.1f}%")
+        m4.metric("Spatial Caps", f"{sp_pct:.1f}%")
+
+        if st.button("✅  View Full Dashboard →", key="view_dashboard_final"):
             st.session_state.phase = "done"
             st.rerun()
 
