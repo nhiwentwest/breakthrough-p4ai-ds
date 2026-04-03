@@ -601,13 +601,17 @@ def viz_image(image_stats, split='train'):
         ax.set_axisbelow(True)
         ax.set_title(f'Group {grp_idx}', fontsize=9, fontweight='bold', color='#555', pad=4)
 
-    fig.text(0.5, 0.01, f'Image Category Distribution — {split.upper()} | 33 categories total',
+    fig.text(0.5, 0.01, f'Image Category Distribution — {split.upper()} | {len(cat_sorted)} categories total',
              ha='center', fontsize=11, fontweight='bold')
+    
+    def get_cnt(i):
+        return cat_sorted.iloc[i]["Count"] if i < len(cat_sorted) else 0
+
     fig.text(0.5, -0.01,
-             f'Group 1 (top): {cat_sorted.iloc[0]["Count"]}–{cat_sorted.iloc[8]["Count"]} imgs  |  '
-             f'Group 2: {cat_sorted.iloc[9]["Count"]}–{cat_sorted.iloc[16]["Count"]} imgs  |  '
-             f'Group 3: {cat_sorted.iloc[17]["Count"]}–{cat_sorted.iloc[24]["Count"]} imgs  |  '
-             f'Group 4 (bottom): {cat_sorted.iloc[25]["Count"]}–{cat_sorted.iloc[32]["Count"]} imgs',
+             f'Group 1: {get_cnt(0)}-{get_cnt(8)} imgs | '
+             f'Group 2: {get_cnt(9)}-{get_cnt(16)} imgs | '
+             f'Group 3: {get_cnt(17)}-{get_cnt(24)} imgs | '
+             f'Group 4: {get_cnt(25)}-{get_cnt(32)} imgs',
              ha='center', fontsize=8, color='#666', style='italic')
     plt.tight_layout(rect=[0, 0.025, 1, 1], pad=1.2)
     plt.savefig(OUTPUT_DIR / f'ia_01_category_distribution_train.png',
@@ -651,8 +655,8 @@ def main():
     test_pixel  = analyze_image_pixel(test_imgs,  'test')
 
     # 3. Multimodal Analysis
-    train_mm = analyze_multimodal(train_imgs, 'train', cat_keyword_dict=train_text['cat_keyword'])
-    test_mm = analyze_multimodal(test_imgs, 'test', cat_keyword_dict=test_text['cat_keyword'])
+    train_mm = analyze_multimodal(train_imgs, 'train', cat_keyword_dict=train_text['cat_keyword'], pixel_stats=train_pixel)
+    test_mm = analyze_multimodal(test_imgs, 'test', cat_keyword_dict=test_text['cat_keyword'], pixel_stats=test_pixel)
 
     # Visualizations
     viz_text(train_text, 'train')
@@ -672,7 +676,7 @@ def main():
         print(f"  - {f.name}")
 
 
-def analyze_multimodal(imgs, split='train', cat_keyword_dict=None):
+def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None):
     print(f"\n{'='*60}")
     print(f"MULTIMODAL ANALYSIS — {split.upper()} SET")
     print(f"{'='*60}")
@@ -766,43 +770,111 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None):
         if cnt > 0:
             print(f"    {prep}: {cnt}")
 
-    # ===== NOISE DETECTION (Heuristic Mismatch) =====
+    # ===== DUAL-LAYER NOISE DETECTION (TF-IDF & CROSS-MODAL) =====
     anomalies = []
+    
     if cat_keyword_dict:
-        # Top 15 keyword cho mỗi category
-        cat_top_words = {}
-        for cat in cat_keyword_dict:
-            top_words = [w for w, c in cat_keyword_dict[cat][:15]]
-            cat_top_words[cat] = set(top_words)
-
+        from sklearn.feature_extraction.text import TfidfVectorizer
+        from sklearn.metrics.pairwise import cosine_similarity
+        
+        # 1. Prepare Category Text Profiles (Centroids)
+        cat_to_captions = {}
         for img in imgs:
             cat = parse_filename(img['filename'])
-            expected_keywords = cat_top_words.get(cat, set())
-            
-            all_img_words = set()
+            if cat not in cat_to_captions:
+                cat_to_captions[cat] = []
             for s in img['sentences']:
-                all_img_words.update(tokenize(s['raw'], remove_stopwords=True))
+                cat_to_captions[cat].append(s['raw'])
+                
+        category_centroids = {}
+        category_vectorizers = {}
+        for cat, caps in cat_to_captions.items():
+            if len(caps) > 2:
+                # Basic TF-IDF on category vocabulary
+                vec = TfidfVectorizer(stop_words='english', min_df=1)
+                tfidf_matrix = vec.fit_transform(caps)
+                centroid = np.asarray(tfidf_matrix.mean(axis=0))
+                category_centroids[cat] = centroid
+                category_vectorizers[cat] = vec
+
+        # 2. Scanning Images for Anomalies
+        for img in imgs:
+            cat = parse_filename(img['filename'])
+            filename = img['filename']
             
-            intersection = all_img_words.intersection(expected_keywords)
-            if len(intersection) == 0:
-                anomalies.append({
-                    'filename': img['filename'],
-                    'category': cat,
-                    'captions': [s['raw'] for s in img['sentences']]
-                })
-        
-        print(f"\n  Anomaly Detection (Noise Mismatch):")
-        print(f"    Total Images Scanned: {len(imgs)}")
-        print(f"    Potential Noisy Samples: {len(anomalies)} ({len(anomalies)/max(1, len(imgs))*100:.2f}%)")
+            # Layer B Setup (Cross-Modal)
+            img_dom_channel = 'R≈G>B'
+            if pixel_stats and 'dom_channel' in pixel_stats:
+                img_dom_channel = pixel_stats['dom_channel'].get(cat, 'R≈G>B')
+            
+            caps = [s['raw'] for s in img['sentences']]
+            
+            # Evaluate each caption individually
+            for i, cap in enumerate(caps):
+                layer_a_flag = False
+                layer_b_flag = False
+                reasons = []
+                
+                # --- LAYER A: Local Text Noise (Cosine Similarity) ---
+                if cat in category_vectorizers:
+                    vec = category_vectorizers[cat]
+                    centroid = category_centroids[cat]
+                    cap_vec = vec.transform([cap]).toarray()
+                    # Calculate similarity 
+                    if np.sum(cap_vec) > 0:  # Avoid division by zero
+                        sim = cosine_similarity(cap_vec, centroid)[0][0]
+                    else:
+                        sim = 0.0
+                    
+                    if sim < 0.05:  # Extremely low similarity threshold
+                        layer_a_flag = True
+                        reasons.append(f"CosineSim={sim:.3f}")
+                
+                # --- LAYER B: Multimodal Mismatch ---
+                cap_lower = cap.lower()
+                water_blue_kws = ['water', 'blue', 'ocean', 'sea', 'lake', 'river']
+                green_forest_kws = ['green', 'forest', 'tree', 'woods', 'grass', 'park']
+                
+                has_blue = any(w in cap_lower.replace(',', ' ').replace('.', ' ').split() for w in water_blue_kws)
+                has_green = any(w in cap_lower.replace(',', ' ').replace('.', ' ').split() for w in green_forest_kws)
+                
+                if has_blue and img_dom_channel in ['R>G>B', 'G>R>B']:
+                    layer_b_flag = True
+                    reasons.append(f"Says '{'|'.join([w for w in water_blue_kws if w in cap_lower])}', but Pixels={img_dom_channel}")
+                
+                if has_green and img_dom_channel in ['R>G>B', 'B>R>G']:
+                    layer_b_flag = True
+                    reasons.append(f"Says '{'|'.join([w for w in green_forest_kws if w in cap_lower])}', but Pixels={img_dom_channel}")
+                
+                # --- EVALUATION RULE (Soft-flagging) ---
+                if layer_a_flag or layer_b_flag:
+                    confidence = "HIGH CONFIDENCE MISMATCH" if (layer_a_flag and layer_b_flag) else "LOW CONFIDENCE"
+                    anomalies.append({
+                        'filename': filename,
+                        'category': cat,
+                        'caption_idx': i + 1,
+                        'caption': cap,
+                        'confidence': confidence,
+                        'reason': "; ".join(reasons)
+                    })
+
+        print(f"\n  Anomaly Detection (Dual-Layer TF-IDF & Cross-Modal):")
+        print(f"    Total Images Scanned: {len(imgs)} | Total Captions: {len(imgs) * 5}")
+        print(f"    Anomalous Captions Found: {len(anomalies)}")
+        high_conf = sum(1 for a in anomalies if a['confidence'] == 'HIGH CONFIDENCE MISMATCH')
+        print(f"    - High Confidence: {high_conf}")
+        print(f"    - Low Confidence: {len(anomalies) - high_conf}")
         
         if anomalies:
             import csv
             out_file = OUTPUT_DIR / f'noisy_samples_{split}.csv'
             with open(out_file, 'w', encoding='utf-8', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(['Filename', 'Category', 'Caption 1', 'Caption 2', 'Caption 3', 'Caption 4', 'Caption 5'])
-                for a in anomalies:
-                    writer.writerow([a['filename'], a['category']] + a['captions'][:5])
+                writer.writerow(['Filename', 'Category', 'Caption_Index', 'Confidence', 'Reason', 'Caption_Text'])
+                # Sort putting High Confidence first
+                anomalies_sorted = sorted(anomalies, key=lambda x: (x['confidence'] != 'HIGH CONFIDENCE MISMATCH', x['filename']))
+                for a in anomalies_sorted:
+                    writer.writerow([a['filename'], a['category'], a['caption_idx'], a['confidence'], a['reason'], a['caption']])
             print(f"    Saved list of noisy samples to: {out_file.name}")
 
     return {
