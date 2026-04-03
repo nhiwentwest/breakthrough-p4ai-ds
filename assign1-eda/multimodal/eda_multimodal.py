@@ -794,25 +794,45 @@ def main():
 
 
 def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None, layer_a_threshold=0.05):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+
     print(f"\n{'='*60}")
     print(f"MULTIMODAL ANALYSIS — {split.upper()} SET")
     print(f"{'='*60}")
 
-    # Caption variability within same image
+    # Caption variability + semantic consistency within same image
     variabilities = []
+    semantic_consistency = []
     caption_lengths_per_img = []
     all_captions_flat = []
     for img in imgs:
+        caps_raw = [s['raw'] for s in img['sentences']]
         lens = [len(s['tokens']) for s in img['sentences']]
+
+        sem_sim = np.nan
+        try:
+            if len(caps_raw) >= 2:
+                vec_local = TfidfVectorizer(stop_words='english', min_df=1)
+                mat_local = vec_local.fit_transform(caps_raw)
+                sim_local = cosine_similarity(mat_local)
+                upper_idx = np.triu_indices_from(sim_local, k=1)
+                sem_sim = float(np.mean(sim_local[upper_idx])) if len(upper_idx[0]) > 0 else np.nan
+        except Exception:
+            sem_sim = np.nan
+
         caption_lengths_per_img.append({
             'filename': img['filename'],
             'category': parse_filename(img['filename']),
             'lens': lens,
             'mean': np.mean(lens),
             'std': np.std(lens) if len(lens) > 1 else 0,
-            'captions': [s['raw'] for s in img['sentences']],
+            'semantic_consistency': sem_sim,
+            'captions': caps_raw,
         })
         variabilities.append(np.std(lens) if len(lens) > 1 else 0)
+        if not np.isnan(sem_sim):
+            semantic_consistency.append(sem_sim)
         for s in img['sentences']:
             all_captions_flat.append(s['raw'])
 
@@ -882,6 +902,43 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
             if prep in cl:
                 SPATIAL_PREPS[prep] += 1
 
+    # Category-level contradiction map: caption color claims vs pixel dominant channels
+    contradiction_rows = []
+    if pixel_stats and 'dom_channel' in pixel_stats:
+        cap_stats = defaultdict(lambda: {'n': 0, 'blue_claims': 0, 'green_claims': 0, 'blue_mismatch': 0, 'green_mismatch': 0})
+        water_blue_kws = ['water', 'blue', 'ocean', 'sea', 'lake', 'river']
+        green_forest_kws = ['green', 'forest', 'tree', 'woods', 'grass', 'park']
+
+        for img in imgs:
+            cat = parse_filename(img['filename'])
+            img_dom_channel = pixel_stats['dom_channel'].get(cat, 'R≈G>B')
+            for s in img['sentences']:
+                cap = s['raw'].lower()
+                toks = cap.replace(',', ' ').replace('.', ' ').split()
+                has_blue = any(w in toks for w in water_blue_kws)
+                has_green = any(w in toks for w in green_forest_kws)
+
+                cap_stats[cat]['n'] += 1
+                if has_blue:
+                    cap_stats[cat]['blue_claims'] += 1
+                    if img_dom_channel in ['R>G>B', 'G>R>B']:
+                        cap_stats[cat]['blue_mismatch'] += 1
+                if has_green:
+                    cap_stats[cat]['green_claims'] += 1
+                    if img_dom_channel in ['R>G>B', 'B>R>G']:
+                        cap_stats[cat]['green_mismatch'] += 1
+
+        for cat, d in cap_stats.items():
+            blue_rate = (d['blue_mismatch'] / d['blue_claims']) if d['blue_claims'] > 0 else 0.0
+            green_rate = (d['green_mismatch'] / d['green_claims']) if d['green_claims'] > 0 else 0.0
+            contradiction_rows.append({
+                'category': cat,
+                'blue_mismatch_rate': blue_rate,
+                'green_mismatch_rate': green_rate,
+                'blue_claims': d['blue_claims'],
+                'green_claims': d['green_claims'],
+                'total_caps': d['n'],
+            })
     print(f"\n  Spatial relationships:")
     for prep, cnt in sorted(SPATIAL_PREPS.items(), key=lambda x: -x[1]):
         if cnt > 0:
@@ -1016,8 +1073,11 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                     writer.writerow([a['filename'], a['category'], a['caption_idx'], a['confidence'], a['reason'], a['caption']])
             print(f"    Saved list of noisy samples to: {out_file.name}")
 
+    contradiction_df = pd.DataFrame(contradiction_rows)
+
     return {
         'variabilities': variabilities,
+        'semantic_consistency': semantic_consistency,
         'caption_lengths': caption_lengths_per_img,
         'color_word_freq': top_colors,
         'object_freq': object_freq,
@@ -1026,6 +1086,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'caps_with_spatial': caps_with_spatial,
         'total_caps': total_caps,
         'category_similarity_df': category_similarity_df,
+        'contradiction_df': contradiction_df,
         'anomalies': anomalies,
         'layer_a_threshold': layer_a_threshold,
     }
@@ -1204,8 +1265,43 @@ def viz_multimodal(mm_stats, split='train'):
         plt.savefig(OUTPUT_DIR / f'mm_03_category_cosine_similarity_{split}.png', dpi=180, bbox_inches='tight')
         plt.close()
 
+    # ── 4. Intra-image semantic consistency distribution ──
+    sem = mm_stats.get('semantic_consistency', [])
+    if sem:
+        fig_sem, ax_sem = plt.subplots(figsize=(8, 4.8))
+        fig_sem.patch.set_facecolor(BG)
+        ax_sem.hist(sem, bins=30, color='#16a085', alpha=0.85, edgecolor='white')
+        ax_sem.axvline(np.mean(sem), color='#B42318', linestyle='--', linewidth=2, label=f"Mean={np.mean(sem):.3f}")
+        ax_sem.set_title(f'Intra-image Caption Semantic Consistency ({split.upper()})')
+        ax_sem.set_xlabel('Mean pairwise cosine similarity (5 captions/image)')
+        ax_sem.set_ylabel('Image count')
+        ax_sem.legend()
+        ax_sem.grid(alpha=0.2)
+        plt.tight_layout()
+        plt.savefig(OUTPUT_DIR / f'mm_05_semantic_consistency_{split}.png', dpi=180, bbox_inches='tight')
+        plt.close()
+
+    # ── 5. Cross-modal contradiction map ──
+    contradiction_df = mm_stats.get('contradiction_df', pd.DataFrame())
+    if not contradiction_df.empty:
+        top_cd = contradiction_df.copy()
+        top_cd['combined'] = 0.5 * top_cd['blue_mismatch_rate'] + 0.5 * top_cd['green_mismatch_rate']
+        top_cd = top_cd.sort_values('combined', ascending=False).head(20)
+        heat_df = top_cd.set_index('category')[['blue_mismatch_rate', 'green_mismatch_rate']]
+
+        fig_c, ax_c = plt.subplots(figsize=(8.2, 6.8))
+        fig_c.patch.set_facecolor(BG)
+        sns.heatmap(heat_df, annot=True, fmt='.2f', cmap='OrRd', vmin=0, vmax=1, ax=ax_c)
+        ax_c.set_title(f'Cross-modal Contradiction Map ({split.upper()})')
+        ax_c.set_xlabel('Caption claim type')
+        ax_c.set_ylabel('Category')
+        plt.tight_layout()
+        plt.savefig(OUTPUT_DIR / f'mm_06_contradiction_map_{split}.png', dpi=180, bbox_inches='tight')
+        plt.close()
+
     print(f"  Generated mm_01_caption_variability_{split}.png, mm_02_sample_pairs_{split}.png, "
-          f"mm_03_category_cosine_similarity_{split}.png")
+          f"mm_03_category_cosine_similarity_{split}.png, mm_05_semantic_consistency_{split}.png, "
+          f"mm_06_contradiction_map_{split}.png")
 
 
 def generate_summary_csv(train_text, test_text, train_img, test_img):
