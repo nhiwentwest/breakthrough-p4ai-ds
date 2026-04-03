@@ -15,12 +15,16 @@ import json, re, time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-st.set_page_config(
-    page_title="Multimodal EDA",
-    page_icon="🔗",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+try:
+    st.set_page_config(
+        page_title="Multimodal EDA",
+        page_icon="🔗",
+        layout="wide",
+        initial_sidebar_state="collapsed",
+    )
+except Exception:
+    # In multipage mode, config may already be set by app.py
+    pass
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  PALETTE & CSS
@@ -88,16 +92,17 @@ button[kind="primary"]:hover {{
 }}
 </style>""", unsafe_allow_html=True)
 
-TOTAL_STEPS = 8
+TOTAL_STEPS = 9
 STEP_LABELS = {
-    0: "Dataset Overview",
+    0: "Dataset + Data Audit",
     1: "Category Distribution",
-    2: "Image Properties",
-    3: "Caption Vocabulary",
-    4: "Color Words",
-    5: "Spatial Relations",
-    6: "Caption Variability",
-    7: "Noise Detection",
+    2: "Image EDA Core",
+    3: "Text EDA Core",
+    4: "Multimodal Baseline",
+    5: "Category Cosine Similarity",
+    6: "Semantic Consistency + Contradiction",
+    7: "Drift + Threshold Sensitivity",
+    8: "Executive Summary",
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -184,41 +189,48 @@ def resolve_data_paths():
     local_img = Path("/Users/nhi/Documents/school/252/p4/btl/RSITMD/images")
     if local_data.exists() and local_img.exists():
         return local_data, local_img
-    
-    # Check if we already downloaded it on the cloud
+
+    # Check repo-mounted dataset first
+    repo_data = Path("RSITMD/dataset_RSITMD.json")
+    repo_img = Path("RSITMD/images")
+    if repo_data.exists() and repo_img.exists():
+        return repo_data, repo_img
+
+    # Check if already downloaded previously
     possible_json = list(Path('.').rglob('dataset_RSITMD.json'))
     if possible_json:
         return possible_json[0], possible_json[0].parent / "images"
 
-    # Not found -> Download from Google Drive
+    # Not found -> one-time download to persistent temp path
     st.warning("📡 Dữ liệu đang được tải từ Google Drive xuống Streamlit Cloud (~916MB)...")
     progress_bar = st.progress(0)
     with st.spinner("Đang kết nối G-Drive... Việc này cần khoảng 1-2 phút..."):
         import gdown
-        zip_path = "RSITMD.zip"
-        
-        # We don't have a reliable progress callback from gdown in streamlit unless we do a custom wrap, 
-        # but standard gdown will block until complete.
-        progress_bar.progress(20, text="Downloading (Khoảng 900MB)...")
-        file_id = "1NJY86TAAUd8BVs7hyteImv8I2_Lh95W6"
-        gdown.download(id=file_id, output=zip_path, quiet=True)
-        
-        progress_bar.progress(85, text="Đang giải nén dữ liệu...")
         import zipfile
         import os
+        cache_root = Path("/tmp/rsitmd_cache")
+        cache_root.mkdir(parents=True, exist_ok=True)
+        zip_path = cache_root / "RSITMD.zip"
+
+        progress_bar.progress(20, text="Downloading (Khoảng 900MB)...")
+        file_id = "1NJY86TAAUd8BVs7hyteImv8I2_Lh95W6"
+        gdown.download(id=file_id, output=str(zip_path), quiet=True)
+
+        progress_bar.progress(85, text="Đang giải nén dữ liệu...")
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(".")
-        os.remove(zip_path) # Cleanup
+            zip_ref.extractall(cache_root)
+        if zip_path.exists():
+            os.remove(zip_path)
         progress_bar.progress(100, text="Hoàn tất!")
-        time.sleep(1)
+        time.sleep(0.6)
         progress_bar.empty()
 
-    possible_json = list(Path('.').rglob('dataset_RSITMD.json'))
+    possible_json = list(cache_root.rglob('dataset_RSITMD.json'))
     if possible_json:
         return possible_json[0], possible_json[0].parent / "images"
-    else:
-        st.error("Lỗi: Không tìm thấy file JSON bên trong file Zip vừa tải!")
-        st.stop()
+
+    st.error("Lỗi: Không tìm thấy file JSON bên trong file Zip vừa tải!")
+    st.stop()
 
 DATA_FILE, IMG_DIR = resolve_data_paths()
 
@@ -920,25 +932,29 @@ if D is not None:
           Brightness, color channels, and texture reveal the visual character of each category.
         </div>""", unsafe_allow_html=True)
 
-        st.info(
-            "Computing image statistics from **a sample of 600 images** "
-            "(100 per decile of variability) to keep analysis fast. "
-            "All statistics are computed on-the-fly from the actual pixel data."
+        compute_mode = st.radio(
+            "Image statistics mode",
+            ["Full dataset (recommended for grading)", "Fast sample mode"],
+            index=0,
+            horizontal=True,
         )
 
         import random
         random.seed(77)
 
-        # build image sample
         train_imgs = D["train_imgs"]
-        n_sample = min(600, len(train_imgs))
-        # stratified sample: equal numbers from each category, then random within
-        per_cat_n = max(1, n_sample // D["n_cats"])
-        sampled = []
-        for imgs in D["cat_to_imgs"].values():
-            sampled.extend(random.sample(imgs, min(per_cat_n, len(imgs))))
-        random.shuffle(sampled)
-        sampled = sampled[:n_sample]
+        if compute_mode == "Full dataset (recommended for grading)":
+            sampled = train_imgs
+            st.success(f"Running on full training set: {len(sampled):,} images")
+        else:
+            st.warning("Fast mode uses sampled images for speed; use Full mode for official demo/grading.")
+            n_sample = min(1200, len(train_imgs))
+            per_cat_n = max(1, n_sample // D["n_cats"])
+            sampled = []
+            for imgs in D["cat_to_imgs"].values():
+                sampled.extend(random.sample(imgs, min(per_cat_n, len(imgs))))
+            random.shuffle(sampled)
+            sampled = sampled[:n_sample]
 
         @st.cache_data(ttl=300)
         def compute_img_stats(img_list):
@@ -1650,6 +1666,7 @@ if D is not None:
 
         with st.spinner("Detecting anomalies..."):
             anomalies = []
+            anomaly_probe = []
             category_vectorizers = D["category_vectorizers"]
             category_centroids = D["category_centroids"]
             fast_dom_channels = D["fast_dom_channels"]
@@ -1667,6 +1684,7 @@ if D is not None:
                     layer_a_flag = False
                     layer_b_flag = False
                     reasons = []
+                    sim = np.nan
                     
                     # --- LAYER A: Local Text Noise ---
                     if cat in category_vectorizers:
@@ -1709,6 +1727,7 @@ if D is not None:
                             layer_b_flag = True
                             reasons.append(f"LayerB Green/Forest mismatch: Pixels={img_dom_channel}")
                     
+                    anomaly_probe.append({'sim': sim if 'sim' in locals() else np.nan, 'layer_b': layer_b_flag})
                     if layer_a_flag or layer_b_flag:
                         confidence = "HIGH" if (layer_a_flag and layer_b_flag) else "LOW"
                         anomalies.append({
