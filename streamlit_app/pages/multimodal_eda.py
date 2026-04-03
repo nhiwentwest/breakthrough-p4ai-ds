@@ -88,16 +88,17 @@ button[kind="primary"]:hover {{
 }}
 </style>""", unsafe_allow_html=True)
 
-TOTAL_STEPS = 8
+TOTAL_STEPS = 9
 STEP_LABELS = {
-    0: "Dataset Overview",
-    1: "Category Distribution",
-    2: "Image Properties",
-    3: "Caption Vocabulary",
-    4: "Color Words",
-    5: "Spatial Relations",
-    6: "Caption Variability",
-    7: "Noise Detection",
+    0: "Dataset + Data Audit",
+    1: "Text EDA Core",
+    2: "Image EDA Core",
+    3: "Multimodal Baseline",
+    4: "Category Cosine Similarity",
+    5: "Semantic Consistency",
+    6: "Contradiction Map",
+    7: "Drift + Threshold Sensitivity",
+    8: "Executive Summary",
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -109,6 +110,8 @@ if "step" not in st.session_state:
     st.session_state.step = 0
 if "log" not in st.session_state:
     st.session_state.log = []
+if "use_new_flow" not in st.session_state:
+    st.session_state.use_new_flow = True
 
 # D is module-level so it persists across reruns after load_data() is called
 D = None
@@ -526,6 +529,92 @@ if D is not None:
     st.markdown(f"<p style='font-size:0.95rem;font-weight:300;color:{MUT};margin:0 0 1rem'>"
                 f"Remote Sensing Image-Text Matching Dataset &nbsp;·&nbsp; Z. Yuan et al., IEEE TGRS 2021</p>",
                 unsafe_allow_html=True)
+
+    if st.session_state.use_new_flow:
+        repo_root = Path(__file__).resolve().parents[2]
+        fig_dir = repo_root / "assign1-eda" / "report" / "figures"
+        summary_csv = fig_dir / "summary_stats_train_test.csv"
+
+        def show_fig(name, caption=None):
+            p = fig_dir / name
+            if p.exists():
+                st.image(str(p), use_container_width=True, caption=caption or name)
+            else:
+                st.warning(f"Missing figure: {name}. Run eda_multimodal.py first.")
+
+        s = st.session_state.step
+        st.markdown(f"<p class='section-head'>Step {s+1} of 9 — {STEP_LABELS[s]}</p>", unsafe_allow_html=True)
+
+        if s == 0:
+            st.markdown("""
+            Data integrity audit and split sanity check before EDA interpretation.
+            """)
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Total Images", f"{len(D['imgs']):,}")
+            c2.metric("Train / Test", f"{D['n_train']:,} / {D['n_test']:,}")
+            c3.metric("Captions", f"{len(D['train_caps']) + len(D['test_caps']):,}")
+            c4.metric("Categories", str(D['n_cats']))
+            if summary_csv.exists():
+                st.dataframe(pd.read_csv(summary_csv), use_container_width=True)
+
+        elif s == 1:
+            show_fig("ta_02_word_frequency_train.png")
+            show_fig("ta_04_bigram_frequency_train.png")
+            show_fig("txt_02_length_distribution_train.png")
+            show_fig("txt_03b_words_vs_chars_train.png")
+
+        elif s == 2:
+            show_fig("ia_01_category_distribution_train.png")
+            show_fig("ia_02_image_visual_analysis.png")
+            show_fig("ia_04_geometry_blur_distribution_train.png")
+
+        elif s == 3:
+            show_fig("mm_01_caption_variability_train.png")
+            show_fig("mm_02_sample_pairs_train.png")
+
+        elif s == 4:
+            c1, c2 = st.columns(2)
+            with c1:
+                show_fig("mm_03_category_cosine_similarity_train.png")
+            with c2:
+                show_fig("mm_03_category_cosine_similarity_test.png")
+
+        elif s == 5:
+            c1, c2 = st.columns(2)
+            with c1:
+                show_fig("mm_05_semantic_consistency_train.png")
+            with c2:
+                show_fig("mm_05_semantic_consistency_test.png")
+
+        elif s == 6:
+            c1, c2 = st.columns(2)
+            with c1:
+                show_fig("mm_06_contradiction_map_train.png")
+            with c2:
+                show_fig("mm_06_contradiction_map_test.png")
+
+        elif s == 7:
+            show_fig("drift_01_train_test_core_metrics.png")
+            show_fig("mm_04_threshold_sensitivity_train.png")
+
+        elif s == 8:
+            st.markdown("### Executive Summary")
+            if summary_csv.exists():
+                st.dataframe(pd.read_csv(summary_csv), use_container_width=True)
+            show_fig("mm_06_contradiction_map_train.png", "Top contradiction-risk categories")
+            show_fig("mm_05_semantic_consistency_train.png", "Caption consistency quality signal")
+
+        cprev, cnext = st.columns(2)
+        with cprev:
+            if st.button("← Previous", disabled=s == 0):
+                st.session_state.step = max(0, s - 1)
+                st.rerun()
+        with cnext:
+            if st.button("Next →", disabled=s == TOTAL_STEPS - 1):
+                st.session_state.step = min(TOTAL_STEPS - 1, s + 1)
+                st.rerun()
+
+        st.stop()
 
     # ── STEP 0: Overview ─────────────────────────────────────────────────────
     if st.session_state.step == 0:
