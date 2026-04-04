@@ -1,0 +1,104 @@
+Filename,Category,Caption_Index,Confidence,Reason,Caption_Text
+farmland_139.tif,farmland,2,HIGH CONFIDENCE MISMATCH,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR); green/forest lexicon but g_mean=0.134 < P05(G)=0.250,fields are full of green fields .
+airport_12.tif,airport,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),the ground has a triangle of architecture .
+airport_3.tif,airport,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),"the ground is brown, the roads are grey and the buildings are white ."
+bareland_14.tif,bareland,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),This is the mountain and the lake.
+baseballfield_21.tif,baseballfield,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),this squared baseballfield sits alongside a row of trees .
+baseballfield_25.tif,baseballfield,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),alongside the winding road to a parking lot  there is four baseballfields  two of which is smaller than the other two baseballfields .
+baseballfield_25.tif,baseballfield,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),a crossing roads separates the sports park into four baseballfield .
+beach_33.tif,beach,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),There is a limit to the waves.
+commercial_88.tif,commercial,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),there is a hybrid area of commerce and residence .
+commercial_92.tif,commercial,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),there is a large parking lot in this commercial area .
+denseresidential_101.tif,denseresidential,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),two roads stretches through this dense residential area .
+denseresidential_99.tif,denseresidential,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),several trees interspersed in the residential which has some red and ultramarine flats .
+desert_119.tif,desert,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),Some curved traces are in great deserts.
+farmland_124.tif,farmland,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),The streets in the fields are in order.
+farmland_134.tif,farmland,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.199 < P05(G)=0.250,The bottled green farmland is near the pond.
+farmland_134.tif,farmland,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.199 < P05(G)=0.250,This dark green checkered field is close to a pond.
+farmland_134.tif,farmland,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.199 < P05(G)=0.250,The bottle green grid farmland is near the pond.
+farmland_134.tif,farmland,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.199 < P05(G)=0.250,the green agricultural hedge is close to a pond.
+farmland_134.tif,farmland,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.199 < P05(G)=0.250,This dark green checkered field is close to a pond.
+forest_141.tif,forest,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.241 < P05(G)=0.250,The forest is covered with dark green trees.
+forest_141.tif,forest,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.241 < P05(G)=0.250,The forest is full of dark green trees.
+forest_141.tif,forest,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.241 < P05(G)=0.250,There are all the dark green trees in the forest.
+forest_141.tif,forest,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.241 < P05(G)=0.250,The woods were covered with dark green trees.
+forest_141.tif,forest,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.241 < P05(G)=0.250,There are all the dark green trees in the forest.
+forest_143.tif,forest,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.218 < P05(G)=0.250,This is a field of grass and trees.
+forest_143.tif,forest,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.218 < P05(G)=0.250,It's a piece of grass and trees.
+forest_144.tif,forest,1,LOW CONFIDENCE,water/blue lexicon but b_mean=0.091 < P05(B)=0.200; green/forest lexicon but g_mean=0.112 < P05(G)=0.250,A small yellow river is next to a large part of the green forest.
+forest_144.tif,forest,2,LOW CONFIDENCE,water/blue lexicon but b_mean=0.091 < P05(B)=0.200; green/forest lexicon but g_mean=0.112 < P05(G)=0.250,A small yellow river is next to a large green forest.
+forest_144.tif,forest,3,LOW CONFIDENCE,water/blue lexicon but b_mean=0.091 < P05(B)=0.200; green/forest lexicon but g_mean=0.112 < P05(G)=0.250,a small yellow river is near a large piece of green forest.
+forest_144.tif,forest,4,LOW CONFIDENCE,water/blue lexicon but b_mean=0.091 < P05(B)=0.200; green/forest lexicon but g_mean=0.112 < P05(G)=0.250,The Great Green River
+forest_144.tif,forest,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.091 < P05(B)=0.200; green/forest lexicon but g_mean=0.112 < P05(G)=0.250,Small river in green forest
+industrial_165.tif,industrial,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),central city distribution with many industrial zone .
+meadow_174.tif,meadow,5,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),This is a lawn.
+meadow_178.tif,meadow,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),One side of the grassland
+meadow_181.tif,meadow,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),pasture are shrubs .
+mediumresidential_185.tif,mediumresidential,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),the radialized residential contains lawns and some trees .
+mediumresidential_193.tif,mediumresidential,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),My neighbourhood is growing thick.
+mediumresidential_193.tif,mediumresidential,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),The trees are flourishing nearby.
+mediumresidential_196.tif,mediumresidential,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.225 < P05(G)=0.250,Some buildings and many green trees are in the middle residential area.
+mediumresidential_196.tif,mediumresidential,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.225 < P05(G)=0.250,Some buildings and many green trees are in medium residential areas.
+park_208.tif,park,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.233 < P05(G)=0.250,The park is very beautiful.
+park_208.tif,park,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.233 < P05(G)=0.250,This park is very beautiful to me.
+park_208.tif,park,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.233 < P05(G)=0.250,The park is very beautiful in my view.
+park_208.tif,park,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.233 < P05(G)=0.250,The Park is too beautiful for my eyes.
+park_213.tif,park,1,LOW CONFIDENCE,water/blue lexicon but b_mean=0.200 < P05(B)=0.200,The lake is surrounded by many thick trees.
+park_213.tif,park,2,LOW CONFIDENCE,water/blue lexicon but b_mean=0.200 < P05(B)=0.200,There are many thick trees by the lake.
+park_213.tif,park,3,LOW CONFIDENCE,water/blue lexicon but b_mean=0.200 < P05(B)=0.200,The lake is surrounded by many dense trees.
+park_213.tif,park,4,LOW CONFIDENCE,water/blue lexicon but b_mean=0.200 < P05(B)=0.200,There are many trees by the lake.
+park_213.tif,park,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.200 < P05(B)=0.200,Lake is surrounded by many thick trees.
+parking_233.tif,parking,5,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),Only a few stops.
+playground_243.tif,playground,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),four small red courts besides the big playground .
+playground_246.tif,playground,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),red running tracks are surrounding this soccer pitch that is partly bald near its goals .
+playground_250.tif,playground,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,"Having a plastic runway and stadium, the court has huge green football fields, tennis courts, and small football fields."
+playground_250.tif,playground,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,There is a stadium with a plastic track and a huge green football field surrounded by tennis courts and small football fields.
+playground_250.tif,playground,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,"have a stadium with a plastic track to, the court has a huge green soccer field, tennis courts around and small soccer field."
+playground_250.tif,playground,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,"There is a one-way plastic stadium, a large green football field, a tennis court and a small football field."
+playground_250.tif,playground,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,"Having a stadium with a plastic rink, the court has a huge green football field, tennis courts at the REDOR and little football field."
+pond_259.tif,pond,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.185 < P05(G)=0.250,a dark irregular pond is near many red and green trees and green farmlands .
+pond_265.tif,pond,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),There is a swimming pool
+pond_265.tif,pond,4,LOW CONFIDENCE,water/blue lexicon but b_mean=0.147 < P05(B)=0.200,There is a lake by the road.
+pond_265.tif,pond,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.147 < P05(B)=0.200,There is a lake near the highway.
+pond_269.tif,pond,1,LOW CONFIDENCE,water/blue lexicon but b_mean=0.197 < P05(B)=0.200,This deep blue pond is surrounded by sparse trees and country roads.
+pond_269.tif,pond,2,LOW CONFIDENCE,water/blue lexicon but b_mean=0.197 < P05(B)=0.200,The dark blue pond is surrounded by sparse trees and country roads.
+pond_269.tif,pond,3,LOW CONFIDENCE,water/blue lexicon but b_mean=0.197 < P05(B)=0.200,This deep blu e lake is surrounded by scattered trees and country road.
+pond_269.tif,pond,4,LOW CONFIDENCE,water/blue lexicon but b_mean=0.197 < P05(B)=0.200,Sparse trees and national roads around the blue pond
+pond_269.tif,pond,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.197 < P05(B)=0.200,This Deep Blue Lake is surrounded by scarce trees and rural highway.
+pond_270.tif,pond,1,LOW CONFIDENCE,water/blue lexicon but b_mean=0.157 < P05(B)=0.200; green/forest lexicon but g_mean=0.208 < P05(G)=0.250,It is a pond with dark green water in the center.
+pond_270.tif,pond,2,LOW CONFIDENCE,water/blue lexicon but b_mean=0.157 < P05(B)=0.200; green/forest lexicon but g_mean=0.208 < P05(G)=0.250,This is a pond with dark green water in the middle.
+pond_270.tif,pond,3,LOW CONFIDENCE,water/blue lexicon but b_mean=0.157 < P05(B)=0.200; green/forest lexicon but g_mean=0.208 < P05(G)=0.250,is a pond with dark green water in the center.
+pond_270.tif,pond,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.208 < P05(G)=0.250,This is a green pond.
+pond_270.tif,pond,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.157 < P05(B)=0.200; green/forest lexicon but g_mean=0.208 < P05(G)=0.250,It's a lake with dark green water in the middle.
+port_278.tif,port,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),this is a big lake in the city .
+port_279.tif,port,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),We saw a boat at the ferry.
+port_283.tif,port,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),"a green pond is in the hills,surrounded by rocks ."
+port_290.tif,port,4,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),the harbour structure is very narrow.
+river_333.tif,river,1,LOW CONFIDENCE,water/blue lexicon but b_mean=0.198 < P05(B)=0.200,The river is long and thin.
+river_333.tif,river,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),The stream has bent.
+river_333.tif,river,3,LOW CONFIDENCE,water/blue lexicon but b_mean=0.198 < P05(B)=0.200,"A long, thin river."
+river_333.tif,river,4,LOW CONFIDENCE,water/blue lexicon but b_mean=0.198 < P05(B)=0.200,The river is long and thin.
+river_333.tif,river,5,LOW CONFIDENCE,water/blue lexicon but b_mean=0.198 < P05(B)=0.200,The river is long and thin.
+river_335.tif,river,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),with a lot of green grass on the hill .
+sparseresidential_353.tif,sparseresidential,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),a curved road in the side while with light gray ground .
+sparseresidential_355.tif,sparseresidential,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.224 < P05(G)=0.250,The picture has a thick forest.
+sparseresidential_355.tif,sparseresidential,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.224 < P05(G)=0.250,A thick forest lay the house between trees.
+sparseresidential_355.tif,sparseresidential,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.224 < P05(G)=0.250,There is a thick forest in the picture.
+sparseresidential_355.tif,sparseresidential,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.224 < P05(G)=0.250,There's a dense forest in the photo.
+sparseresidential_355.tif,sparseresidential,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.224 < P05(G)=0.250,The thick woods covered a house in the woods.
+sparseresidential_358.tif,sparseresidential,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.243 < P05(G)=0.250,The road runs through the green and the white cars are on their side.
+sparseresidential_358.tif,sparseresidential,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.243 < P05(G)=0.250,A road went through the grass and a white car stopped beside them.
+sparseresidential_358.tif,sparseresidential,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.243 < P05(G)=0.250,"a road passes through the green, a white car is on their side."
+sparseresidential_358.tif,sparseresidential,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.243 < P05(G)=0.250,Across the grass and the white car stopped next to them.
+sparseresidential_358.tif,sparseresidential,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.243 < P05(G)=0.250,"A road passes through the green, a white car is on their side."
+sparseresidential_359.tif,sparseresidential,1,LOW CONFIDENCE,green/forest lexicon but g_mean=0.237 < P05(G)=0.250,The forest is very wide and the trees grow thick.
+sparseresidential_359.tif,sparseresidential,2,LOW CONFIDENCE,green/forest lexicon but g_mean=0.237 < P05(G)=0.250,The forest is very wide and woody.
+sparseresidential_359.tif,sparseresidential,3,LOW CONFIDENCE,green/forest lexicon but g_mean=0.237 < P05(G)=0.250,The forest is very large and the trees are blooming.
+sparseresidential_359.tif,sparseresidential,4,LOW CONFIDENCE,green/forest lexicon but g_mean=0.237 < P05(G)=0.250,The forest is too wide and the trees are blooming.
+sparseresidential_359.tif,sparseresidential,5,LOW CONFIDENCE,green/forest lexicon but g_mean=0.237 < P05(G)=0.250,The forest is very wide and the trees grow thick.
+square_378.tif,square,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),The car is on the street.
+square_386.tif,square,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),many vehicles on the road in the the stream never stops flowing .
+storagetanks_407.tif,storagetanks,1,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),Six reservoirs are close to ponds and some pipelines.
+storagetanks_414.tif,storagetanks,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),this is a very large refinery .
+viaduct_431.tif,viaduct,2,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),there are some trees around .
+viaduct_434.tif,viaduct,3,LOW CONFIDENCE,LOO_centroid=0.000 < 0.088 (Q1-1.5*IQR),it is a rather complicated traffic facility with flyovers overpass one another next to the residential area .
