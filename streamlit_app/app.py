@@ -127,7 +127,7 @@ with row1_col1:
 <div class="card">
   <a href="/tabular_eda" target="_self">
     <div class="card-title">📊 Tabular</div>
-    <div class="card-desc">Khám phá thống kê bảng, phân phối thuộc tính và tương quan dữ liệu.</div>
+    <div class="card-desc">Dataset: World Happiness</div>
   </a>
 </div>
 """,
