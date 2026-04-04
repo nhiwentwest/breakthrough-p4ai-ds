@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 """
-EDA for RSITMD Dataset - Multimodal (Image + Text)
-==================================================
-Exploratory Data Analysis following the format from AI Learning Hub
+EDA RSITMD — Multimodal (Image + Text), bản Google Colab
+========================================================
+Cùng logic eda_multimodal.py; đường dẫn tự resolve dưới /content hoặc RSITMD_ROOT.
 Reference: Z. Yuan et al., IEEE TGRS 2021
-
-Analysis includes:
-1. Text Analysis (caption-level statistics)
-2. Image Analysis (category distribution)
-3. Multimodal Analysis (image-text relationships)
 """
 
 import json
@@ -53,16 +48,54 @@ plt.rcParams['font.size'] = 11
 plt.rcParams['axes.titlesize'] = 13
 plt.rcParams['axes.labelsize'] = 11
 
-# Paths
-PROJECT_ROOT = Path(__file__).parent.parent
-DATA_CANDIDATES = [
-    PROJECT_ROOT / "RSITMD" / "dataset_RSITMD.json",
-    Path("/Users/nhi/Documents/school/252/p4/btl/RSITMD/dataset_RSITMD.json"),
-]
-DATA_FILE = next((p for p in DATA_CANDIDATES if p.exists()), DATA_CANDIDATES[0])
-IMG_DIR = DATA_FILE.parent / "images"
-OUTPUT_DIR = PROJECT_ROOT / "report" / "figures"
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Jupyter / Colab: vẫn savefig ra file, đồng thời hiện figure trong output cell
+try:
+    from IPython import get_ipython
+    _ip = get_ipython()
+    if _ip is not None:
+        _ip.run_line_magic("matplotlib", "inline")
+        _plt_close_orig = plt.close
+
+        def _plt_close_with_display(*args, **kwargs):
+            if not args and not kwargs:
+                plt.show()
+            return _plt_close_orig(*args, **kwargs)
+
+        plt.close = _plt_close_with_display
+except Exception:
+    pass
+
+# Paths — Colab: RSITMD_ROOT → vài đường cố định → rglob /content
+def _resolve_rsitmd_paths():
+    import os
+
+    def _pack(data_json: Path):
+        out = Path("/content/RSITMD_eda_output/report/figures")
+        out.mkdir(parents=True, exist_ok=True)
+        return data_json, data_json.parent / "images", out
+
+    env = os.environ.get("RSITMD_ROOT", "").strip()
+    if env:
+        p = Path(env).expanduser().resolve() / "dataset_RSITMD.json"
+        if p.is_file():
+            return _pack(p)
+    for base in (Path("/content/RSITMD"), Path("/content")):
+        for p in (base / "dataset_RSITMD.json", base / "RSITMD" / "dataset_RSITMD.json"):
+            if p.is_file():
+                return _pack(p)
+    content = Path("/content")
+    if content.is_dir():
+        for p in content.rglob("dataset_RSITMD.json"):
+            if p.is_file():
+                return _pack(p)
+    raise FileNotFoundError(
+        "Không tìm thấy dataset_RSITMD.json. Chạy cell tải & giải nén RSITMD.zip, "
+        "hoặc os.environ['RSITMD_ROOT'] = '/thư_mục_có_json_và_images'."
+    )
+
+
+DATA_FILE, IMG_DIR, OUTPUT_DIR = _resolve_rsitmd_paths()
+PROJECT_ROOT = OUTPUT_DIR.parent.parent
 
 # Stopwords
 STOP_WORDS = set([
