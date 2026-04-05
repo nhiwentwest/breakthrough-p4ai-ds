@@ -102,7 +102,7 @@ h1,h2,h3 {{ font-family:'Playfair Display',serif; }}
 </style>
 """, unsafe_allow_html=True)
 
-TOTAL_STEPS = 8
+TOTAL_STEPS = 7
 STEP_LABELS = {
     0: "Dataset + Data Audit",
     1: "Text EDA Core",
@@ -110,8 +110,7 @@ STEP_LABELS = {
     3: "Multimodal Baseline",
     4: "Category Cosine Similarity",
     5: "Semantic Consistency",
-    6: "Contradiction Map + Category Samples",
-    7: "Inspect Image + 5 Captions",
+    6: "Contradiction Map + Samples",
 }
 
 STOP_WORDS = {
@@ -276,7 +275,7 @@ def category_similarity(train_imgs):
 
 
 @st.cache_data(show_spinner=False, persist="disk")
-def semantic_consistency(train_imgs, mode="word_tfidf"):
+def semantic_consistency(train_imgs):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
     rows = []
@@ -285,10 +284,7 @@ def semantic_consistency(train_imgs, mode="word_tfidf"):
         if len(caps) < 2:
             continue
         try:
-            if mode == "char_wb_3_5":
-                v = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1, lowercase=True)
-            else:
-                v = TfidfVectorizer(stop_words="english", min_df=1)
+            v = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1, lowercase=True)
             m = v.fit_transform(caps)
             sim = cosine_similarity(m)
             iu = np.triu_indices_from(sim, k=1)
@@ -637,17 +633,11 @@ elif step == 4:
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
-    sem_mode = st.radio(
-        "Semantic metric",
-        ["word_tfidf", "char_wb_3_5"],
-        format_func=lambda x: "Word TF-IDF" if x == "word_tfidf" else "Char-wb TF-IDF (3–5)",
-        horizontal=True,
-        key="sem_mode",
-    )
+    st.caption("Semantic metric: Char-wb TF-IDF (3–5)")
     sem = get_or_compute(
-        f"semantic_consistency::{split}::{sem_mode}",
-        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"], mode=sem_mode),
-        spinner_text=f"Computing semantic consistency ({split}, {sem_mode})..."
+        f"semantic_consistency::{split}::char_wb_3_5",
+        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
+        spinner_text=f"Computing semantic consistency ({split}, char_wb_3_5)..."
     )
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
@@ -773,15 +763,25 @@ elif step == 6:
 
         st.markdown("#### Category-level samples")
         top_cats = top["category"].tolist()
-        sample_mode = st.radio(
-            "Show sample modality",
-            ["Image + text", "Image only", "Text only"],
-            horizontal=True,
-            key="contr_sample_mode"
-        )
+        csel1, csel2 = st.columns(2)
+        with csel1:
+            selected_cats = st.multiselect(
+                "Choose category to preview",
+                options=top_cats,
+                default=top_cats[:min(3, len(top_cats))],
+                key="contr_selected_categories"
+            )
+        with csel2:
+            sample_mode = st.radio(
+                "Show sample modality",
+                ["Image + text", "Image only", "Text only"],
+                horizontal=True,
+                key="contr_sample_mode"
+            )
         per_cat = st.slider("Samples per category", 1, 3, 2, 1, key="contr_samples_per_cat")
 
-        for cat in top_cats[:min(6, len(top_cats))]:
+        show_cats = selected_cats if selected_cats else top_cats[:1]
+        for cat in show_cats:
             cat_imgs = [img for img in imgs_split if parse_category(img["filename"]) == cat]
             if not cat_imgs:
                 continue
@@ -799,104 +799,6 @@ elif step == 6:
                     if caps:
                         st.write(f"- {caps[0].get('raw', '')}")
             st.markdown("---")
-
-elif step == 7:
-    split = st.radio("Split", ["train", "test"], horizontal=True, key="inspect_split")
-    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-
-    px_df_split = get_or_compute(
-        f"image_pixel_stats::{split}",
-        lambda: image_pixel_stats(imgs_split),
-        spinner_text=f"Computing pixel stats ({split})..."
-    )
-    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
-
-    cdf = get_or_compute(
-        f"contradiction_map::{split}",
-        lambda: contradiction_map(imgs_split, dom_map_split),
-        spinner_text=f"Computing contradiction map ({split})..."
-    )
-
-    if cdf.empty:
-        st.warning("No contradiction data available.")
-    else:
-        top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="inspect_top_n")
-        color_w = st.slider("Color mismatch weight", 0.0, 1.0, 0.6, 0.05, key="inspect_color_w")
-        object_w = 1.0 - color_w
-
-        cdf_view = cdf.copy()
-        cdf_view["combined"] = color_w*cdf_view["color_mismatch_rate"] + object_w*cdf_view["object_mismatch_rate"]
-        top = cdf_view.sort_values("combined", ascending=False).head(top_n)
-
-        st.markdown("#### Inspect image + 5 captions")
-        top_cats = set(top["category"].tolist())
-        inspect_candidates = [img for img in imgs_split if parse_category(img["filename"]) in top_cats]
-        if inspect_candidates:
-            cat_score = top.set_index("category")["combined"].to_dict()
-            inspect_rows = []
-            for img in inspect_candidates:
-                cat = parse_category(img["filename"])
-                inspect_rows.append({
-                    "filename": img["filename"],
-                    "category": cat,
-                    "combined": float(cat_score.get(cat, 0.0)),
-                    "captions": len(img.get("sentences", [])),
-                })
-            inspect_df = pd.DataFrame(inspect_rows).sort_values(["combined", "filename"], ascending=[False, True]).reset_index(drop=True)
-
-            selected_file = None
-            try:
-                event = st.dataframe(
-                    inspect_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    on_select="rerun",
-                    selection_mode="single-row",
-                    column_config={
-                        "filename": st.column_config.TextColumn("Filename (click row) 📁"),
-                        "category": st.column_config.TextColumn("Category 🏷️"),
-                        "combined": st.column_config.ProgressColumn("Category contradiction", min_value=0.0, max_value=1.0, format="%.2f"),
-                        "captions": st.column_config.NumberColumn("# Captions", format="%d"),
-                    }
-                )
-                if event and event.selection and event.selection.get("rows"):
-                    idx = event.selection["rows"][0]
-                    selected_file = inspect_df.iloc[idx]["filename"]
-            except TypeError:
-                selected_file = st.selectbox(
-                    "Choose a file",
-                    options=inspect_df["filename"].tolist(),
-                    key="contr_inspect_file"
-                )
-
-            if not selected_file:
-                selected_file = st.selectbox(
-                    "Choose a file",
-                    options=inspect_df["filename"].tolist(),
-                    key="contr_inspect_file_fallback"
-                )
-
-            selected_img = next((img for img in inspect_candidates if img["filename"] == selected_file), None)
-            if selected_img is not None:
-                p = IMG_DIR / selected_img["filename"]
-                cimg, ccap = st.columns([1, 1.2])
-                with cimg:
-                    if p.exists():
-                        try:
-                            with Image.open(p) as im:
-                                st.image(im.convert("RGB"), use_container_width=True)
-                        except Exception:
-                            st.warning("Could not render image preview.")
-                    else:
-                        st.warning("Image file not found on disk.")
-                with ccap:
-                    st.write(f"**File:** `{selected_img['filename']}`")
-                    st.write(f"**Category:** `{parse_category(selected_img['filename'])}`")
-                    for i, s in enumerate(selected_img.get("sentences", [])[:5]):
-                        st.write(f"- [{i+1}] {s.get('raw', '')}")
-        else:
-            st.info("No image candidates for inspection in the selected top categories.")
-
 
 col1, col2 = st.columns(2)
 with col1:
