@@ -393,7 +393,7 @@ elif step == 1:
     ax.barh(words[::-1], counts[::-1], color=colors_words)
     ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
     ax.set_xlabel("Frequency")
-    st.pyplot(fig360, use_container_width=True)
+    st.pyplot(fig360)
 
     top_b = D["bigram_freq"].most_common(bn)
     bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
