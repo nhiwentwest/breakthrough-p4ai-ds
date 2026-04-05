@@ -109,8 +109,8 @@ STEP_LABELS = {
     2: "Image EDA Core",
     3: "Multimodal Baseline",
     4: "Category Cosine Similarity",
-    5: "Semantic Consistency",
-    6: "Contradiction Map",
+    5: "Contradiction Map",
+    6: "Semantic Consistency",
     7: "Drift + Threshold Sensitivity",
 }
 
@@ -558,7 +558,7 @@ elif step == 4:
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
         st.pyplot(fig423)
 
-elif step == 5:
+elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
     sem = get_or_compute(
         f"semantic_consistency::{split}",
@@ -594,7 +594,7 @@ elif step == 5:
             }
         )
 
-elif step == 6:
+elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
     imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
 
