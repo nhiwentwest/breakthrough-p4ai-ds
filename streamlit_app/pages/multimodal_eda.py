@@ -298,25 +298,57 @@ def semantic_consistency(train_imgs):
 
 @st.cache_data(show_spinner=False, persist="disk")
 def contradiction_map(train_imgs, dom_map):
-    blue = ['water','blue','ocean','sea','lake','river']
-    green = ['green','forest','tree','woods','grass','park']
-    stat = defaultdict(lambda: {"bc":0,"bm":0,"gc":0,"gm":0})
+    color_lexicon = {
+        "blue": ['water','blue','ocean','sea','lake','river','coast'],
+        "green": ['green','forest','tree','trees','woods','grass','park','vegetation'],
+        "red": ['red','brick','roof','clay'],
+        "brown": ['brown','soil','earth','sand','desert'],
+        "white": ['white','snow','cloud','cloudy'],
+        "gray": ['gray','grey','concrete','asphalt'],
+    }
+    object_lexicon = {
+        "water_obj": ['water','ocean','sea','lake','river','harbor','ship','boat'],
+        "vegetation_obj": ['forest','tree','trees','grass','field','farm','vegetation'],
+        "urban_obj": ['building','buildings','road','roads','bridge','airport','runway','city'],
+    }
+    dom_to_supported_colors = {
+        "G>R>B": {"green"},
+        "B>R>G": {"blue"},
+        "R>G>B": {"red", "brown"},
+        "R≈G>B": {"gray", "white", "brown"},
+    }
+
+    stat = defaultdict(lambda: {"cc":0,"cm":0,"oc":0,"om":0})
     for img in train_imgs:
         c = parse_category(img["filename"])
         d = dom_map.get(c, "R≈G>B")
+        supported = dom_to_supported_colors.get(d, {"gray"})
+        c_low = c.lower()
         for s in img["sentences"]:
-            toks = tokenize(s["raw"])
-            hb = any(w in toks for w in blue)
-            hg = any(w in toks for w in green)
-            if hb:
-                stat[c]["bc"] += 1
-                if d in ["R>G>B","G>R>B"]: stat[c]["bm"] += 1
-            if hg:
-                stat[c]["gc"] += 1
-                if d in ["R>G>B","B>R>G"]: stat[c]["gm"] += 1
+            toks = set(tokenize(s["raw"]))
+            claimed_colors = {name for name, kws in color_lexicon.items() if any(w in toks for w in kws)}
+            if claimed_colors:
+                stat[c]["cc"] += 1
+                if claimed_colors.isdisjoint(supported):
+                    stat[c]["cm"] += 1
+
+            claimed_groups = [kws for _, kws in object_lexicon.items() if any(w in toks for w in kws)]
+            if claimed_groups:
+                stat[c]["oc"] += 1
+                if not any(any(kw in c_low for kw in kws) for kws in claimed_groups):
+                    stat[c]["om"] += 1
+
     out = []
     for c, v in stat.items():
-        out.append({"category":c, "blue_mismatch_rate":v["bm"]/v["bc"] if v["bc"] else 0.0, "green_mismatch_rate":v["gm"]/v["gc"] if v["gc"] else 0.0})
+        color_rate = v["cm"]/v["cc"] if v["cc"] else 0.0
+        object_rate = v["om"]/v["oc"] if v["oc"] else 0.0
+        out.append({
+            "category": c,
+            "color_mismatch_rate": color_rate,
+            "object_mismatch_rate": object_rate,
+            "color_claims": v["cc"],
+            "object_claims": v["oc"],
+        })
     return pd.DataFrame(out)
 
 
@@ -633,15 +665,15 @@ elif step == 6:
         with c1:
             top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="contr_top_n")
         with c2:
-            blue_w = st.slider("Blue claim weight", 0.0, 1.0, 0.5, 0.05, key="contr_blue_w")
+            color_w = st.slider("Color mismatch weight", 0.0, 1.0, 0.6, 0.05, key="contr_color_w")
         with c3:
-            green_w = 1.0 - blue_w
-            st.metric("Green claim weight", f"{green_w:.2f}")
+            object_w = 1.0 - color_w
+            st.metric("Object mismatch weight", f"{object_w:.2f}")
 
         cdf_view = cdf.copy()
-        cdf_view["combined"] = blue_w*cdf_view["blue_mismatch_rate"] + green_w*cdf_view["green_mismatch_rate"]
+        cdf_view["combined"] = color_w*cdf_view["color_mismatch_rate"] + object_w*cdf_view["object_mismatch_rate"]
         top = cdf_view.sort_values("combined", ascending=False).head(top_n)
-        heat = top.set_index("category")[["blue_mismatch_rate","green_mismatch_rate"]]
+        heat = top.set_index("category")[["color_mismatch_rate","object_mismatch_rate"]]
         fig471, ax = make_fig(w_mult=1.0, h_mult=1.0)
         im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
         ax.set_xticks(range(len(heat.columns)))
@@ -659,13 +691,15 @@ elif step == 6:
         render_bento_table(
             title="Top contradiction categories",
             icon="⚠️",
-            df=top[["category", "blue_mismatch_rate", "green_mismatch_rate", "combined"]],
+            df=top[["category", "color_mismatch_rate", "object_mismatch_rate", "color_claims", "object_claims", "combined"]],
             use_container_width=True,
             hide_index=True,
             column_config={
                 "category": st.column_config.TextColumn("Category 🏷️"),
-                "blue_mismatch_rate": st.column_config.ProgressColumn("Blue Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
-                "green_mismatch_rate": st.column_config.ProgressColumn("Green Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
+                "color_mismatch_rate": st.column_config.ProgressColumn("Color Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
+                "object_mismatch_rate": st.column_config.ProgressColumn("Object Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
+                "color_claims": st.column_config.NumberColumn("Color Claims", format="%d"),
+                "object_claims": st.column_config.NumberColumn("Object Claims", format="%d"),
                 "combined": st.column_config.NumberColumn("Combined Score", format="%.2f")
             }
         )
@@ -720,11 +754,11 @@ elif step == 7:
         st.warning("No contradiction data available.")
     else:
         top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="inspect_top_n")
-        blue_w = st.slider("Blue claim weight", 0.0, 1.0, 0.5, 0.05, key="inspect_blue_w")
-        green_w = 1.0 - blue_w
+        color_w = st.slider("Color mismatch weight", 0.0, 1.0, 0.6, 0.05, key="inspect_color_w")
+        object_w = 1.0 - color_w
 
         cdf_view = cdf.copy()
-        cdf_view["combined"] = blue_w*cdf_view["blue_mismatch_rate"] + green_w*cdf_view["green_mismatch_rate"]
+        cdf_view["combined"] = color_w*cdf_view["color_mismatch_rate"] + object_w*cdf_view["object_mismatch_rate"]
         top = cdf_view.sort_values("combined", ascending=False).head(top_n)
 
         st.markdown("#### Inspect image + 5 captions")
