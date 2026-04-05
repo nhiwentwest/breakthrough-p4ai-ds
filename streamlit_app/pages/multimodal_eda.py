@@ -457,7 +457,7 @@ elif step == 1:
     ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
     ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
     ax2.set_xlabel("Frequency")
-    st.pyplot(fig365, use_container_width=True)
+    st.pyplot(fig365)
 
 elif step == 2:
     c0, c1, c2, c3 = st.columns(4)
@@ -513,7 +513,7 @@ elif step == 3:
     ax.set_title(f"Caption variability within image ({split})", color=TEXT, pad=10)
     ax.set_xlabel("Std dev of caption length")
     ax.set_ylabel("Frequency")
-    st.pyplot(fig386, use_container_width=True)
+    st.pyplot(fig386)
 
     st.markdown("### Sample pairs")
     cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
@@ -556,7 +556,7 @@ elif step == 4:
         ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
         cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
-        st.pyplot(fig423, use_container_width=True)
+        st.pyplot(fig423)
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
@@ -576,7 +576,7 @@ elif step == 5:
         ax.set_title(f"Intra-image semantic consistency ({split})", color=TEXT, pad=10)
         ax.set_xlabel("Cosine similarity")
         ax.set_ylabel("Frequency")
-        st.pyplot(fig440, use_container_width=True)
+        st.pyplot(fig440)
 
         q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
         n_low = max(1, int(len(sem) * q / 100))
@@ -639,7 +639,7 @@ elif step == 6:
         ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
         cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
-        st.pyplot(fig471, use_container_width=True)
+        st.pyplot(fig471)
 
         render_bento_table(
             title="Top contradiction categories",
@@ -763,7 +763,7 @@ elif step == 7:
         ax.set_title("Anomaly count sensitivity", color=TEXT, pad=10)
         ax.set_xlabel("Layer-A threshold")
         ax.set_ylabel("Detected anomalies")
-        st.pyplot(fig, use_container_width=True)
+        st.pyplot(fig)
     else:
         st.warning("scikit-learn unavailable; sensitivity disabled.")
 
