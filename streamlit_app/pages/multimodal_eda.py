@@ -415,7 +415,7 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 def render_chart(fig):
     col_l, col_m, col_r = st.columns([(1 - chart_panel) / 2, chart_panel, (1 - chart_panel) / 2])
     with col_m:
-        render_chart(fig)
+        st.pyplot(fig)
 
 
 def render_bento_table(title, icon, df, **kwargs):
