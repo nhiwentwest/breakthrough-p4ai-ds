@@ -133,7 +133,7 @@ except Exception as e:
     st.stop()
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def load_data():
     with open(DATA_FILE, encoding="utf-8") as f:
         data = json.load(f)
@@ -173,7 +173,7 @@ def load_data():
     }
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def image_pixel_stats(train_imgs):
     cat_files = defaultdict(list)
     for img in train_imgs:
@@ -215,7 +215,7 @@ def image_pixel_stats(train_imgs):
     return pd.DataFrame(rows)
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def category_similarity(train_imgs):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
@@ -234,7 +234,7 @@ def category_similarity(train_imgs):
     return pd.DataFrame(sim, index=cats, columns=cats)
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def semantic_consistency(train_imgs):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
@@ -255,7 +255,7 @@ def semantic_consistency(train_imgs):
     return pd.DataFrame(rows)
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def contradiction_map(train_imgs, dom_map):
     blue = ['water','blue','ocean','sea','lake','river']
     green = ['green','forest','tree','woods','grass','park']
@@ -279,7 +279,7 @@ def contradiction_map(train_imgs, dom_map):
     return pd.DataFrame(out)
 
 
-@st.cache_data
+@st.cache_data(show_spinner=False, persist="disk")
 def anomaly_probe(train_imgs, dom_map):
     if not SKLEARN_AVAILABLE:
         return []
@@ -333,13 +333,6 @@ st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
 step = st.session_state.step
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
-px_train_df = image_pixel_stats(D["train_imgs"])
-px_test_df = image_pixel_stats(D["test_imgs"])
-dom_map_train = {r["category"]: r["dom"] for _, r in px_train_df.iterrows()}
-dom_map_test = {r["category"]: r["dom"] for _, r in px_test_df.iterrows()}
-px_df = px_train_df
-dom_map = dom_map_train
-
 if step == 0:
     st.metric("Total images", f"{D['n_total']:,}")
     st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
@@ -379,6 +372,8 @@ elif step == 2:
     fig371, ax = plt.subplots(figsize=(6, 4)); fig371.patch.set_facecolor(BG)
     ax.barh(cl[::-1], cv[::-1], color="#14b8a6"); ax.set_title("Category distribution (train)")
     st.pyplot(fig371)
+
+    px_df = image_pixel_stats(D["train_imgs"])
     if not px_df.empty:
         fig375, ax2 = plt.subplots(figsize=(6, 3)); fig375.patch.set_facecolor(BG)
         ax2.scatter(px_df["brightness"], px_df["texture"], c="#dc2626", s=15, alpha=0.6)
@@ -468,7 +463,8 @@ elif step == 5:
 elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
     imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-    dom_map_split = dom_map_train if split == "train" else dom_map_test
+    px_df_split = image_pixel_stats(imgs_split)
+    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
     cdf = contradiction_map(imgs_split, dom_map_split)
     if cdf.empty:
         st.warning("No contradiction data available.")
@@ -520,7 +516,9 @@ elif step == 7:
     st.markdown("### Threshold sensitivity")
     thresholds = st.multiselect("Threshold set", [0.01,0.03,0.05,0.07,0.09,0.11,0.13], default=[0.03,0.05,0.07,0.09])
     ths = sorted(thresholds) if thresholds else [0.03,0.05,0.07,0.09]
-    probes = anomaly_probe(D["train_imgs"], dom_map)
+    px_train_df = image_pixel_stats(D["train_imgs"])
+    dom_map_train = {r["category"]: r["dom"] for _, r in px_train_df.iterrows()}
+    probes = anomaly_probe(D["train_imgs"], dom_map_train)
     if probes:
         counts = []
         for th in ths:
