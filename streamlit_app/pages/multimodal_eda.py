@@ -333,6 +333,37 @@ st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
 step = st.session_state.step
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
+with st.expander("🎛️ Chart controls", expanded=False):
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        chart_w = st.slider("Base width", 4.0, 12.0, 6.5, 0.5, key="chart_w")
+    with c2:
+        chart_h = st.slider("Base height", 2.5, 8.0, 4.0, 0.5, key="chart_h")
+    with c3:
+        font_scale = st.slider("Font scale", 0.8, 1.5, 1.0, 0.1, key="chart_font_scale")
+    with c4:
+        marker_size = st.slider("Marker size", 10, 80, 35, 5, key="chart_marker_size")
+
+sns.set_context("notebook", font_scale=font_scale)
+
+if "mm_step_cache" not in st.session_state:
+    st.session_state.mm_step_cache = {}
+
+
+def get_or_compute(cache_key, compute_fn, spinner_text="Computing..."):
+    if cache_key not in st.session_state.mm_step_cache:
+        with st.spinner(spinner_text):
+            st.session_state.mm_step_cache[cache_key] = compute_fn()
+    return st.session_state.mm_step_cache[cache_key]
+
+
+def make_fig(w_mult=1.0, h_mult=1.0):
+    fig, ax = plt.subplots(figsize=(chart_w * w_mult, chart_h * h_mult))
+    fig.patch.set_facecolor(BG)
+    ax.set_facecolor(BG)
+    ax.grid(axis="y", alpha=0.3)
+    return fig, ax
+
 if step == 0:
     st.metric("Total images", f"{D['n_total']:,}")
     st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
@@ -357,28 +388,40 @@ elif step == 1:
     bn = st.slider("Top bigrams", 8, 30, 12, key="top_bigrams_n")
     top_w = D["word_freq"].most_common(wn)
     words, counts = zip(*top_w)
-    fig360, ax = plt.subplots(figsize=(6, 4)); fig360.patch.set_facecolor(BG)
-    ax.barh(words[::-1], counts[::-1], color="#3b82f6"); ax.set_title(f"Top {wn} words (train)")
-    st.pyplot(fig360)
+    fig360, ax = make_fig()
+    colors_words = sns.color_palette("rocket", len(words))
+    ax.barh(words[::-1], counts[::-1], color=colors_words)
+    ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
+    ax.set_xlabel("Frequency")
+    st.pyplot(fig360, use_container_width=True)
+
     top_b = D["bigram_freq"].most_common(bn)
     bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
-    fig365, ax2 = plt.subplots(figsize=(6, 4)); fig365.patch.set_facecolor(BG)
-    ax2.barh(bl[::-1], bc[::-1], color="#f59e0b"); ax2.set_title(f"Top {bn} bigrams (train)")
-    st.pyplot(fig365)
+    fig365, ax2 = make_fig()
+    colors_bigrams = sns.color_palette("mako", len(bl))
+    ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
+    ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
+    ax2.set_xlabel("Frequency")
+    st.pyplot(fig365, use_container_width=True)
 
 elif step == 2:
     ctop = D["cat_counts"].most_common(20)
     cl, cv = zip(*ctop)
-    fig371, ax = plt.subplots(figsize=(6, 4)); fig371.patch.set_facecolor(BG)
-    ax.barh(cl[::-1], cv[::-1], color="#14b8a6"); ax.set_title("Category distribution (train)")
-    st.pyplot(fig371)
+    fig371, ax = make_fig()
+    colors_cat = sns.color_palette("crest", len(cl))
+    ax.barh(cl[::-1], cv[::-1], color=colors_cat)
+    ax.set_title("Category distribution (train)", color=TEXT, pad=10)
+    ax.set_xlabel("Count")
+    st.pyplot(fig371, use_container_width=True)
 
     px_df = image_pixel_stats(D["train_imgs"])
     if not px_df.empty:
-        fig375, ax2 = plt.subplots(figsize=(6, 3)); fig375.patch.set_facecolor(BG)
-        ax2.scatter(px_df["brightness"], px_df["texture"], c="#dc2626", s=15, alpha=0.6)
-        ax2.set_xlabel("Brightness"); ax2.set_ylabel("Texture"); ax2.set_title("Brightness vs Texture (train)")
-        st.pyplot(fig375)
+        fig375, ax2 = make_fig(w_mult=1.0, h_mult=0.85)
+        ax2.scatter(px_df["brightness"], px_df["texture"], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
+        ax2.set_xlabel("Brightness")
+        ax2.set_ylabel("Texture")
+        ax2.set_title("Brightness vs Texture (train)", color=TEXT, pad=10)
+        st.pyplot(fig375, use_container_width=True)
 
 elif step == 3:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
@@ -386,10 +429,15 @@ elif step == 3:
     vars_split = D["variabilities"] if split == "train" else [float(np.std([len(s["tokens"]) for s in img["sentences"]])) for img in D["test_imgs"]]
 
     bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
-    fig386, ax = plt.subplots(figsize=(6, 3)); fig386.patch.set_facecolor(BG)
-    ax.hist(vars_split, bins=bins_n, color="#8b5cf6", edgecolor="white")
-    ax.set_title(f"Caption variability within image ({split})")
-    st.pyplot(fig386)
+    fig386, ax = make_fig(w_mult=1.0, h_mult=0.85)
+    ax.hist(vars_split, bins=bins_n, color="#8b5cf6", edgecolor="white", alpha=0.9)
+    if len(vars_split) > 0:
+        ax.axvline(np.mean(vars_split), color=ACC, linestyle="--", linewidth=2, label=f"Mean={np.mean(vars_split):.2f}")
+        ax.legend(frameon=False)
+    ax.set_title(f"Caption variability within image ({split})", color=TEXT, pad=10)
+    ax.set_xlabel("Std dev of caption length")
+    ax.set_ylabel("Frequency")
+    st.pyplot(fig386, use_container_width=True)
 
     st.markdown("### Sample pairs")
     cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
@@ -399,7 +447,7 @@ elif step == 3:
     candidates = imgs_split if pick_cat == "All" else [i for i in imgs_split if parse_category(i["filename"]) == pick_cat]
     max_show = max(1, len(candidates))
     with c2:
-        nshow = st.slider("Samples to show", 1, max_show, min(20, max_show), key="sample_n")
+        nshow = st.slider("Samples to show", 1, max_show, min(3, max_show), key="sample_n")
 
     show_list = candidates[:nshow]
     for img in show_list:
@@ -423,28 +471,36 @@ elif step == 4:
         n = st.slider("Matrix categories", 10, min(33, len(sim)), min(20, len(sim)))
         top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
         view = sim.loc[top, top]
-        fig423, ax = plt.subplots(figsize=(5, 4.5)); fig423.patch.set_facecolor(BG)
-        im = ax.imshow(view.values, cmap="YlGnBu", vmin=0, vmax=1, aspect='auto')
+        fig423, ax = make_fig(w_mult=1.0, h_mult=1.2)
+        im = ax.imshow(view.values, cmap="YlOrRd", vmin=0, vmax=1, aspect='auto')
         ax.set_xticks(range(len(view.columns)))
         ax.set_yticks(range(len(view.index)))
-        ax.set_xticklabels(view.columns, rotation=90, fontsize=7)
-        ax.set_yticklabels(view.index, fontsize=7)
-        ax.set_title(f"Category cosine similarity ({split})")
-        fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        st.pyplot(fig423)
+        ax.set_xticklabels(view.columns, rotation=90, fontsize=max(6, int(8 * font_scale)))
+        ax.set_yticklabels(view.index, fontsize=max(6, int(8 * font_scale)))
+        ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
+        cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
+        st.pyplot(fig423, use_container_width=True)
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
-    sem = semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"])
+    sem = get_or_compute(
+        f"semantic_consistency::{split}",
+        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
+        spinner_text=f"Computing semantic consistency ({split})..."
+    )
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
     else:
         bsem = st.slider("Semantic bins", 15, 60, 30, key="sem_bins")
-        fig440, ax = plt.subplots(figsize=(6, 3)); fig440.patch.set_facecolor(BG)
-        ax.hist(sem["score"].dropna(), bins=bsem, color="#10b981", edgecolor="white")
-        ax.axvline(sem["score"].mean(), color=ACC, linestyle="--")
-        ax.set_title(f"Intra-image semantic consistency ({split})")
-        st.pyplot(fig440)
+        fig440, ax = make_fig(w_mult=1.0, h_mult=0.85)
+        ax.hist(sem["score"].dropna(), bins=bsem, color="#10b981", edgecolor="white", alpha=0.9)
+        ax.axvline(sem["score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={sem['score'].mean():.3f}")
+        ax.legend(frameon=False)
+        ax.set_title(f"Intra-image semantic consistency ({split})", color=TEXT, pad=10)
+        ax.set_xlabel("Cosine similarity")
+        ax.set_ylabel("Frequency")
+        st.pyplot(fig440, use_container_width=True)
 
         q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
         n_low = max(1, int(len(sem) * q / 100))
@@ -463,9 +519,20 @@ elif step == 5:
 elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
     imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-    px_df_split = image_pixel_stats(imgs_split)
+
+    px_df_split = get_or_compute(
+        f"image_pixel_stats::{split}",
+        lambda: image_pixel_stats(imgs_split),
+        spinner_text=f"Computing pixel stats ({split})..."
+    )
     dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
-    cdf = contradiction_map(imgs_split, dom_map_split)
+
+    cdf = get_or_compute(
+        f"contradiction_map::{split}",
+        lambda: contradiction_map(imgs_split, dom_map_split),
+        spinner_text=f"Computing contradiction map ({split})..."
+    )
+
     if cdf.empty:
         st.warning("No contradiction data available.")
     else:
@@ -478,21 +545,23 @@ elif step == 6:
             green_w = 1.0 - blue_w
             st.metric("Green claim weight", f"{green_w:.2f}")
 
-        cdf["combined"] = blue_w*cdf["blue_mismatch_rate"] + green_w*cdf["green_mismatch_rate"]
-        top = cdf.sort_values("combined", ascending=False).head(top_n)
+        cdf_view = cdf.copy()
+        cdf_view["combined"] = blue_w*cdf_view["blue_mismatch_rate"] + green_w*cdf_view["green_mismatch_rate"]
+        top = cdf_view.sort_values("combined", ascending=False).head(top_n)
         heat = top.set_index("category")[["blue_mismatch_rate","green_mismatch_rate"]]
-        fig471, ax = plt.subplots(figsize=(5, 4)); fig471.patch.set_facecolor(BG)
-        im = ax.imshow(heat.values, cmap="OrRd", vmin=0, vmax=1, aspect='auto')
+        fig471, ax = make_fig(w_mult=1.0, h_mult=1.0)
+        im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
         ax.set_xticks(range(len(heat.columns)))
         ax.set_yticks(range(len(heat.index)))
-        ax.set_xticklabels(heat.columns, fontsize=9)
-        ax.set_yticklabels(heat.index, fontsize=7)
+        ax.set_xticklabels(heat.columns, fontsize=max(7, int(9 * font_scale)))
+        ax.set_yticklabels(heat.index, fontsize=max(6, int(8 * font_scale)))
         for i in range(heat.shape[0]):
             for j in range(heat.shape[1]):
-                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=7, color='black')
-        ax.set_title(f"Cross-modal contradiction map ({split})")
-        fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        st.pyplot(fig471)
+                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(6, int(7 * font_scale)), color='white' if heat.values[i, j] > 0.5 else 'black')
+        ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
+        cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
+        st.pyplot(fig471, use_container_width=True)
 
         st.dataframe(
             top[["category", "blue_mismatch_rate", "green_mismatch_rate", "combined"]], 
@@ -506,6 +575,36 @@ elif step == 6:
             }
         )
 
+        st.markdown("#### Inspect image + 5 captions")
+        top_cats = set(top["category"].tolist())
+        inspect_candidates = [img for img in imgs_split if parse_category(img["filename"]) in top_cats]
+        if inspect_candidates:
+            selected_file = st.selectbox(
+                "Select an image from top contradiction categories",
+                options=[img["filename"] for img in inspect_candidates],
+                key="contr_inspect_file"
+            )
+            selected_img = next((img for img in inspect_candidates if img["filename"] == selected_file), None)
+            if selected_img is not None:
+                p = IMG_DIR / selected_img["filename"]
+                cimg, ccap = st.columns([1, 1.2])
+                with cimg:
+                    if p.exists():
+                        try:
+                            with Image.open(p) as im:
+                                st.image(im.convert("RGB"), use_container_width=True)
+                        except Exception:
+                            st.warning("Could not render image preview.")
+                    else:
+                        st.warning("Image file not found on disk.")
+                with ccap:
+                    st.write(f"**File:** `{selected_img['filename']}`")
+                    st.write(f"**Category:** `{parse_category(selected_img['filename'])}`")
+                    for i, s in enumerate(selected_img.get("sentences", [])[:5]):
+                        st.write(f"- [{i+1}] {s.get('raw', '')}")
+        else:
+            st.info("No image candidates for inspection in the selected top categories.")
+
 elif step == 7:
     st.markdown("### Train/Test drift")
     train_len = np.mean([len(tokenize(c)) for c in D["train_caps"]])
@@ -516,9 +615,18 @@ elif step == 7:
     st.markdown("### Threshold sensitivity")
     thresholds = st.multiselect("Threshold set", [0.01,0.03,0.05,0.07,0.09,0.11,0.13], default=[0.03,0.05,0.07,0.09])
     ths = sorted(thresholds) if thresholds else [0.03,0.05,0.07,0.09]
-    px_train_df = image_pixel_stats(D["train_imgs"])
+
+    px_train_df = get_or_compute(
+        "image_pixel_stats::train",
+        lambda: image_pixel_stats(D["train_imgs"]),
+        spinner_text="Computing pixel stats (train)..."
+    )
     dom_map_train = {r["category"]: r["dom"] for _, r in px_train_df.iterrows()}
-    probes = anomaly_probe(D["train_imgs"], dom_map_train)
+    probes = get_or_compute(
+        "anomaly_probe::train",
+        lambda: anomaly_probe(D["train_imgs"], dom_map_train),
+        spinner_text="Computing anomaly probes (train)..."
+    )
     if probes:
         counts = []
         for th in ths:
@@ -528,10 +636,13 @@ elif step == 7:
                 if layer_a or p["layer_b"]:
                     cnt += 1
             counts.append(cnt)
-        fig, ax = plt.subplots(figsize=(7,4)); fig.patch.set_facecolor(BG)
-        ax.plot(ths, counts, marker='o', color=ACC); ax.set_title("Anomaly count sensitivity")
-        ax.set_xlabel("Layer-A threshold"); ax.set_ylabel("Detected anomalies")
-        st.pyplot(fig)
+        fig, ax = make_fig(w_mult=1.1, h_mult=0.95)
+        ax.plot(ths, counts, marker='o', color=ACC, linewidth=2.4, markersize=7)
+        ax.fill_between(ths, counts, alpha=0.12, color=ACC)
+        ax.set_title("Anomaly count sensitivity", color=TEXT, pad=10)
+        ax.set_xlabel("Layer-A threshold")
+        ax.set_ylabel("Detected anomalies")
+        st.pyplot(fig, use_container_width=True)
     else:
         st.warning("scikit-learn unavailable; sensitivity disabled.")
 
@@ -542,6 +653,7 @@ with col1:
         if st.button("↺ Start Over"):
             st.session_state.step = 0
             st.session_state.D = None
+            st.session_state.mm_step_cache = {}
             st.rerun()
     else:
         if st.button("← Previous"):
@@ -553,6 +665,7 @@ with col2:
         if st.button("↺ Start Over"):
             st.session_state.step = 0
             st.session_state.D = None
+            st.session_state.mm_step_cache = {}
             st.rerun()
     else:
         if st.button("Next →"):
