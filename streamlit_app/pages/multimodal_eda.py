@@ -53,11 +53,52 @@ BOR = "#D4C9B8"
 
 st.markdown(f"""
 <style>
-body,.stApp {{ background:{BG}; color:{TEXT}; }}
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
+body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
 [data-testid="stSidebar"] {{ display:none !important; }}
 [data-testid="stSidebarNav"] {{ display:none !important; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
-.main .block-container {{ padding:1rem; }}
+.main .block-container {{ padding:1rem 1.2rem; max-width:1280px; }}
+
+/* Bento/editor cards */
+.bento-card {{
+  background: linear-gradient(180deg, #F2ECE1 0%, #EEE6D9 100%);
+  border: 1px solid {BOR};
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem 0.9rem;
+  margin: 0.45rem 0 0.9rem;
+  box-shadow: 0 1px 0 rgba(17,17,17,0.04), inset 0 1px 0 rgba(255,255,255,0.35);
+}}
+.bento-title {{
+  display:flex; align-items:center; gap:0.55rem;
+  font-size:0.78rem; font-weight:800; letter-spacing:0.08em;
+  text-transform:uppercase; color:{ACC}; margin-bottom:0.55rem;
+}}
+.bento-dot {{ width:8px; height:8px; border-radius:50%; background:{ACC}; display:inline-block; }}
+
+/* Dataframe style (editor-like) */
+[data-testid="stDataFrame"] {{
+  border: 1px solid {BOR};
+  border-radius: 12px;
+  overflow: hidden;
+  background: #F8F4EC;
+}}
+[data-testid="stDataFrame"] [role="columnheader"] {{
+  background: #EDE4D6 !important;
+  color: {ACC} !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid {BOR} !important;
+}}
+[data-testid="stDataFrame"] [role="gridcell"] {{
+  border-top: 1px solid #E8DDCE !important;
+  font-size: 0.9rem;
+}}
+[data-testid="stDataFrame"] [role="row"]:hover [role="gridcell"] {{
+  background: rgba(180,35,24,0.06) !important;
+}}
+
+h1,h2,h3 {{ font-family:'Playfair Display',serif; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -364,6 +405,14 @@ def make_fig(w_mult=1.0, h_mult=1.0):
     ax.grid(axis="y", alpha=0.3)
     return fig, ax
 
+
+def render_bento_table(title, icon, df, **kwargs):
+    st.markdown(
+        f"<div class='bento-card'><div class='bento-title'><span class='bento-dot'></span>{icon} {title}</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.dataframe(df, **kwargs)
+
 if step == 0:
     st.metric("Total images", f"{D['n_total']:,}")
     st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
@@ -373,8 +422,10 @@ if step == 0:
         ["Empty captions", 0],
         ["Captions per image", 5],
     ], columns=["Check", "Value"])
-    st.dataframe(
-        audit, 
+    render_bento_table(
+        title="Dataset audit",
+        icon="🧾",
+        df=audit,
         use_container_width=True,
         hide_index=True,
         column_config={
@@ -505,8 +556,10 @@ elif step == 5:
         q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
         n_low = max(1, int(len(sem) * q / 100))
         low_df = sem.sort_values("score", ascending=True).head(n_low)
-        st.dataframe(
-            low_df[["filename", "category", "score"]], 
+        render_bento_table(
+            title="Lowest semantic consistency",
+            icon="🧠",
+            df=low_df[["filename", "category", "score"]],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -563,8 +616,10 @@ elif step == 6:
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
         st.pyplot(fig471, use_container_width=True)
 
-        st.dataframe(
-            top[["category", "blue_mismatch_rate", "green_mismatch_rate", "combined"]], 
+        render_bento_table(
+            title="Top contradiction categories",
+            icon="⚠️",
+            df=top[["category", "blue_mismatch_rate", "green_mismatch_rate", "combined"]],
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -610,7 +665,13 @@ elif step == 7:
     train_len = np.mean([len(tokenize(c)) for c in D["train_caps"]])
     test_len = np.mean([len(tokenize(c)) for c in D["test_caps"]])
     drift_df = pd.DataFrame({"metric":["avg_caption_len"], "train":[train_len], "test":[test_len]})
-    st.dataframe(drift_df, use_container_width=True)
+    render_bento_table(
+        title="Train/Test drift summary",
+        icon="📉",
+        df=drift_df,
+        use_container_width=True,
+        hide_index=True,
+    )
 
     st.markdown("### Threshold sensitivity")
     thresholds = st.multiselect("Threshold set", [0.01,0.03,0.05,0.07,0.09,0.11,0.13], default=[0.03,0.05,0.07,0.09])
