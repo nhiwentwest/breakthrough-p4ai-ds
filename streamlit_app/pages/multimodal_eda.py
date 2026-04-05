@@ -375,16 +375,18 @@ step = st.session_state.step
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
 with st.expander("🎛️ Chart controls", expanded=False):
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
-        chart_w = st.slider("Base width", 2.5, 8.0, 4.5, 0.25, key="chart_w")
+        chart_w = st.slider("Base width", 2.0, 6.5, 3.2, 0.2, key="chart_w")
     with c2:
-        chart_h = st.slider("Base height", 1.8, 5.0, 2.8, 0.2, key="chart_h")
+        chart_h = st.slider("Base height", 1.6, 4.2, 2.2, 0.2, key="chart_h")
     with c3:
-        chart_scale = st.slider("Global scale", 0.5, 1.0, 0.72, 0.02, key="chart_scale")
+        chart_scale = st.slider("Global scale", 0.4, 1.0, 0.58, 0.02, key="chart_scale")
     with c4:
-        font_scale = st.slider("Font scale", 0.7, 1.3, 0.9, 0.1, key="chart_font_scale")
+        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
     with c5:
+        font_scale = st.slider("Font scale", 0.7, 1.3, 0.9, 0.1, key="chart_font_scale")
+    with c6:
         marker_size = st.slider("Marker size", 8, 50, 24, 2, key="chart_marker_size")
 
 sns.set_context("notebook", font_scale=font_scale)
@@ -401,13 +403,19 @@ def get_or_compute(cache_key, compute_fn, spinner_text="Computing..."):
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):
-    fig_w = max(2.2, chart_w * w_mult * chart_scale)
-    fig_h = max(1.6, chart_h * h_mult * chart_scale)
+    fig_w = max(1.8, chart_w * w_mult * chart_scale)
+    fig_h = max(1.4, chart_h * h_mult * chart_scale)
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=110)
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
     ax.grid(axis="y", alpha=0.3)
     return fig, ax
+
+
+def render_chart(fig):
+    col_l, col_m, col_r = st.columns([(1 - chart_panel) / 2, chart_panel, (1 - chart_panel) / 2])
+    with col_m:
+        render_chart(fig)
 
 
 def render_bento_table(title, icon, df, **kwargs):
@@ -448,7 +456,7 @@ elif step == 1:
     ax.barh(words[::-1], counts[::-1], color=colors_words)
     ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
     ax.set_xlabel("Frequency")
-    st.pyplot(fig360)
+    render_chart(fig360)
 
     top_b = D["bigram_freq"].most_common(bn)
     bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
@@ -457,7 +465,7 @@ elif step == 1:
     ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
     ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
     ax2.set_xlabel("Frequency")
-    st.pyplot(fig365)
+    render_chart(fig365)
 
 elif step == 2:
     c0, c1, c2, c3 = st.columns(4)
@@ -481,7 +489,7 @@ elif step == 2:
         ax.barh(cl[::-1], cv[::-1], color=colors_cat)
         ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
         ax.set_xlabel("Count")
-        st.pyplot(fig371)
+        render_chart(fig371)
 
     px_df = get_or_compute(
         f"image_pixel_stats::{split_img}",
@@ -495,7 +503,7 @@ elif step == 2:
         ax2.set_xlabel(x_metric.replace("_", " ").title())
         ax2.set_ylabel(y_metric.replace("_", " ").title())
         ax2.set_title(f"{x_metric.title()} vs {y_metric.title()} ({split_img})", color=TEXT, pad=10)
-        st.pyplot(fig375)
+        render_chart(fig375)
     elif x_metric == y_metric:
         st.info("Please choose different X and Y metrics for the scatter plot.")
 
@@ -513,7 +521,7 @@ elif step == 3:
     ax.set_title(f"Caption variability within image ({split})", color=TEXT, pad=10)
     ax.set_xlabel("Std dev of caption length")
     ax.set_ylabel("Frequency")
-    st.pyplot(fig386)
+    render_chart(fig386)
 
     st.markdown("### Sample pairs")
     cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
@@ -556,7 +564,7 @@ elif step == 4:
         ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
         cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
-        st.pyplot(fig423)
+        render_chart(fig423)
 
 elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
@@ -576,7 +584,7 @@ elif step == 6:
         ax.set_title(f"Intra-image semantic consistency ({split})", color=TEXT, pad=10)
         ax.set_xlabel("Cosine similarity")
         ax.set_ylabel("Frequency")
-        st.pyplot(fig440)
+        render_chart(fig440)
 
         q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
         n_low = max(1, int(len(sem) * q / 100))
@@ -639,7 +647,7 @@ elif step == 5:
         ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
         cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
-        st.pyplot(fig471)
+        render_chart(fig471)
 
         render_bento_table(
             title="Top contradiction categories",
@@ -671,6 +679,9 @@ elif step == 5:
                 })
             inspect_df = pd.DataFrame(inspect_rows).sort_values(["combined", "filename"], ascending=[False, True]).reset_index(drop=True)
 
+            table_df = inspect_df.copy()
+            table_df.insert(0, "Inspect", False)
+
             selected_file = None
             try:
                 event = st.dataframe(
@@ -690,11 +701,26 @@ elif step == 5:
                     idx = event.selection["rows"][0]
                     selected_file = inspect_df.iloc[idx]["filename"]
             except TypeError:
-                st.dataframe(inspect_df, use_container_width=True, hide_index=True)
+                edited = st.data_editor(
+                    table_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    key=f"inspect_editor_{split}",
+                    column_config={
+                        "Inspect": st.column_config.CheckboxColumn("Inspect"),
+                        "filename": st.column_config.TextColumn("Filename 📁", disabled=True),
+                        "category": st.column_config.TextColumn("Category 🏷️", disabled=True),
+                        "combined": st.column_config.ProgressColumn("Category contradiction", min_value=0.0, max_value=1.0, format="%.2f"),
+                        "captions": st.column_config.NumberColumn("# Captions", format="%d"),
+                    }
+                )
+                chosen = edited[edited["Inspect"] == True]
+                if len(chosen) > 0:
+                    selected_file = chosen.iloc[0]["filename"]
 
             if not selected_file:
                 selected_file = st.selectbox(
-                    "Or choose a file manually",
+                    "Choose a file",
                     options=inspect_df["filename"].tolist(),
                     key="contr_inspect_file"
                 )
