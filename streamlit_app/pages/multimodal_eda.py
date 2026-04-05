@@ -655,10 +655,11 @@ elif step == 5:
         q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
         n_low = max(1, int(len(sem) * q / 100))
         low_df = sem.sort_values("score", ascending=True).head(n_low)
+        low_view = low_df[["filename", "category", "score"]].copy()
         render_bento_table(
             title="Lowest semantic consistency",
             icon="🧠",
-            df=low_df[["filename", "category", "score"]],
+            df=low_view,
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -667,6 +668,35 @@ elif step == 5:
                 "score": st.column_config.ProgressColumn("Consistency Score", min_value=0.0, max_value=1.0, format="%.3f")
             }
         )
+
+        st.markdown("#### Inspect image + 5 captions (semantic)")
+        selected_sem_file = st.selectbox(
+            "Choose a sample from low-consistency set",
+            options=low_view["filename"].tolist(),
+            key="sem_inspect_file"
+        )
+        sem_split_imgs = D["train_imgs"] if split == "train" else D["test_imgs"]
+        sem_selected_img = next((img for img in sem_split_imgs if img["filename"] == selected_sem_file), None)
+        if sem_selected_img is not None:
+            p = IMG_DIR / sem_selected_img["filename"]
+            cimg, ccap = st.columns([1, 1.2])
+            with cimg:
+                if p.exists():
+                    try:
+                        with Image.open(p) as im:
+                            st.image(im.convert("RGB"), width=280)
+                    except Exception:
+                        st.warning("Could not render image preview.")
+                else:
+                    st.warning("Image file not found on disk.")
+            with ccap:
+                sem_score = low_view.loc[low_view["filename"] == selected_sem_file, "score"]
+                if not sem_score.empty:
+                    st.write(f"**Consistency score:** `{float(sem_score.iloc[0]):.3f}`")
+                st.write(f"**File:** `{sem_selected_img['filename']}`")
+                st.write(f"**Category:** `{parse_category(sem_selected_img['filename'])}`")
+                for i, s in enumerate(sem_selected_img.get("sentences", [])[:5]):
+                    st.write(f"- [{i+1}] {s.get('raw', '')}")
 
 elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
