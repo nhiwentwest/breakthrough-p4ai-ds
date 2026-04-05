@@ -312,30 +312,57 @@ def contradiction_map(train_imgs, dom_map):
         "urban_obj": ['building','buildings','road','roads','bridge','airport','runway','city'],
     }
     dom_to_supported_colors = {
-        "G>R>B": {"green"},
-        "B>R>G": {"blue"},
-        "R>G>B": {"red", "brown"},
-        "R≈G>B": {"gray", "white", "brown"},
+        "G>R>B": {"green", "white", "gray"},
+        "B>R>G": {"blue", "white", "gray"},
+        "R>G>B": {"red", "brown", "white", "gray"},
+        "R≈G>B": {"gray", "white", "brown", "green", "blue"},
     }
+    neutral_colors = {"white", "gray"}
+
+    def infer_supported_object_groups(cat_name: str):
+        c = cat_name.lower()
+        groups = set()
+        if any(k in c for k in ["river", "pond", "port", "boat", "harbor", "coast", "beach", "sea", "lake"]):
+            groups.add("water_obj")
+        if any(k in c for k in ["forest", "meadow", "park", "farmland", "baseballfield", "playground", "grass"]):
+            groups.add("vegetation_obj")
+        if any(k in c for k in ["airport", "plane", "runway", "road", "bridge", "residential", "industrial", "church", "school", "stadium", "square", "center", "railway", "parking", "building", "viaduct"]):
+            groups.add("urban_obj")
+        if not groups:
+            groups.add("urban_obj")
+        return groups
 
     stat = defaultdict(lambda: {"cc":0,"cm":0,"oc":0,"om":0})
     for img in train_imgs:
         c = parse_category(img["filename"])
         d = dom_map.get(c, "R≈G>B")
-        supported = dom_to_supported_colors.get(d, {"gray"})
-        c_low = c.lower()
+        supported = dom_to_supported_colors.get(d, {"white", "gray"})
+        supported_obj = infer_supported_object_groups(c)
+
         for s in img["sentences"]:
             toks = set(tokenize(s["raw"]))
-            claimed_colors = {name for name, kws in color_lexicon.items() if any(w in toks for w in kws)}
-            if claimed_colors:
+
+            claimed_colors = set()
+            for name, kws in color_lexicon.items():
+                hit_count = sum(1 for w in kws if w in toks)
+                direct_name = name in toks or (name == "gray" and "grey" in toks)
+                if hit_count >= 2 or direct_name:
+                    claimed_colors.add(name)
+
+            vivid_claims = {x for x in claimed_colors if x not in neutral_colors}
+            if vivid_claims:
                 stat[c]["cc"] += 1
-                if claimed_colors.isdisjoint(supported):
+                if vivid_claims.isdisjoint(supported):
                     stat[c]["cm"] += 1
 
-            claimed_groups = [kws for _, kws in object_lexicon.items() if any(w in toks for w in kws)]
+            claimed_groups = []
+            for gname, kws in object_lexicon.items():
+                hits = sum(1 for w in kws if w in toks)
+                if hits >= 2:
+                    claimed_groups.append(gname)
             if claimed_groups:
                 stat[c]["oc"] += 1
-                if not any(any(kw in c_low for kw in kws) for kws in claimed_groups):
+                if all(g not in supported_obj for g in claimed_groups):
                     stat[c]["om"] += 1
 
     out = []
