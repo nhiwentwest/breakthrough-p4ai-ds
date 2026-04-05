@@ -375,15 +375,17 @@ step = st.session_state.step
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
 with st.expander("🎛️ Chart controls", expanded=False):
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        chart_w = st.slider("Base width", 4.0, 12.0, 6.5, 0.5, key="chart_w")
+        chart_w = st.slider("Base width", 2.5, 8.0, 4.5, 0.25, key="chart_w")
     with c2:
-        chart_h = st.slider("Base height", 2.5, 8.0, 4.0, 0.5, key="chart_h")
+        chart_h = st.slider("Base height", 1.8, 5.0, 2.8, 0.2, key="chart_h")
     with c3:
-        font_scale = st.slider("Font scale", 0.8, 1.5, 1.0, 0.1, key="chart_font_scale")
+        chart_scale = st.slider("Global scale", 0.5, 1.0, 0.72, 0.02, key="chart_scale")
     with c4:
-        marker_size = st.slider("Marker size", 10, 80, 35, 5, key="chart_marker_size")
+        font_scale = st.slider("Font scale", 0.7, 1.3, 0.9, 0.1, key="chart_font_scale")
+    with c5:
+        marker_size = st.slider("Marker size", 8, 50, 24, 2, key="chart_marker_size")
 
 sns.set_context("notebook", font_scale=font_scale)
 
@@ -399,7 +401,9 @@ def get_or_compute(cache_key, compute_fn, spinner_text="Computing..."):
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):
-    fig, ax = plt.subplots(figsize=(chart_w * w_mult, chart_h * h_mult))
+    fig_w = max(2.2, chart_w * w_mult * chart_scale)
+    fig_h = max(1.6, chart_h * h_mult * chart_scale)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=110)
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
     ax.grid(axis="y", alpha=0.3)
@@ -456,23 +460,44 @@ elif step == 1:
     st.pyplot(fig365, use_container_width=True)
 
 elif step == 2:
-    ctop = D["cat_counts"].most_common(20)
-    cl, cv = zip(*ctop)
-    fig371, ax = make_fig()
-    colors_cat = sns.color_palette("crest", len(cl))
-    ax.barh(cl[::-1], cv[::-1], color=colors_cat)
-    ax.set_title("Category distribution (train)", color=TEXT, pad=10)
-    ax.set_xlabel("Count")
-    st.pyplot(fig371, use_container_width=True)
+    c0, c1, c2, c3 = st.columns(4)
+    with c0:
+        split_img = st.radio("Split", ["train", "test"], horizontal=True, key="img_split")
+    with c1:
+        top_n_cat = st.slider("Top categories", 5, 33, 20, 1, key="img_top_n")
+    with c2:
+        x_metric = st.selectbox("X metric", ["brightness", "texture", "blur"], index=0, key="img_x_metric")
+    with c3:
+        y_metric = st.selectbox("Y metric", ["texture", "brightness", "blur"], index=0, key="img_y_metric")
 
-    px_df = image_pixel_stats(D["train_imgs"])
-    if not px_df.empty:
+    imgs_split = D["train_imgs"] if split_img == "train" else D["test_imgs"]
+    cat_counts = Counter(parse_category(img["filename"]) for img in imgs_split)
+    ctop = cat_counts.most_common(top_n_cat)
+
+    if ctop:
+        cl, cv = zip(*ctop)
+        fig371, ax = make_fig()
+        colors_cat = sns.color_palette("crest", len(cl))
+        ax.barh(cl[::-1], cv[::-1], color=colors_cat)
+        ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
+        ax.set_xlabel("Count")
+        st.pyplot(fig371)
+
+    px_df = get_or_compute(
+        f"image_pixel_stats::{split_img}",
+        lambda: image_pixel_stats(imgs_split),
+        spinner_text=f"Computing pixel stats ({split_img})..."
+    )
+
+    if not px_df.empty and x_metric != y_metric:
         fig375, ax2 = make_fig(w_mult=1.0, h_mult=0.85)
-        ax2.scatter(px_df["brightness"], px_df["texture"], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
-        ax2.set_xlabel("Brightness")
-        ax2.set_ylabel("Texture")
-        ax2.set_title("Brightness vs Texture (train)", color=TEXT, pad=10)
-        st.pyplot(fig375, use_container_width=True)
+        ax2.scatter(px_df[x_metric], px_df[y_metric], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
+        ax2.set_xlabel(x_metric.replace("_", " ").title())
+        ax2.set_ylabel(y_metric.replace("_", " ").title())
+        ax2.set_title(f"{x_metric.title()} vs {y_metric.title()} ({split_img})", color=TEXT, pad=10)
+        st.pyplot(fig375)
+    elif x_metric == y_metric:
+        st.info("Please choose different X and Y metrics for the scatter plot.")
 
 elif step == 3:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
@@ -634,11 +659,46 @@ elif step == 6:
         top_cats = set(top["category"].tolist())
         inspect_candidates = [img for img in imgs_split if parse_category(img["filename"]) in top_cats]
         if inspect_candidates:
-            selected_file = st.selectbox(
-                "Select an image from top contradiction categories",
-                options=[img["filename"] for img in inspect_candidates],
-                key="contr_inspect_file"
-            )
+            cat_score = top.set_index("category")["combined"].to_dict()
+            inspect_rows = []
+            for img in inspect_candidates:
+                cat = parse_category(img["filename"])
+                inspect_rows.append({
+                    "filename": img["filename"],
+                    "category": cat,
+                    "combined": float(cat_score.get(cat, 0.0)),
+                    "captions": len(img.get("sentences", [])),
+                })
+            inspect_df = pd.DataFrame(inspect_rows).sort_values(["combined", "filename"], ascending=[False, True]).reset_index(drop=True)
+
+            selected_file = None
+            try:
+                event = st.dataframe(
+                    inspect_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    on_select="rerun",
+                    selection_mode="single-row",
+                    column_config={
+                        "filename": st.column_config.TextColumn("Filename (click row) 📁"),
+                        "category": st.column_config.TextColumn("Category 🏷️"),
+                        "combined": st.column_config.ProgressColumn("Category contradiction", min_value=0.0, max_value=1.0, format="%.2f"),
+                        "captions": st.column_config.NumberColumn("# Captions", format="%d"),
+                    }
+                )
+                if event and event.selection and event.selection.get("rows"):
+                    idx = event.selection["rows"][0]
+                    selected_file = inspect_df.iloc[idx]["filename"]
+            except TypeError:
+                st.dataframe(inspect_df, use_container_width=True, hide_index=True)
+
+            if not selected_file:
+                selected_file = st.selectbox(
+                    "Or choose a file manually",
+                    options=inspect_df["filename"].tolist(),
+                    key="contr_inspect_file"
+                )
+
             selected_img = next((img for img in inspect_candidates if img["filename"] == selected_file), None)
             if selected_img is not None:
                 p = IMG_DIR / selected_img["filename"]
