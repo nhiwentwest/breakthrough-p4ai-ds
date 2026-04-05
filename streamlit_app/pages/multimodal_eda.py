@@ -276,7 +276,7 @@ def category_similarity(train_imgs):
 
 
 @st.cache_data(show_spinner=False, persist="disk")
-def semantic_consistency(train_imgs):
+def semantic_consistency(train_imgs, mode="word_tfidf"):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
     rows = []
@@ -285,7 +285,10 @@ def semantic_consistency(train_imgs):
         if len(caps) < 2:
             continue
         try:
-            v = TfidfVectorizer(stop_words="english", min_df=1)
+            if mode == "char_wb_3_5":
+                v = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1, lowercase=True)
+            else:
+                v = TfidfVectorizer(stop_words="english", min_df=1)
             m = v.fit_transform(caps)
             sim = cosine_similarity(m)
             iu = np.triu_indices_from(sim, k=1)
@@ -634,10 +637,17 @@ elif step == 4:
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
+    sem_mode = st.radio(
+        "Semantic metric",
+        ["word_tfidf", "char_wb_3_5"],
+        format_func=lambda x: "Word TF-IDF" if x == "word_tfidf" else "Char-wb TF-IDF (3–5)",
+        horizontal=True,
+        key="sem_mode",
+    )
     sem = get_or_compute(
-        f"semantic_consistency::{split}",
-        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
-        spinner_text=f"Computing semantic consistency ({split})..."
+        f"semantic_consistency::{split}::{sem_mode}",
+        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"], mode=sem_mode),
+        spinner_text=f"Computing semantic consistency ({split}, {sem_mode})..."
     )
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
