@@ -109,9 +109,9 @@ STEP_LABELS = {
     2: "Image EDA Core",
     3: "Multimodal Baseline",
     4: "Category Cosine Similarity",
-    5: "Contradiction Map",
-    6: "Semantic Consistency",
-    7: "Drift + Threshold Sensitivity",
+    5: "Semantic Consistency",
+    6: "Contradiction Map + Category Samples",
+    7: "Inspect Image + 5 Captions",
 }
 
 STOP_WORDS = {
@@ -385,11 +385,18 @@ with st.expander("🎛️ Chart controls", expanded=False):
     with c4:
         chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
     with c5:
-        font_scale = st.slider("Font scale", 0.7, 1.3, 0.9, 0.1, key="chart_font_scale")
+        font_scale = st.slider("Font scale", 0.5, 1.1, 0.75, 0.05, key="chart_font_scale")
     with c6:
-        marker_size = st.slider("Marker size", 8, 50, 24, 2, key="chart_marker_size")
+        marker_size = st.slider("Marker size", 6, 40, 18, 2, key="chart_marker_size")
 
-sns.set_context("notebook", font_scale=font_scale)
+sns.set_context("paper", font_scale=font_scale)
+plt.rcParams.update({
+    "axes.titlesize": max(7, 11 * font_scale),
+    "axes.labelsize": max(6, 9 * font_scale),
+    "xtick.labelsize": max(5.5, 8 * font_scale),
+    "ytick.labelsize": max(5.5, 8 * font_scale),
+    "legend.fontsize": max(5.5, 8 * font_scale),
+})
 
 if "mm_step_cache" not in st.session_state:
     st.session_state.mm_step_cache = {}
@@ -559,14 +566,14 @@ elif step == 4:
         im = ax.imshow(view.values, cmap="YlOrRd", vmin=0, vmax=1, aspect='auto')
         ax.set_xticks(range(len(view.columns)))
         ax.set_yticks(range(len(view.index)))
-        ax.set_xticklabels(view.columns, rotation=90, fontsize=max(6, int(8 * font_scale)))
-        ax.set_yticklabels(view.index, fontsize=max(6, int(8 * font_scale)))
+        ax.set_xticklabels(view.columns, rotation=90, fontsize=max(4.5, 6.2 * font_scale))
+        ax.set_yticklabels(view.index, fontsize=max(4.5, 6.2 * font_scale))
         ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
         cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
+        cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
         render_chart(fig423)
 
-elif step == 6:
+elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
     sem = get_or_compute(
         f"semantic_consistency::{split}",
@@ -602,7 +609,7 @@ elif step == 6:
             }
         )
 
-elif step == 5:
+elif step == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
     imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
 
@@ -639,14 +646,14 @@ elif step == 5:
         im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
         ax.set_xticks(range(len(heat.columns)))
         ax.set_yticks(range(len(heat.index)))
-        ax.set_xticklabels(heat.columns, fontsize=max(7, int(9 * font_scale)))
-        ax.set_yticklabels(heat.index, fontsize=max(6, int(8 * font_scale)))
+        ax.set_xticklabels(heat.columns, fontsize=max(4.5, 6.6 * font_scale))
+        ax.set_yticklabels(heat.index, fontsize=max(4.5, 6.0 * font_scale))
         for i in range(heat.shape[0]):
             for j in range(heat.shape[1]):
-                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(6, int(7 * font_scale)), color='white' if heat.values[i, j] > 0.5 else 'black')
+                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(4.0, 5.6 * font_scale), color='white' if heat.values[i, j] > 0.5 else 'black')
         ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
         cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.ax.tick_params(labelsize=max(7, int(8 * font_scale)))
+        cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
         render_chart(fig471)
 
         render_bento_table(
@@ -663,6 +670,63 @@ elif step == 5:
             }
         )
 
+        st.markdown("#### Category-level samples")
+        top_cats = top["category"].tolist()
+        sample_mode = st.radio(
+            "Show sample modality",
+            ["Image + text", "Image only", "Text only"],
+            horizontal=True,
+            key="contr_sample_mode"
+        )
+        per_cat = st.slider("Samples per category", 1, 3, 2, 1, key="contr_samples_per_cat")
+
+        for cat in top_cats[:min(6, len(top_cats))]:
+            cat_imgs = [img for img in imgs_split if parse_category(img["filename"]) == cat]
+            if not cat_imgs:
+                continue
+            st.markdown(f"**{cat}**")
+            for img in cat_imgs[:per_cat]:
+                p = IMG_DIR / img["filename"]
+                if sample_mode in ["Image + text", "Image only"] and p.exists():
+                    try:
+                        with Image.open(p) as im:
+                            st.image(im.convert("RGB"), width=240)
+                    except Exception:
+                        pass
+                if sample_mode in ["Image + text", "Text only"]:
+                    caps = img.get("sentences", [])
+                    if caps:
+                        st.write(f"- {caps[0].get('raw', '')}")
+            st.markdown("---")
+
+elif step == 7:
+    split = st.radio("Split", ["train", "test"], horizontal=True, key="inspect_split")
+    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+
+    px_df_split = get_or_compute(
+        f"image_pixel_stats::{split}",
+        lambda: image_pixel_stats(imgs_split),
+        spinner_text=f"Computing pixel stats ({split})..."
+    )
+    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
+
+    cdf = get_or_compute(
+        f"contradiction_map::{split}",
+        lambda: contradiction_map(imgs_split, dom_map_split),
+        spinner_text=f"Computing contradiction map ({split})..."
+    )
+
+    if cdf.empty:
+        st.warning("No contradiction data available.")
+    else:
+        top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="inspect_top_n")
+        blue_w = st.slider("Blue claim weight", 0.0, 1.0, 0.5, 0.05, key="inspect_blue_w")
+        green_w = 1.0 - blue_w
+
+        cdf_view = cdf.copy()
+        cdf_view["combined"] = blue_w*cdf_view["blue_mismatch_rate"] + green_w*cdf_view["green_mismatch_rate"]
+        top = cdf_view.sort_values("combined", ascending=False).head(top_n)
+
         st.markdown("#### Inspect image + 5 captions")
         top_cats = set(top["category"].tolist())
         inspect_candidates = [img for img in imgs_split if parse_category(img["filename"]) in top_cats]
@@ -678,9 +742,6 @@ elif step == 5:
                     "captions": len(img.get("sentences", [])),
                 })
             inspect_df = pd.DataFrame(inspect_rows).sort_values(["combined", "filename"], ascending=[False, True]).reset_index(drop=True)
-
-            table_df = inspect_df.copy()
-            table_df.insert(0, "Inspect", False)
 
             selected_file = None
             try:
@@ -701,28 +762,17 @@ elif step == 5:
                     idx = event.selection["rows"][0]
                     selected_file = inspect_df.iloc[idx]["filename"]
             except TypeError:
-                edited = st.data_editor(
-                    table_df,
-                    use_container_width=True,
-                    hide_index=True,
-                    key=f"inspect_editor_{split}",
-                    column_config={
-                        "Inspect": st.column_config.CheckboxColumn("Inspect"),
-                        "filename": st.column_config.TextColumn("Filename 📁", disabled=True),
-                        "category": st.column_config.TextColumn("Category 🏷️", disabled=True),
-                        "combined": st.column_config.ProgressColumn("Category contradiction", min_value=0.0, max_value=1.0, format="%.2f"),
-                        "captions": st.column_config.NumberColumn("# Captions", format="%d"),
-                    }
+                selected_file = st.selectbox(
+                    "Choose a file",
+                    options=inspect_df["filename"].tolist(),
+                    key="contr_inspect_file"
                 )
-                chosen = edited[edited["Inspect"] == True]
-                if len(chosen) > 0:
-                    selected_file = chosen.iloc[0]["filename"]
 
             if not selected_file:
                 selected_file = st.selectbox(
                     "Choose a file",
                     options=inspect_df["filename"].tolist(),
-                    key="contr_inspect_file"
+                    key="contr_inspect_file_fallback"
                 )
 
             selected_img = next((img for img in inspect_candidates if img["filename"] == selected_file), None)
@@ -745,53 +795,6 @@ elif step == 5:
                         st.write(f"- [{i+1}] {s.get('raw', '')}")
         else:
             st.info("No image candidates for inspection in the selected top categories.")
-
-elif step == 7:
-    st.markdown("### Train/Test drift")
-    train_len = np.mean([len(tokenize(c)) for c in D["train_caps"]])
-    test_len = np.mean([len(tokenize(c)) for c in D["test_caps"]])
-    drift_df = pd.DataFrame({"metric":["avg_caption_len"], "train":[train_len], "test":[test_len]})
-    render_bento_table(
-        title="Train/Test drift summary",
-        icon="📉",
-        df=drift_df,
-        use_container_width=True,
-        hide_index=True,
-    )
-
-    st.markdown("### Threshold sensitivity")
-    thresholds = st.multiselect("Threshold set", [0.01,0.03,0.05,0.07,0.09,0.11,0.13], default=[0.03,0.05,0.07,0.09])
-    ths = sorted(thresholds) if thresholds else [0.03,0.05,0.07,0.09]
-
-    px_train_df = get_or_compute(
-        "image_pixel_stats::train",
-        lambda: image_pixel_stats(D["train_imgs"]),
-        spinner_text="Computing pixel stats (train)..."
-    )
-    dom_map_train = {r["category"]: r["dom"] for _, r in px_train_df.iterrows()}
-    probes = get_or_compute(
-        "anomaly_probe::train",
-        lambda: anomaly_probe(D["train_imgs"], dom_map_train),
-        spinner_text="Computing anomaly probes (train)..."
-    )
-    if probes:
-        counts = []
-        for th in ths:
-            cnt = 0
-            for p in probes:
-                layer_a = (not np.isnan(p["sim"])) and (p["sim"] < th)
-                if layer_a or p["layer_b"]:
-                    cnt += 1
-            counts.append(cnt)
-        fig, ax = make_fig(w_mult=1.1, h_mult=0.95)
-        ax.plot(ths, counts, marker='o', color=ACC, linewidth=2.4, markersize=7)
-        ax.fill_between(ths, counts, alpha=0.12, color=ACC)
-        ax.set_title("Anomaly count sensitivity", color=TEXT, pad=10)
-        ax.set_xlabel("Layer-A threshold")
-        ax.set_ylabel("Detected anomalies")
-        st.pyplot(fig)
-    else:
-        st.warning("scikit-learn unavailable; sensitivity disabled.")
 
 
 col1, col2 = st.columns(2)
