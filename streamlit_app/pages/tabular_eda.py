@@ -125,6 +125,8 @@ if "step" not in st.session_state:
     st.session_state.step = 0
 if "log" not in st.session_state:
     st.session_state.log = []
+if "tab_cache" not in st.session_state:
+    st.session_state.tab_cache = {}
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SIDEBAR
@@ -191,7 +193,7 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 #  DATA LOADING
 # ══════════════════════════════════════════════════════════════════════════════
-@st.cache(ttl=3600)
+@st.cache_data(ttl=3600, show_spinner=False)
 def load_wh_data():
     """
     Load World Happiness Report 2019.
@@ -399,6 +401,32 @@ FEAT_DESCRIPTIONS = {
 CHART_COLORS = ["#667eea", "#f093fb", "#4facfe", "#43e97b", "#f9bc2c", "#e17055", "#a29bfe"]
 
 
+def get_or_compute(cache_key, compute_fn):
+    if cache_key not in st.session_state.tab_cache:
+        st.session_state.tab_cache[cache_key] = compute_fn()
+    return st.session_state.tab_cache[cache_key]
+
+
+def make_fig(w_mult=1.0, h_mult=1.0):
+    fig, ax = plt.subplots(
+        figsize=(st.session_state.get("tab_chart_w", 5.2) * w_mult, st.session_state.get("tab_chart_h", 3.2) * h_mult),
+        dpi=110,
+    )
+    fig.patch.set_facecolor(BG)
+    ax.set_facecolor(BG)
+    ax.grid(axis="y", alpha=0.25)
+    return fig, ax
+
+
+def bento_table(title, df, **kwargs):
+    st.markdown(
+        f"<div style='background:{CARD};border:1px solid {BOR};border-radius:12px;padding:0.6rem 0.8rem;margin:0.35rem 0 0.7rem;'>"
+        f"<div style='font-size:0.78rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:{ACC};'>{title}</div></div>",
+        unsafe_allow_html=True,
+    )
+    st.dataframe(df, **kwargs)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  RUNNING — render header + step routing
 # ══════════════════════════════════════════════════════════════════════════════
@@ -413,6 +441,13 @@ if df is not None:
         src_label = "World Happiness Report 2019 · Synthetic (real structure)"
     st.markdown(f"<p style='font-size:0.95rem;font-weight:300;color:{MUT};margin:0 0 1rem'>"
                 f"{src_label}</p>", unsafe_allow_html=True)
+
+    with st.expander("🎛️ Visual controls", expanded=False):
+        c1, c2 = st.columns(2)
+        with c1:
+            st.slider("Chart width", 3.0, 8.0, 5.2, 0.2, key="tab_chart_w")
+        with c2:
+            st.slider("Chart height", 2.0, 5.2, 3.2, 0.2, key="tab_chart_h")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 0: Dataset Overview
@@ -455,7 +490,7 @@ if df is not None:
                 "Type": dtype,
                 "Description": FEAT_DESCRIPTIONS.get(col, "—"),
             })
-        st.dataframe(pd.DataFrame(feat_rows))
+        bento_table("Feature schema", pd.DataFrame(feat_rows), use_container_width=True, hide_index=True)
 
         st.markdown("")
         if st.button("Next: Missing Values →"):
@@ -491,7 +526,7 @@ if df is not None:
         if len(has_missing) == 0:
             st.success("✅  Dataset is clean — no missing values detected.")
         else:
-            fig, ax = plt.subplots(figsize=(10, max(3, len(has_missing) * 0.45)))
+            fig, ax = make_fig(w_mult=1.25, h_mult=max(0.9, len(has_missing) * 0.11))
             fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
             ax.barh(has_missing["Feature"][::-1], has_missing["Percent"][::-1],
                     color="#f093fb", edgecolor="none")
@@ -509,7 +544,7 @@ if df is not None:
             plt.tight_layout()
             st.pyplot(fig)
 
-            st.dataframe(has_missing.set_index("Feature"))
+            bento_table("Missing value summary", has_missing.set_index("Feature"), use_container_width=True)
             st.markdown("""
             **Recommendations:**
             - > 50% missing → consider dropping the column
@@ -540,7 +575,7 @@ if df is not None:
         chosen_feat  = st.selectbox("Select a feature to visualize", feat_options)
 
         vals = df[chosen_feat].dropna()
-        fig, ax = plt.subplots(figsize=(10, 4.5))
+        fig, ax = make_fig(w_mult=1.2, h_mult=1.0)
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
         ax.hist(vals, bins=25, color="#667eea", edgecolor=BG, alpha=0.85, rwidth=0.9)
         ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2,
@@ -693,7 +728,7 @@ if df is not None:
         </div>""", unsafe_allow_html=True)
 
         corr_cols = [c for c in NUMERICAL_COLS if c in df.columns]
-        corr_mat  = df[corr_cols].corr()
+        corr_mat  = get_or_compute("corr_mat", lambda: df[corr_cols].corr())
 
         fig, ax = plt.subplots(figsize=(10, 8.5))
         fig.patch.set_facecolor(BG)
@@ -791,26 +826,23 @@ if df is not None:
 
         # IQR stats table
         st.markdown("**IQR Outlier Statistics**")
-        iqr_rows = []
-        for feat in out_features:
-            vals = df[feat].dropna()
-            q1   = vals.quantile(0.25)
-            q3   = vals.quantile(0.75)
-            iqr  = q3 - q1
-            lo   = q1 - 1.5 * iqr
-            hi   = q3 + 1.5 * iqr
-            outs = df[(df[feat] < lo) | (df[feat] > hi)]
-            iqr_rows.append({
-                "Feature":       feat,
-                "Q1":           f"{q1:.3f}",
-                "Q3":           f"{q3:.3f}",
-                "IQR":          f"{iqr:.3f}",
-                "Lower Bound":  f"{lo:.3f}",
-                "Upper Bound":  f"{hi:.3f}",
-                "Outliers":     str(len(outs)),
-                "% Outliers":   f"{len(outs)/len(df)*100:.1f}%",
-            })
-        st.dataframe(pd.DataFrame(iqr_rows).set_index("Feature"))
+        iqr_rows = get_or_compute(
+            "iqr_rows",
+            lambda: [
+                {
+                    "Feature": feat,
+                    "Q1": f"{df[feat].dropna().quantile(0.25):.3f}",
+                    "Q3": f"{df[feat].dropna().quantile(0.75):.3f}",
+                    "IQR": f"{(df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)):.3f}",
+                    "Lower Bound": f"{(df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
+                    "Upper Bound": f"{(df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
+                    "Outliers": str(len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))])),
+                    "% Outliers": f"{len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))]) / len(df) * 100:.1f}%",
+                }
+                for feat in out_features
+            ]
+        )
+        bento_table("IQR outlier summary", pd.DataFrame(iqr_rows).set_index("Feature"), use_container_width=True)
 
         st.markdown("")
         if st.button("Next: GDP Level vs Score →"):

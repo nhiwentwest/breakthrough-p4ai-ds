@@ -39,6 +39,26 @@ st.markdown(
 [data-testid="stSidebarNav"] { display:none !important; }
 #MainMenu, footer, header { visibility:hidden; }
 .main .block-container { padding:1rem; }
+
+.bento-card {
+  background: linear-gradient(180deg, #F2ECE1 0%, #EEE6D9 100%);
+  border: 1px solid #D4C9B8;
+  border-radius: 12px;
+  padding: 0.65rem 0.85rem;
+  margin: 0.35rem 0 0.7rem;
+}
+.bento-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #B42318;
+}
+[data-testid="stDataFrame"] {
+  border: 1px solid #D4C9B8;
+  border-radius: 10px;
+  overflow: hidden;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -102,6 +122,31 @@ step = st.session_state.step
 
 st.markdown("## Image EDA · MNIST")
 st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
+
+with st.expander("🎛️ Visual controls", expanded=False):
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        chart_w = st.slider("Chart width", 3.0, 11.0, 6.0, 0.5, key="img_chart_w")
+    with c2:
+        chart_h = st.slider("Chart height", 2.0, 7.0, 3.8, 0.2, key="img_chart_h")
+    with c3:
+        image_w = st.slider("Image width", 120, 640, 280, 20, key="img_image_w")
+
+if "img_step_cache" not in st.session_state:
+    st.session_state.img_step_cache = {}
+
+
+def make_fig(w_mult=1.0, h_mult=1.0):
+    fig, ax = plt.subplots(figsize=(chart_w * w_mult, chart_h * h_mult), dpi=110)
+    fig.patch.set_facecolor("#F7F3EB")
+    ax.set_facecolor("#F7F3EB")
+    ax.grid(axis="y", alpha=0.25)
+    return fig, ax
+
+
+def bento_table(title, df, **kwargs):
+    st.markdown(f"<div class='bento-card'><div class='bento-title'>{title}</div></div>", unsafe_allow_html=True)
+    st.dataframe(df, **kwargs)
 
 if step == 0:
     st.write("Load train and test split from MNIST.")
@@ -215,7 +260,7 @@ elif step == 4:
             r, c = i // cols, i % cols
             idx = int(idx_sel[i])
             grid[r*img_h:(r+1)*img_h, c*img_w:(c+1)*img_w] = x[idx]
-        st.image(grid, width=min(cols * 40, 1200), clamp=True)
+        st.image(grid, width=int(min(max(image_w, cols * 20), 1200)), clamp=True)
     else:
         fig, axes = plt.subplots(rows, cols, figsize=(cols * 1.6, rows * 1.6))
         axes = np.array(axes).reshape(rows, cols)
