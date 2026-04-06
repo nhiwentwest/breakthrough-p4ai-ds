@@ -323,12 +323,13 @@ def contradiction_map(train_imgs, dom_map):
         groups = set()
         if any(k in c for k in ["river", "pond", "port", "boat", "harbor", "coast", "beach", "sea", "lake"]):
             groups.add("water_obj")
-        if any(k in c for k in ["forest", "meadow", "park", "farmland", "baseballfield", "playground", "grass"]):
+        if any(k in c for k in ["forest", "meadow", "park", "farmland", "baseballfield", "playground", "grass", "bareland", "desert"]):
             groups.add("vegetation_obj")
         if any(k in c for k in ["airport", "plane", "runway", "road", "bridge", "residential", "industrial", "church", "school", "stadium", "square", "center", "railway", "parking", "building", "viaduct"]):
             groups.add("urban_obj")
+        # Unknown categories should not be forced into urban-only prior (too harsh).
         if not groups:
-            groups.add("urban_obj")
+            groups = {"water_obj", "vegetation_obj", "urban_obj"}
         return groups
 
     stat = defaultdict(lambda: {"cc":0,"cm":0,"oc":0,"om":0})
