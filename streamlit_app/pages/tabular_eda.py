@@ -192,7 +192,7 @@ with st.sidebar:
     st.markdown("")
     if st.button("↺  Start Over"):
         reset_tabular_state()
-        st.experimental_rerun()
+        st.rerun()
 
     if phase == "done":
         st.markdown("---")
