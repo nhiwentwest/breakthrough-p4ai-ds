@@ -790,13 +790,17 @@ elif step == 6:
                 key="contr_selected_categories"
             )
         with csel2:
-            sample_mode = st.radio(
-                "Show sample modality",
-                ["Image + text", "Image only", "Text only"],
+            evidence_mode = st.radio(
+                "Evidence mode",
+                ["Image-based (color mismatch)", "Text-based (object mismatch)"],
                 horizontal=True,
-                key="contr_sample_mode"
+                key="contr_evidence_mode"
             )
-        per_cat = st.slider("Samples per category", 1, 3, 2, 1, key="contr_samples_per_cat")
+
+        if evidence_mode == "Image-based (color mismatch)":
+            per_cat = st.slider("Images per category", 3, 18, 6, 3, key="contr_images_per_cat")
+        else:
+            per_cat = st.slider("Samples per category (with 5 captions)", 1, 6, 2, 1, key="contr_text_per_cat")
 
         show_cats = selected_cats if selected_cats else top_cats[:1]
         for cat in show_cats:
@@ -804,18 +808,30 @@ elif step == 6:
             if not cat_imgs:
                 continue
             st.markdown(f"**{cat}**")
-            for img in cat_imgs[:per_cat]:
-                p = IMG_DIR / img["filename"]
-                if sample_mode in ["Image + text", "Image only"] and p.exists():
+
+            if evidence_mode == "Image-based (color mismatch)":
+                cols = st.columns(3)
+                shown = 0
+                for img in cat_imgs[:per_cat]:
+                    p = IMG_DIR / img["filename"]
+                    if not p.exists():
+                        continue
                     try:
                         with Image.open(p) as im:
-                            st.image(im.convert("RGB"), width=240)
+                            with cols[shown % 3]:
+                                st.image(im.convert("RGB"), use_container_width=True)
+                                st.caption(img["filename"])
+                        shown += 1
                     except Exception:
-                        pass
-                if sample_mode in ["Image + text", "Text only"]:
-                    caps = img.get("sentences", [])
-                    if caps:
-                        st.write(f"- {caps[0].get('raw', '')}")
+                        continue
+                if shown == 0:
+                    st.info("No image previews available for this category.")
+            else:
+                for img in cat_imgs[:per_cat]:
+                    st.write(f"**{img['filename']}**")
+                    for i, s in enumerate(img.get("sentences", [])[:5]):
+                        st.write(f"- [{i+1}] {s.get('raw', '')}")
+
             st.markdown("---")
 
 col1, col2 = st.columns(2)
