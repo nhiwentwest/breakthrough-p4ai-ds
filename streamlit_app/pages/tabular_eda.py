@@ -128,6 +128,17 @@ if "log" not in st.session_state:
 if "tab_cache" not in st.session_state:
     st.session_state.tab_cache = {}
 
+
+def reset_tabular_state():
+    keys_to_clear = [
+        "step", "log", "tab_cache", "df", "data_source",
+        "tab_chart_w", "tab_chart_h"
+    ]
+    for k in keys_to_clear:
+        if k in st.session_state:
+            del st.session_state[k]
+    st.session_state.phase = "idle"
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
@@ -180,10 +191,7 @@ with st.sidebar:
 
     st.markdown("")
     if st.button("↺  Start Over"):
-        for k in list(st.session_state.keys()):
-            if k not in ["phase"]:
-                del st.session_state[k]
-        st.session_state.phase = "idle"
+        reset_tabular_state()
         st.experimental_rerun()
 
     if phase == "done":
@@ -1151,6 +1159,5 @@ if st.session_state.phase == "done" and df is not None:
         st.success("Analysis Complete — all 9 steps finished.")
     with col_btn:
         if st.button("← Start Over", key="start_over_done"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
+            reset_tabular_state()
             st.experimental_rerun()
