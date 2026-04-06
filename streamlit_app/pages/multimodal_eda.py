@@ -364,14 +364,31 @@ def contradiction_map(train_imgs, dom_map):
                 if all(g not in supported_obj for g in claimed_groups):
                     stat[c]["om"] += 1
 
+    # Empirical-Bayes smoothing to avoid unstable rates from low-support categories
+    alpha_color = 8.0
+    alpha_object = 8.0
+    total_color_claims = sum(v["cc"] for v in stat.values())
+    total_color_mismatch = sum(v["cm"] for v in stat.values())
+    total_object_claims = sum(v["oc"] for v in stat.values())
+    total_object_mismatch = sum(v["om"] for v in stat.values())
+
+    global_color_rate = (total_color_mismatch / total_color_claims) if total_color_claims else 0.0
+    global_object_rate = (total_object_mismatch / total_object_claims) if total_object_claims else 0.0
+
     out = []
     for c, v in stat.items():
-        color_rate = v["cm"]/v["cc"] if v["cc"] else 0.0
-        object_rate = v["om"]/v["oc"] if v["oc"] else 0.0
+        color_raw = v["cm"]/v["cc"] if v["cc"] else 0.0
+        object_raw = v["om"]/v["oc"] if v["oc"] else 0.0
+
+        color_smoothed = ((v["cm"] + alpha_color * global_color_rate) / (v["cc"] + alpha_color)) if (v["cc"] + alpha_color) > 0 else 0.0
+        object_smoothed = ((v["om"] + alpha_object * global_object_rate) / (v["oc"] + alpha_object)) if (v["oc"] + alpha_object) > 0 else 0.0
+
         out.append({
             "category": c,
-            "color_mismatch_rate": color_rate,
-            "object_mismatch_rate": object_rate,
+            "color_mismatch_rate": color_smoothed,
+            "object_mismatch_rate": object_smoothed,
+            "color_mismatch_raw": color_raw,
+            "object_mismatch_raw": object_raw,
             "color_claims": v["cc"],
             "object_claims": v["oc"],
         })
