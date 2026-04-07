@@ -291,21 +291,35 @@ st.markdown("## Text EDA — Twitter Financial News Sentiment")
 st.caption(f"Step {step + 1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
 
 with st.expander("🎛️ Visual controls", expanded=False):
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        chart_w = st.slider("Chart width", 3.0, 9.0, 5.5, 0.5, key="text_chart_w")
+        chart_w = st.slider("Base width", 2.4, 7.0, 3.8, 0.2, key="text_chart_w")
     with c2:
-        chart_h = st.slider("Chart height", 2.0, 6.0, 3.2, 0.2, key="text_chart_h")
+        chart_h = st.slider("Base height", 1.6, 4.2, 2.3, 0.2, key="text_chart_h")
     with c3:
-        image_w = st.slider("Preview image width", 120, 520, 280, 20, key="text_image_w")
+        chart_scale = st.slider("Global scale", 0.45, 1.0, 0.62, 0.02, key="text_chart_scale")
+    with c4:
+        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="text_chart_panel")
+    with c5:
+        font_scale = st.slider("Font scale", 0.55, 1.1, 0.78, 0.05, key="text_font_scale")
+
+sns.set_context("paper", font_scale=font_scale)
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):
-    fig, ax = plt.subplots(figsize=(chart_w * w_mult, chart_h * h_mult), dpi=110)
+    fig_w = max(1.8, chart_w * w_mult * chart_scale)
+    fig_h = max(1.4, chart_h * h_mult * chart_scale)
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=110)
     fig.patch.set_facecolor("#F7F3EB")
     ax.set_facecolor("#F7F3EB")
     ax.grid(axis="y", alpha=0.25)
     return fig, ax
+
+
+def render_chart(fig):
+    col_l, col_m, col_r = st.columns([(1 - chart_panel) / 2, chart_panel, (1 - chart_panel) / 2])
+    with col_m:
+        render_chart(fig)
 
 
 def bento_table(title, df, **kwargs):
@@ -328,8 +342,9 @@ if step == 0:
     if full_sample:
         show_n = len(df)
     else:
-        max_preview = min(len(df), 500)
-        show_n = st.slider("Rows to show", 1, max_preview if max_preview > 0 else 1, min(50, max_preview if max_preview > 0 else 1), 1)
+        max_preview = len(df)
+        default_rows = min(120, max_preview if max_preview > 0 else 1)
+        show_n = st.slider("Rows to show", 1, max_preview if max_preview > 0 else 1, default_rows, 1)
 
     if sample_mode == "Random" and show_n < len(df):
         seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1, key="text_sample_seed")

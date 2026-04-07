@@ -427,12 +427,17 @@ def get_or_compute(cache_key, compute_fn):
 
 def make_fig(w_mult=1.0, h_mult=1.0):
     fig, ax = plt.subplots(
-        figsize=(st.session_state.get("tab_chart_w", 5.2) * w_mult, st.session_state.get("tab_chart_h", 3.2) * h_mult),
-        dpi=110,
+        figsize=(st.session_state.get("tab_chart_w", 5.6) * w_mult, st.session_state.get("tab_chart_h", 3.4) * h_mult),
+        dpi=120,
     )
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
-    ax.grid(axis="y", alpha=0.25)
+    if st.session_state.get("tab_show_grid", True):
+        ax.grid(axis="y", alpha=0.28, color=BOR, linestyle="--", linewidth=0.7)
+    else:
+        ax.grid(False)
+    fs = st.session_state.get("tab_font_scale", 1.0)
+    ax.tick_params(labelsize=max(7, int(9 * fs)))
     return fig, ax
 
 
@@ -461,11 +466,16 @@ if df is not None:
                 f"{src_label}</p>", unsafe_allow_html=True)
 
     with st.expander("🎛️ Visual controls", expanded=False):
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         with c1:
-            st.slider("Chart width", 3.0, 8.0, 5.2, 0.2, key="tab_chart_w")
+            st.slider("Chart width", 3.0, 9.0, 5.6, 0.2, key="tab_chart_w")
+            st.slider("Histogram bins", 8, 50, 24, 1, key="tab_hist_bins")
         with c2:
-            st.slider("Chart height", 2.0, 5.2, 3.2, 0.2, key="tab_chart_h")
+            st.slider("Chart height", 2.0, 6.0, 3.4, 0.2, key="tab_chart_h")
+            st.slider("Chart alpha", 0.45, 1.0, 0.85, 0.05, key="tab_alpha")
+        with c3:
+            st.slider("Font scale", 0.75, 1.35, 1.0, 0.05, key="tab_font_scale")
+            st.checkbox("Show grid", value=True, key="tab_show_grid")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 0: Dataset Overview
@@ -595,7 +605,9 @@ if df is not None:
         vals = df[chosen_feat].dropna()
         fig, ax = make_fig(w_mult=1.2, h_mult=1.0)
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-        ax.hist(vals, bins=25, color="#667eea", edgecolor=BG, alpha=0.85, rwidth=0.9)
+        bins = st.session_state.get("tab_hist_bins", 24)
+        alpha = st.session_state.get("tab_alpha", 0.85)
+        ax.hist(vals, bins=bins, color="#667eea", edgecolor=BG, alpha=alpha, rwidth=0.9)
         ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2,
                    label=f"Mean = {vals.mean():.3f}")
         ax.axvline(vals.median(), color="#f093fb", linestyle=":", lw=2,
@@ -694,18 +706,15 @@ if df is not None:
     elif st.session_state.step == 4:
         st.markdown("<p class='section-head'>Step 5 of 9 — Target Variable: Happiness Score</p>",
                     unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#E65100;'>
-          The **Happiness Score** (Score) is a continuous target variable ranging
-          roughly from 2 to 8.5. Let's examine its spread and shape.
-        </div>""", unsafe_allow_html=True)
 
         target = "Score"
         vals   = df[target].dropna()
 
-        fig, ax = plt.subplots(figsize=(10, 4.5))
+        fig, ax = make_fig(w_mult=1.25, h_mult=1.0)
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-        ax.hist(vals, bins=20, color="#f093fb", edgecolor=BG, alpha=0.85, rwidth=0.9)
+        bins = st.session_state.get("tab_hist_bins", 24)
+        alpha = st.session_state.get("tab_alpha", 0.85)
+        ax.hist(vals, bins=bins, color="#f093fb", edgecolor=BG, alpha=alpha, rwidth=0.9)
         ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2.5,
                    label=f"Mean = {vals.mean():.2f}")
         ax.axvline(vals.median(), color="#667eea", linestyle=":", lw=2,
@@ -941,7 +950,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"GDP vs Score: tier analysis complete")
             st.session_state.step = 8
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 8: Sample Data
@@ -973,7 +982,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Sample: top/bottom/random rows viewed")
             st.session_state.phase = "done"
-            st.experimental_rerun()
+            safe_rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  DONE STATE — Full Dashboard
@@ -1005,7 +1014,7 @@ if st.session_state.phase == "done" and df is not None:
 
     with r1c1:
         st.markdown("**Happiness Score Distribution**")
-        fig1, ax1 = plt.subplots(figsize=(7.5, 4.5))
+        fig1, ax1 = plt.subplots(figsize=(6.2, 3.6))
         fig1.patch.set_facecolor(BG); ax1.set_facecolor(BG)
         ax1.hist(vals, bins=20, color="#f093fb", edgecolor=BG, alpha=0.85, rwidth=0.9)
         ax1.axvline(vals.mean(), color=ACC, linestyle="--", lw=2.5,
@@ -1026,7 +1035,7 @@ if st.session_state.phase == "done" and df is not None:
         st.markdown("**GDP Level Distribution**")
         if "GDP_Level" in df.columns:
             vc = df["GDP_Level"].value_counts()
-            fig2, ax2 = plt.subplots(figsize=(7.5, 4.5))
+            fig2, ax2 = plt.subplots(figsize=(6.2, 3.6))
             fig2.patch.set_facecolor(BG); ax2.set_facecolor(BG)
             colors2 = ["#f093fb", "#667eea", "#4facfe"]
             ax2.bar(vc.index.astype(str), vc.values, color=colors2[:len(vc)], edgecolor="none")
@@ -1055,7 +1064,7 @@ if st.session_state.phase == "done" and df is not None:
             "Freedom to make life choices": "Freedom", "Generosity": "Generos.",
             "Perceptions of corruption": "Corrupt.",
         }
-        fig3, ax3 = plt.subplots(figsize=(7.5, 6))
+        fig3, ax3 = plt.subplots(figsize=(6.0, 4.9))
         fig3.patch.set_facecolor(BG)
         im3 = ax3.imshow(corr_mat.values, cmap="RdBu_r", vmin=-1, vmax=1)
         ax3.set_xticks(range(len(corr_cols)))
@@ -1078,7 +1087,7 @@ if st.session_state.phase == "done" and df is not None:
 
     with r2c2:
         st.markdown("**GDP per Capita Distribution**")
-        fig4, ax4 = plt.subplots(figsize=(7.5, 5))
+        fig4, ax4 = plt.subplots(figsize=(6.2, 3.9))
         fig4.patch.set_facecolor(BG); ax4.set_facecolor(BG)
         ax4.hist(gdp_vals, bins=25, color="#667eea", edgecolor=BG, alpha=0.85, rwidth=0.9)
         ax4.axvline(gdp_vals.mean(), color=ACC, linestyle="--", lw=2,
@@ -1108,7 +1117,7 @@ if st.session_state.phase == "done" and df is not None:
                     groups.append(sub.values)
                     labels_g.append(lbl)
                     colors_g.append(col)
-            fig5, ax5 = plt.subplots(figsize=(7.5, 4.5))
+            fig5, ax5 = plt.subplots(figsize=(6.2, 3.6))
             fig5.patch.set_facecolor(BG); ax5.set_facecolor(BG)
             bp5 = ax5.boxplot(groups, patch_artist=True, labels=labels_g, widths=0.55)
             for patch, color in zip(bp5["boxes"], colors_g):
@@ -1128,7 +1137,7 @@ if st.session_state.phase == "done" and df is not None:
     with r3c2:
         st.markdown("**Top 10 Happiest Countries**")
         top10 = df.sort_values("Overall rank").head(10)
-        fig6, ax6 = plt.subplots(figsize=(7.5, 4.5))
+        fig6, ax6 = plt.subplots(figsize=(6.2, 3.6))
         fig6.patch.set_facecolor(BG); ax6.set_facecolor(BG)
         cmap6 = plt.cm.Reds(np.linspace(0.35, 0.85, len(top10)))[::-1]
         ax6.barh(top10["Country or region"].values[::-1], top10["Score"].values[::-1],
