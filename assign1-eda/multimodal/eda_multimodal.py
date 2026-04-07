@@ -1061,198 +1061,153 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         sim_mat = cosine_similarity(cat_mat)
         category_similarity_df = pd.DataFrame(sim_mat, index=cat_names, columns=cat_names)
 
-    # ===== DUAL-LAYER NOISE DETECTION (Layer A: LOO centroid + IQR | Layer B: P05 cross-modal) =====
+    # ===== STRICT IMAGE-LEVEL NOISE DETECTION (semantic + contradiction) =====
     anomalies = []
     anomaly_probe = []
-    layer_a_q1 = layer_a_q3 = layer_a_iqr = layer_a_cutoff = np.nan
+    image_noise_rows = []
 
-    rgb_lookup = {}
-    p05_rgb = {'r': np.nan, 'g': np.nan, 'b': np.nan}
-    if pixel_stats:
-        gdf = pixel_stats.get('global_rgb_df')
-        if gdf is not None and not gdf.empty:
-            for _, row in gdf.iterrows():
-                rgb_lookup[row['filename']] = {
-                    'r_mean': float(row['r_mean']),
-                    'g_mean': float(row['g_mean']),
-                    'b_mean': float(row['b_mean']),
-                }
-        pr = pixel_stats.get('p05_rgb')
-        if pr:
-            for k in ('r', 'g', 'b'):
-                v = pr.get(k, np.nan)
-                fv = float(v)
-                if not np.isfinite(fv):
-                    raise ValueError(f"[LỖI] p05_rgb['{k}'] không hợp lệ: {v!r}")
-                p05_rgb[k] = fv
-
-    # Layer-B lexicons & rules (aligned with multi-color + object contradiction logic)
-    color_lexicon = {
-        'blue': ['blue', 'water', 'ocean', 'sea', 'lake', 'river', 'coast'],
-        'green': ['green', 'forest', 'tree', 'trees', 'woods', 'grass', 'park', 'vegetation'],
-        'red': ['red', 'brick', 'roof', 'clay'],
-        'brown': ['brown', 'soil', 'earth', 'sand', 'desert'],
-        'white': ['white', 'snow', 'cloud', 'cloudy'],
-        'gray': ['gray', 'grey', 'concrete', 'asphalt'],
-    }
-    object_lexicon = {
-        'water_obj': ['water', 'ocean', 'sea', 'lake', 'river', 'harbor', 'ship', 'boat'],
-        'vegetation_obj': ['forest', 'tree', 'trees', 'grass', 'field', 'farm', 'vegetation'],
-        'urban_obj': ['building', 'buildings', 'road', 'roads', 'bridge', 'airport', 'runway', 'city'],
-    }
-
-    # Layer A: one LOO centroid score per caption; global Tukey lower fence on all scores
-    per_image_loo = {}
+    # Build global Layer-A fence from leave-one-out caption similarities
     all_loo_scores = []
+    per_image_loo = {}
     for img in imgs:
         caps = [s['raw'] for s in img['sentences']]
-        if len(caps) >= 2:
-            scores = loo_caption_centroid_similarities(caps)
-        else:
-            scores = [np.nan] * len(caps)
+        scores = loo_caption_centroid_similarities(caps) if len(caps) >= 2 else [np.nan] * len(caps)
         per_image_loo[img['filename']] = scores
         all_loo_scores.extend(scores)
 
     loo_arr = np.array(all_loo_scores, dtype=float)
     loo_arr = loo_arr[~np.isnan(loo_arr)]
+    layer_a_q1 = layer_a_q3 = layer_a_iqr = layer_a_cutoff = np.nan
     if len(loo_arr) >= 4:
         layer_a_q1 = float(np.percentile(loo_arr, 25))
         layer_a_q3 = float(np.percentile(loo_arr, 75))
         layer_a_iqr = layer_a_q3 - layer_a_q1
         if layer_a_iqr > 0:
             layer_a_cutoff = layer_a_q1 - iqr_multiplier * layer_a_iqr
-        else:
-            layer_a_cutoff = np.nan
 
-    print(f"\n  Layer A (text): LOO TF-IDF centroid vs caption; Tukey lower fence Q1-{iqr_multiplier}*IQR")
+    print(f"\n  Strict noise scoring (image-level): semantic drift + contradiction evidence")
     if not np.isnan(layer_a_cutoff):
-        print(f"    Q1={layer_a_q1:.4f}  Q3={layer_a_q3:.4f}  IQR={layer_a_iqr:.4f}  cutoff={layer_a_cutoff:.4f}")
-    else:
-        print(f"    Q1={layer_a_q1}  Q3={layer_a_q3}  IQR={layer_a_iqr}  (cutoff disabled: IQR=0 or insufficient scores)")
+        print(f"    Layer-A fence: Q1={layer_a_q1:.4f}, Q3={layer_a_q3:.4f}, IQR={layer_a_iqr:.4f}, cutoff={layer_a_cutoff:.4f}")
 
-    print(f"\n  Layer B (cross-modal): multi-color + object-token consistency on image RGB means")
-    if imgs:
-        if not rgb_lookup or any(np.isnan(p05_rgb.get(k, np.nan)) for k in ('r', 'g', 'b')):
-            raise RuntimeError(
-                "[LỖI] Multimodal Layer B cần global_rgb_df và p05_rgb(R,G,B) hợp lệ từ analyze_image_pixel (đọc đủ ảnh TIF)."
-            )
-        print(
-            f"    P05(R)={p05_rgb['r']:.4f}  P05(G)={p05_rgb['g']:.4f}  P05(B)={p05_rgb['b']:.4f}  "
-            f"(from {len(rgb_lookup)} images)"
+    # Aggregate contradiction evidence from category-level table
+    contradiction_by_cat = {}
+    contradiction_df = pd.DataFrame(contradiction_rows)
+    if not contradiction_df.empty:
+        for _, r in contradiction_df.iterrows():
+            contradiction_by_cat[r['category']] = {
+                'color_rate': float(r.get('color_mismatch_rate', 0.0)),
+                'object_rate': float(r.get('object_mismatch_rate', 0.0)),
+            }
+
+    for img in imgs:
+        filename = img['filename']
+        cat = parse_filename(filename)
+        caps = [s['raw'] for s in img['sentences']]
+        if len(caps) < 2:
+            continue
+
+        vec = TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5), min_df=1, lowercase=True)
+        mat = vec.fit_transform(caps)
+        sim = cosine_similarity(mat)
+
+        iu = np.triu_indices_from(sim, k=1)
+        pair_vals = sim[iu]
+        mean_pair = float(np.mean(pair_vals)) if len(pair_vals) else np.nan
+
+        center = np.asarray(mat.mean(axis=0))
+        center_sims = cosine_similarity(mat, center).reshape(-1)
+        center_min = float(np.min(center_sims)) if len(center_sims) else np.nan
+
+        q1_img = float(np.percentile(center_sims, 25))
+        q3_img = float(np.percentile(center_sims, 75))
+        iqr_img = q3_img - q1_img
+        low_cut_img = q1_img - 1.5 * iqr_img
+        outlier_count = int(np.sum(center_sims < low_cut_img)) if iqr_img > 0 else 0
+
+        sem_noise = float(np.clip(1.0 - mean_pair, 0.0, 1.0))
+        center_penalty = float(np.clip((0.55 - center_min) / 0.55, 0.0, 1.0)) if np.isfinite(center_min) else 0.0
+
+        c_meta = contradiction_by_cat.get(cat, {'color_rate': 0.0, 'object_rate': 0.0})
+        color_rate = c_meta['color_rate']
+        object_rate = c_meta['object_rate']
+        contr_noise = 0.65 * color_rate + 0.35 * object_rate
+        outlier_boost = min(outlier_count / 3.0, 1.0)
+
+        noise_score = (
+            0.65 * (0.7 * sem_noise + 0.3 * center_penalty)
+            + 0.25 * contr_noise
+            + 0.10 * outlier_boost
+        )
+        noise_score = float(np.clip(noise_score, 0.0, 1.0))
+
+        high_conf = (
+            (noise_score >= 0.62)
+            and (mean_pair <= 0.56)
+            and (center_min <= 0.45)
+            and ((color_rate >= 0.5) or (object_rate >= 0.5) or (outlier_count >= 2))
+        )
+        med_conf = (
+            (noise_score >= 0.50)
+            and (mean_pair <= 0.62)
+            and ((color_rate >= 0.3) or (object_rate >= 0.3) or (outlier_count >= 1))
         )
 
-    if imgs:
-        for img in imgs:
-            cat = parse_filename(img['filename'])
-            filename = img['filename']
-            caps = [s['raw'] for s in img['sentences']]
-            loo_list = per_image_loo.get(filename, [np.nan] * len(caps))
+        confidence = 'HIGH' if high_conf else ('MEDIUM' if med_conf else 'LOW')
 
-            row_rgb = rgb_lookup.get(filename)
+        image_noise_rows.append({
+            'filename': filename,
+            'category': cat,
+            'confidence': confidence,
+            'noise_score': noise_score,
+            'mean_pairwise': mean_pair,
+            'center_min': center_min,
+            'outlier_count': outlier_count,
+            'color_mismatch_rate': color_rate,
+            'object_mismatch_rate': object_rate,
+            'captions': caps,
+        })
 
-            for i, cap in enumerate(caps):
-                layer_a_flag = False
-                layer_b_flag = False
-                reasons = []
-                loo_sim = loo_list[i] if i < len(loo_list) else np.nan
+        anomaly_probe.append({
+            'filename': filename,
+            'category': cat,
+            'loo_sim': center_min,
+            'layer_a': bool((not np.isnan(layer_a_cutoff)) and (center_min < layer_a_cutoff)),
+            'layer_b': bool((color_rate >= 0.5) or (object_rate >= 0.5)),
+        })
 
-                if not np.isnan(layer_a_cutoff) and not np.isnan(loo_sim):
-                    if loo_sim < layer_a_cutoff:
-                        layer_a_flag = True
-                        reasons.append(
-                            f"LOO_centroid={loo_sim:.3f} < {layer_a_cutoff:.3f} (Q1-{iqr_multiplier}*IQR)"
-                        )
+    image_noise_df = pd.DataFrame(image_noise_rows)
+    if not image_noise_df.empty:
+        image_noise_df = image_noise_df.sort_values(['noise_score', 'mean_pairwise', 'center_min'], ascending=[False, True, True])
 
-                cap_lower = cap.lower()
-                split_toks = set(cap_lower.replace(',', ' ').replace('.', ' ').split())
-                layer_b_score = 0.0
-                token_count = len(split_toks)
+        export_df = image_noise_df.copy()
+        export_df['captions'] = export_df['captions'].apply(lambda c: ' ||| '.join(c))
+        export_df.to_csv(OUTPUT_DIR / f'noisy_samples_strict_{split}.csv', index=False)
 
-                # Multi-color checks (caption color claims vs RGB channel lower-tail priors)
-                # Guardrails to reduce false positives:
-                # - require >=2 token hits for a color claim
-                # - neutral colors (white/gray) contribute lower score
-                color_checks = [
-                    ('blue', ('b_mean', 'b', color_lexicon['blue'])),
-                    ('green', ('g_mean', 'g', color_lexicon['green'])),
-                    ('red', ('r_mean', 'r', color_lexicon['red'])),
-                    ('brown', ('r_mean', 'r', color_lexicon['brown'])),
-                    ('white', ('r_mean', 'r', color_lexicon['white'])),
-                    ('gray', ('r_mean', 'r', color_lexicon['gray'])),
-                ]
-                if row_rgb is not None:
-                    for cname, (rgb_key, pkey, kws) in color_checks:
-                        hit_count = sum(1 for w in kws if w in split_toks)
-                        if hit_count < 2:
-                            continue
-                        pval = p05_rgb.get(pkey, np.nan)
-                        rval = row_rgb.get(rgb_key, np.nan)
-                        # stricter margin: must be meaningfully below lower tail
-                        margin = 0.015
-                        if (not np.isnan(pval)) and (not np.isnan(rval)) and (rval < (pval - margin)):
-                            w = 0.55 if cname in {'white', 'gray'} else 0.9
-                            layer_b_score += w
-                            reasons.append(
-                                f"{cname} claim({hit_count} toks) but {rgb_key}={rval:.3f} < P05({pkey.upper()})-m={pval-margin:.3f}"
-                            )
+        anomalies = []
+        for _, r in image_noise_df.iterrows():
+            if r['confidence'] == 'LOW':
+                continue
+            anomalies.append({
+                'filename': r['filename'],
+                'category': r['category'],
+                'caption_idx': '-',
+                'caption': ' ||| '.join(r['captions']),
+                'confidence': r['confidence'],
+                'reason': (
+                    f"noise={r['noise_score']:.3f}; pair={r['mean_pairwise']:.3f}; center_min={r['center_min']:.3f}; "
+                    f"outliers={int(r['outlier_count'])}; color={r['color_mismatch_rate']:.2f}; object={r['object_mismatch_rate']:.2f}"
+                ),
+            })
 
-                # Object-token checks (coarse category-token compatibility)
-                # Guardrails:
-                # - require >=2 token hits in a group
-                cat_lower = cat.lower()
-                for group, kws in object_lexicon.items():
-                    obj_hits = sum(1 for w in kws if w in split_toks)
-                    if obj_hits < 2:
-                        continue
-                    # avoid over-penalizing short captions
-                    if token_count < 7:
-                        continue
-                    if not any(kw in cat_lower for kw in kws):
-                        layer_b_score += 0.9
-                        reasons.append(f"{group} claim({obj_hits} toks) not supported by category='{cat}'")
-
-                layer_b_flag = layer_b_score >= 1.8
-
-                anomaly_probe.append({
-                    'filename': filename,
-                    'category': cat,
-                    'caption_idx': i + 1,
-                    'caption': cap,
-                    'loo_sim': loo_sim,
-                    'layer_a': layer_a_flag,
-                    'layer_b': layer_b_flag,
-                })
-
-                if layer_a_flag or layer_b_flag:
-                    confidence = "HIGH CONFIDENCE MISMATCH" if (layer_a_flag and layer_b_flag) else "LOW CONFIDENCE"
-                    anomalies.append({
-                        'filename': filename,
-                        'category': cat,
-                        'caption_idx': i + 1,
-                        'caption': cap,
-                        'confidence': confidence,
-                        'reason': "; ".join(reasons),
-                    })
-
-        print(f"\n  Anomaly Detection (LOO+IQR text + P05 cross-modal):")
-        print(f"    Total Images Scanned: {len(imgs)} | Total Captions: {sum(len(img['sentences']) for img in imgs)}")
-        print(f"    Anomalous Captions Found: {len(anomalies)}")
-        high_conf = sum(1 for a in anomalies if a['confidence'] == 'HIGH CONFIDENCE MISMATCH')
-        print(f"    - High Confidence: {high_conf}")
-        print(f"    - Low Confidence: {len(anomalies) - high_conf}")
-
-        if anomalies:
-            import csv
-            out_file = OUTPUT_DIR / f'noisy_samples_{split}.csv'
-            with open(out_file, 'w', encoding='utf-8', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(['Filename', 'Category', 'Caption_Index', 'Confidence', 'Reason', 'Caption_Text'])
-                anomalies_sorted = sorted(anomalies, key=lambda x: (x['confidence'] != 'HIGH CONFIDENCE MISMATCH', x['filename']))
-                for a in anomalies_sorted:
-                    writer.writerow([a['filename'], a['category'], a['caption_idx'], a['confidence'], a['reason'], a['caption']])
-            print(f"    Saved list of noisy samples to: {out_file.name}")
-
-    contradiction_df = pd.DataFrame(contradiction_rows)
+        n_high = int((image_noise_df['confidence'] == 'HIGH').sum())
+        n_med = int((image_noise_df['confidence'] == 'MEDIUM').sum())
+        n_low = int((image_noise_df['confidence'] == 'LOW').sum())
+        print(f"\n  Noise ranking complete: {len(image_noise_df)} images")
+        print(f"    Confidence counts => HIGH={n_high}, MEDIUM={n_med}, LOW={n_low}")
+        print(f"    Exported: noisy_samples_strict_{split}.csv (all rows)")
+        print("    Highest-noise samples (first 10 rows):")
+        for _, r in image_noise_df.head(10).iterrows():
+            print(f"      - {r['filename']} | {r['category']} | {r['confidence']} | score={r['noise_score']:.3f}")
 
     return {
         'variabilities': variabilities,
@@ -1266,6 +1221,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'total_caps': total_caps,
         'category_similarity_df': category_similarity_df,
         'contradiction_df': contradiction_df,
+        'image_noise_df': image_noise_df,
         'anomalies': anomalies,
         'anomaly_probe': anomaly_probe,
         'layer_a_q1': layer_a_q1,
@@ -1273,7 +1229,6 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         'layer_a_iqr': layer_a_iqr,
         'layer_a_cutoff': layer_a_cutoff,
         'iqr_multiplier': iqr_multiplier,
-        'p05_rgb': p05_rgb,
     }
 
 
