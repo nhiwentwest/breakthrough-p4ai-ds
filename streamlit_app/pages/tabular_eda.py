@@ -129,6 +129,16 @@ if "tab_cache" not in st.session_state:
     st.session_state.tab_cache = {}
 
 
+def safe_rerun():
+    rerun_fn = getattr(st, "rerun", None)
+    if callable(rerun_fn):
+        rerun_fn()
+        return
+    experimental_rerun_fn = getattr(st, "experimental_rerun", None)
+    if callable(experimental_rerun_fn):
+        experimental_rerun_fn()
+
+
 def reset_tabular_state():
     keys_to_clear = [
         "step", "log", "tab_cache", "df", "data_source",
@@ -192,7 +202,7 @@ with st.sidebar:
     st.markdown("")
     if st.button("↺  Start Over"):
         reset_tabular_state()
-        st.rerun()
+        safe_rerun()
 
     if phase == "done":
         st.markdown("---")
@@ -354,7 +364,7 @@ if st.session_state.phase == "idle":
         st.session_state.phase = "transitioning"
         st.session_state.step  = 0
         st.session_state.log   = []
-        st.rerun()
+        safe_rerun()
 
     st.markdown(f"<span class='hero-divider'></span>", unsafe_allow_html=True)
     st.markdown(f"<p class='footer'>P4AI-DS · UIT · 2025–2026</p>",
@@ -378,7 +388,7 @@ if st.session_state.phase == "transitioning":
     st.session_state.df = df
     st.session_state.data_source = data_source
     st.session_state.phase = "running"
-    st.rerun()
+    safe_rerun()
 
 # Restore from session_state
 df = st.session_state.get("df")
@@ -508,7 +518,7 @@ if df is not None:
                 f"Overview: {len(df)} rows · {len(df.columns)} cols"
             )
             st.session_state.step = 1
-            st.rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 1: Missing Values
@@ -565,7 +575,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Missing Values: {len(has_missing)} cols affected")
             st.session_state.step = 2
-            st.rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 2: Numerical Distributions
@@ -619,7 +629,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Numerical: {len(feat_options)} features analyzed")
             st.session_state.step = 3
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 3: Categorical — GDP Level
@@ -676,7 +686,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Categorical: GDP_Level distribution shown")
             st.session_state.step = 4
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 4: Target Distribution
@@ -721,7 +731,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Target: Score μ={vals.mean():.2f} [{vals.min():.1f}–{vals.max():.1f}]")
             st.session_state.step = 5
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 5: Correlation Analysis
@@ -789,7 +799,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Correlation: top predictor analyzed")
             st.session_state.step = 6
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 6: Outlier Detection (IQR Method)
@@ -857,7 +867,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Outliers: IQR analysis complete")
             st.session_state.step = 7
-            st.experimental_rerun()
+            safe_rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 7: GDP Level vs Score (Target vs Categorical)
