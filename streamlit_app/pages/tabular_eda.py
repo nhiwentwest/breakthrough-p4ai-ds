@@ -565,7 +565,7 @@ if df is not None:
             st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
                                         f"Missing Values: {len(has_missing)} cols affected")
             st.session_state.step = 2
-            st.experimental_rerun()
+            st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 2: Numerical Distributions
