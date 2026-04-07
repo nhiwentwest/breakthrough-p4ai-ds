@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text EDA | Assignment 01</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:        #F0EDE6;
+            --bg-card:   #FAF8F4;
+            --ink:       #1C1A16;
+            --ink-muted: #7A746A;
+            --ink-faint: #B0A89C;
+            --teal:      #2A7A70;
+            --teal-bg:   rgba(42, 122, 112, 0.10);
+            --teal-md:   rgba(42, 122, 112, 0.25);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --border:    rgba(28, 26, 22, 0.09);
+            --border-md: rgba(28, 26, 22, 0.14);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--teal); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo {
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .topbar-logo span { color: var(--teal); }
+        .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+        main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        .page-head { margin-bottom: 24px; }
+        .kicker { font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+        h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+        h1 em { font-style: normal; color: var(--teal); }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .chip {
+            font-size: 0.66rem; padding: 4px 12px;
+            border-radius: 999px; border: 1px solid var(--border-md);
+            background: var(--bg-card); color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--teal { background: var(--teal-bg); border-color: var(--teal-md); color: var(--teal); font-weight: 500; }
+        .chip--ok { background: rgba(45,106,79,0.09); border-color: rgba(45,106,79,0.28); color: #2D6A4F; font-weight: 500; }
+
+        .dataset-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 20px 22px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .dataset-card h2 { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+        .dataset-title { font-size: 1.05rem; font-weight: 700; color: var(--teal); margin-bottom: 4px; }
+        .dataset-sub { font-size: 0.72rem; color: var(--ink-muted); margin-bottom: 10px; }
+        .dataset-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { font-size: 0.64rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--shadow-sm);
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 4px; }
+        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--teal); line-height: 1; }
+        .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
+
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .link-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
+        }
+        .link-card:hover { border-color: var(--teal-md); transform: translateY(-2px); }
+        .link-icon { font-size: 1.1rem; }
+        .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .link-url { font-size: 0.63rem; color: var(--teal); font-family: monospace; word-break: break-all; }
+
+        .code-section { margin-bottom: 20px; }
+        .code-card {
+            background: #1C1A16; border-radius: var(--r-sm); overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+        .code-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .dot-r { background: #C0504A; }
+        .dot-y { background: #C47D00; }
+        .dot-g { background: #2D6A4F; }
+        .code-title { font-size: 0.7rem; color: #C8BFB0; margin-left: 4px; font-family: monospace; font-weight: 500; }
+        pre { padding: 16px 18px; overflow-x: auto; }
+        pre code { font-family: 'Menlo', 'Consolas', monospace; font-size: 0.72rem; color: #D4C9BB; line-height: 1.6; }
+
+        footer { text-align: center; padding: 18px; font-size: 0.63rem; letter-spacing: 0.08em; color: var(--ink-faint); border-top: 1px solid var(--border); }
+
+        @media (max-width: 640px) {
+            main { padding: 20px 16px 40px; }
+            .links-grid { grid-template-columns: 1fr; }
+            .topbar { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <div class="topbar-meta">A01 · Text · Twitter Financial News</div>
+</div>
+
+<main>
+
+    <header class="page-head">
+        <div class="kicker">Assignment 01 · Exploratory Data Analysis</div>
+        <h1>📝 Text <em>EDA</em></h1>
+        <div class="chips">
+            <span class="chip chip--teal">Twitter Financial News Sentiment</span>
+            <span class="chip chip--ok">Python · pandas · nltk · seaborn</span>
+            <span class="chip">NLP Classification</span>
+        </div>
+    </header>
+
+    <div class="dataset-card">
+        <h2>Dataset</h2>
+        <div class="dataset-title">Twitter Financial News Sentiment</div>
+        <div class="dataset-sub">Hugging Face · zeroshot/twitter-financial-news-sentiment</div>
+        <div class="dataset-meta">
+            <span class="meta-tag">Financial tweets</span>
+            <span class="meta-tag">3 sentiment labels</span>
+            <span class="meta-tag">Short-form text</span>
+            <span class="meta-tag">Domain-specific lexicon</span>
+            <span class="meta-tag">News-driven signals</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Task</div>
+            <div class="stat-val">Sentiment</div>
+            <div class="stat-sub">negative / neutral / positive</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Text type</div>
+            <div class="stat-val">Tweets</div>
+            <div class="stat-sub">short noisy financial language</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Domain</div>
+            <div class="stat-val">Finance</div>
+            <div class="stat-sub">market, company, macro events</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">EDA focus</div>
+            <div class="stat-val">Quality</div>
+            <div class="stat-sub">vocab, length, class balance</div>
+        </div>
+    </div>
+
+    <div class="links-grid">
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/text/eda_textbook.py" target="_blank" rel="noopener">
+            <span class="link-icon">🐍</span>
+            <span class="link-label">eda_textbook.py</span>
+            <span class="link-url">/assign1-eda/text/eda_textbook.py</span>
+        </a>
+        <a class="link-card" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign1-eda/text/eda_textbook.ipynb" target="_blank" rel="noopener">
+            <span class="link-icon">📓</span>
+            <span class="link-label">eda_textbook.ipynb</span>
+            <span class="link-url">/assign1-eda/text/eda_textbook.ipynb</span>
+        </a>
+        <a class="link-card" href="https://huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment" target="_blank" rel="noopener">
+            <span class="link-icon">🤗</span>
+            <span class="link-label">Source Dataset</span>
+            <span class="link-url">huggingface.co/datasets/zeroshot/twitter-financial-news-sentiment</span>
+        </a>
+    </div>
+
+    <div class="code-section">
+        <div class="code-header">
+            <span class="dot dot-r"></span>
+            <span class="dot dot-y"></span>
+            <span class="dot dot-g"></span>
+            <span class="code-title">terminal — run text EDA locally</span>
+        </div>
+        <div class="code-card">
+            <pre><code>pip install pandas numpy matplotlib seaborn nltk scikit-learn
+python eda_textbook.py</code></pre>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+</footer>
+
+</body>
+</html>
