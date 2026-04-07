@@ -317,9 +317,10 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 
 
 def render_chart(fig):
-    col_l, col_m, col_r = st.columns([(1 - chart_panel) / 2, chart_panel, (1 - chart_panel) / 2])
+    side = max(0.0, (1 - chart_panel) / 2)
+    col_l, col_m, col_r = st.columns([side, chart_panel, side])
     with col_m:
-        render_chart(fig)
+        st.pyplot(fig, use_container_width=True)
 
 
 def bento_table(title, df, **kwargs):
@@ -386,40 +387,41 @@ elif step == 2:
             "Ratio (%)": st.column_config.NumberColumn("Ratio %", format="%.1f%%")
         }
     )
-    fig, ax = plt.subplots(figsize=(2.5, 2.5))
+    fig, ax = make_fig(w_mult=1.0, h_mult=1.05)
     ax.pie(
         D["category_table"]["Ratio (%)"],
         labels=D["category_table"].index.astype(str),
         autopct="%1.1f%%",
         startangle=90,
-        colors=["#60a5fa", "#34d399", "#f97316"],
-        radius=0.9,
+        colors=["#7C3AED", "#0EA5E9", "#F59E0B"],
+        radius=0.88,
+        textprops={"fontsize": 8},
     )
-    ax.set_title("Category Distribution", fontsize=11)
-    right.pyplot(fig)
+    ax.set_title("Category Distribution", fontsize=10)
+    render_chart(fig)
 
 elif step == 3:
     bin_size = st.slider("Word-count bin size", 1, 10, 5)
     max_wc = int(df["word_count"].max())
     bins = np.arange(0, max_wc + bin_size, bin_size)
-    fig, ax = plt.subplots(figsize=(6, 2.5))
-    ax.hist(df["word_count"], bins=bins, color="#2563eb", edgecolor="white")
-    ax.set_title("Word Count Distribution")
-    ax.set_xlabel("Words per text")
-    ax.set_ylabel("Samples")
-    st.pyplot(fig)
+    fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
+    ax.hist(df["word_count"], bins=bins, color="#4F46E5", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
+    ax.set_title("Word Count Distribution", fontsize=10)
+    ax.set_xlabel("Words per text", fontsize=9)
+    ax.set_ylabel("Samples", fontsize=9)
+    render_chart(fig)
     st.dataframe(df["word_count"].describe().to_frame("value"), use_container_width=True)
 
 elif step == 4:
     bin_size = st.slider("Character-count bin size", 5, 40, 20)
     max_cc = int(df["char_count"].max())
     bins = np.arange(0, max_cc + bin_size, bin_size)
-    fig, ax = plt.subplots(figsize=(6, 2.5))
-    ax.hist(df["char_count"], bins=bins, color="#0ea5e9", edgecolor="white")
-    ax.set_title("Character Length Distribution")
-    ax.set_xlabel("Characters per text")
-    ax.set_ylabel("Samples")
-    st.pyplot(fig)
+    fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
+    ax.hist(df["char_count"], bins=bins, color="#0891B2", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
+    ax.set_title("Character Length Distribution", fontsize=10)
+    ax.set_xlabel("Characters per text", fontsize=9)
+    ax.set_ylabel("Samples", fontsize=9)
+    render_chart(fig)
     st.dataframe(df["char_count"].describe().to_frame("value"), use_container_width=True)
 
 elif step == 5:
@@ -436,10 +438,11 @@ elif step == 5:
             "Frequency": st.column_config.ProgressColumn("Frequency 📊", min_value=0, max_value=int(wdf["Frequency"].max()) if not wdf.empty else 100, format="%d")
         }
     )
-    fig, ax = plt.subplots(figsize=(5, 3.5))
-    ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#ef4444")
-    ax.set_title(f"Top {top_n} Word Frequency")
-    right.pyplot(fig)
+    fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
+    ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#B42318", edgecolor="none")
+    ax.set_title(f"Top {top_n} Word Frequency", fontsize=10)
+    ax.set_xlabel("Frequency", fontsize=9)
+    render_chart(fig)
 
     st.markdown("### Top Mentioned Tickers")
     top_tickers = D["ticker_freq"].most_common(5)
@@ -454,10 +457,12 @@ elif step == 5:
         }
     )
     if len(tdf) > 0:
-        fig2, ax2 = plt.subplots(figsize=(4, 2))
-        ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#10b981")
-        ax2.set_title("Top 5 Most Mentioned Tickers")
-        st.pyplot(fig2)
+        fig2, ax2 = make_fig(w_mult=1.1, h_mult=0.9)
+        ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#2A7A70", edgecolor="none")
+        ax2.set_title("Top 5 Most Mentioned Tickers", fontsize=10)
+        ax2.set_xlabel("Ticker", fontsize=9)
+        ax2.set_ylabel("Mentions", fontsize=9)
+        render_chart(fig2)
 
 elif step == 6:
     if not SKLEARN_AVAILABLE:
@@ -482,10 +487,11 @@ elif step == 6:
                 "score": st.column_config.ProgressColumn("TF-IDF Score 🎯", min_value=0.0, max_value=float(table["score"].max()) if not table.empty else 1.0, format="%.3f")
             }
         )
-        fig, ax = plt.subplots(figsize=(5, 3.5))
-        ax.barh(table["term"][::-1], table["score"][::-1], color="#f59e0b")
-        ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})")
-        st.pyplot(fig)
+        fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
+        ax.barh(table["term"][::-1], table["score"][::-1], color="#A06820", edgecolor="none")
+        ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})", fontsize=10)
+        ax.set_xlabel("TF-IDF score", fontsize=9)
+        render_chart(fig)
 
 elif step == 7:
     if not SKLEARN_AVAILABLE:
@@ -508,10 +514,11 @@ elif step == 7:
         table = bigram_map[int(label)]
         st.dataframe(table, use_container_width=True)
         if len(table) > 0:
-            fig, ax = plt.subplots(figsize=(5, 3.5))
-            ax.barh(table["bigram"][::-1], table["score"][::-1], color="#8b5cf6")
-            ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})")
-            st.pyplot(fig)
+            fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
+            ax.barh(table["bigram"][::-1], table["score"][::-1], color="#6B4C8E", edgecolor="none")
+            ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})", fontsize=10)
+            ax.set_xlabel("TF-IDF score", fontsize=9)
+            render_chart(fig)
 
 elif step == 8:
     if not SKLEARN_AVAILABLE:
@@ -524,16 +531,16 @@ elif step == 8:
             decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
         sim = compute_similarity(df, max_feat)
         st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
-        fig, ax = plt.subplots(figsize=(2.8, 2.2))
+        fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
         cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
         im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
         ax.set_xticks(range(len(sim.columns)))
         ax.set_yticks(range(len(sim.index)))
-        ax.set_xticklabels(sim.columns)
-        ax.set_yticklabels(sim.index)
-        ax.set_title("Category Similarity Matrix")
-        fig.colorbar(im, ax=ax)
-        st.pyplot(fig)
+        ax.set_xticklabels(sim.columns, fontsize=8)
+        ax.set_yticklabels(sim.index, fontsize=8)
+        ax.set_title("Category Similarity Matrix", fontsize=10)
+        fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
+        render_chart(fig)
 
 elif step == 9:
     if not SKLEARN_AVAILABLE:
@@ -566,12 +573,12 @@ elif step == 9:
                 "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
             }
         )
-        fig, ax = plt.subplots(figsize=(3.5, 2))
-        ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#dc2626")
-        ax.set_title("OOV Rate by Category")
-        ax.set_xlabel("Category")
-        ax.set_ylabel("OOV Rate (%)")
-        st.pyplot(fig)
+        fig, ax = make_fig(w_mult=1.2, h_mult=0.9)
+        ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#B42318", edgecolor="none")
+        ax.set_title("OOV Rate by Category", fontsize=10)
+        ax.set_xlabel("Category", fontsize=9)
+        ax.set_ylabel("OOV Rate (%)", fontsize=9)
+        render_chart(fig)
 
 col1, col2 = st.columns(2)
 with col1:
