@@ -15,17 +15,20 @@ sns.set_theme(style="whitegrid", rc={
     "figure.facecolor": "#F7F3EB",
     "axes.facecolor": "#F7F3EB",
     "axes.edgecolor": "#D4C9B8",
-    "axes.linewidth": 1.2,
+    "axes.linewidth": 1.0,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "grid.color": "#E5DFD3",
     "grid.linestyle": "--",
-    "grid.linewidth": 0.8,
+    "grid.linewidth": 0.7,
     "xtick.color": "#6B6560",
     "ytick.color": "#6B6560",
     "text.color": "#111111",
     "axes.labelcolor": "#111111",
-    "axes.titlesize": 13,
+    "axes.titlesize": 11,
+    "axes.labelsize": 9,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
     "axes.titleweight": "bold",
     "font.family": "sans-serif"
 })
@@ -301,9 +304,16 @@ with st.expander("🎛️ Visual controls", expanded=False):
     with c4:
         chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="text_chart_panel")
     with c5:
-        font_scale = st.slider("Font scale", 0.55, 1.1, 0.78, 0.05, key="text_font_scale")
+        font_scale = st.slider("Font scale", 0.45, 0.95, 0.65, 0.05, key="text_font_scale")
 
 sns.set_context("paper", font_scale=font_scale)
+plt.rcParams.update({
+    "axes.titlesize": max(8, int(10 * font_scale)),
+    "axes.labelsize": max(7, int(9 * font_scale)),
+    "xtick.labelsize": max(7, int(8 * font_scale)),
+    "ytick.labelsize": max(7, int(8 * font_scale)),
+    "legend.fontsize": max(7, int(8 * font_scale)),
+})
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):

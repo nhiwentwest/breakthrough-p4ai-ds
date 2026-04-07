@@ -1061,18 +1061,18 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         sim_mat = cosine_similarity(cat_mat)
         category_similarity_df = pd.DataFrame(sim_mat, index=cat_names, columns=cat_names)
 
-    # ===== STRICT IMAGE-LEVEL NOISE DETECTION (semantic + contradiction) =====
+    # ===== THREE-LAYER IMAGE-LEVEL NOISE DETECTION =====
+    # Layer A: intra-caption semantic inconsistency
+    # Layer B: cross-modal contradiction evidence
+    # Layer C: uncertainty calibration (low-information captions)
     anomalies = []
     anomaly_probe = []
     image_noise_rows = []
 
-    # Build global Layer-A fence from leave-one-out caption similarities
     all_loo_scores = []
-    per_image_loo = {}
     for img in imgs:
         caps = [s['raw'] for s in img['sentences']]
         scores = loo_caption_centroid_similarities(caps) if len(caps) >= 2 else [np.nan] * len(caps)
-        per_image_loo[img['filename']] = scores
         all_loo_scores.extend(scores)
 
     loo_arr = np.array(all_loo_scores, dtype=float)
@@ -1085,11 +1085,10 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         if layer_a_iqr > 0:
             layer_a_cutoff = layer_a_q1 - iqr_multiplier * layer_a_iqr
 
-    print(f"\n  Strict noise scoring (image-level): semantic drift + contradiction evidence")
+    print("\n  Three-layer noise scoring (A: semantic, B: contradiction, C: uncertainty)")
     if not np.isnan(layer_a_cutoff):
         print(f"    Layer-A fence: Q1={layer_a_q1:.4f}, Q3={layer_a_q3:.4f}, IQR={layer_a_iqr:.4f}, cutoff={layer_a_cutoff:.4f}")
 
-    # Aggregate contradiction evidence from category-level table
     contradiction_by_cat = {}
     contradiction_df = pd.DataFrame(contradiction_rows)
     if not contradiction_df.empty:
@@ -1124,46 +1123,132 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         low_cut_img = q1_img - 1.5 * iqr_img
         outlier_count = int(np.sum(center_sims < low_cut_img)) if iqr_img > 0 else 0
 
+        # Layer A
         sem_noise = float(np.clip(1.0 - mean_pair, 0.0, 1.0))
         center_penalty = float(np.clip((0.55 - center_min) / 0.55, 0.0, 1.0)) if np.isfinite(center_min) else 0.0
+        layer_a_score = 0.7 * sem_noise + 0.3 * center_penalty
 
-        c_meta = contradiction_by_cat.get(cat, {'color_rate': 0.0, 'object_rate': 0.0})
-        color_rate = c_meta['color_rate']
-        object_rate = c_meta['object_rate']
-        contr_noise = 0.65 * color_rate + 0.35 * object_rate
-        outlier_boost = min(outlier_count / 3.0, 1.0)
+        # Layer B (per-image contradiction + weak category prior)
+        color_lexicon_img = {
+            'blue': ['blue', 'water', 'ocean', 'sea', 'lake', 'river', 'coast'],
+            'green': ['green', 'forest', 'tree', 'trees', 'woods', 'grass', 'park', 'vegetation'],
+            'red': ['red', 'brick', 'roof', 'clay'],
+            'brown': ['brown', 'soil', 'earth', 'sand', 'desert'],
+            'white': ['white', 'snow', 'cloud', 'cloudy'],
+            'gray': ['gray', 'grey', 'concrete', 'asphalt'],
+        }
+        object_lexicon_img = {
+            'water_obj': ['water', 'ocean', 'sea', 'lake', 'river', 'harbor', 'ship', 'boat'],
+            'vegetation_obj': ['forest', 'tree', 'trees', 'grass', 'field', 'farm', 'vegetation'],
+            'urban_obj': ['building', 'buildings', 'road', 'roads', 'bridge', 'airport', 'runway', 'city'],
+        }
+        dom_to_supported_colors_img = {
+            'G>R>B': {'green', 'white', 'gray'},
+            'B>R>G': {'blue', 'white', 'gray'},
+            'R>G>B': {'red', 'brown', 'white', 'gray'},
+            'R≈G>B': {'gray', 'white', 'brown', 'green', 'blue'},
+        }
 
-        noise_score = (
-            0.65 * (0.7 * sem_noise + 0.3 * center_penalty)
-            + 0.25 * contr_noise
-            + 0.10 * outlier_boost
-        )
-        noise_score = float(np.clip(noise_score, 0.0, 1.0))
+        dom_ch = pixel_stats['dom_channel'].get(cat, 'R≈G>B') if pixel_stats and 'dom_channel' in pixel_stats else 'R≈G>B'
+        supported_colors_img = dom_to_supported_colors_img.get(dom_ch, {'white', 'gray'})
 
-        high_conf = (
-            (noise_score >= 0.62)
-            and (mean_pair <= 0.56)
-            and (center_min <= 0.45)
-            and ((color_rate >= 0.5) or (object_rate >= 0.5) or (outlier_count >= 2))
-        )
-        med_conf = (
-            (noise_score >= 0.50)
-            and (mean_pair <= 0.62)
-            and ((color_rate >= 0.3) or (object_rate >= 0.3) or (outlier_count >= 1))
-        )
+        cat_lower = cat.lower()
+        supported_obj_groups = set()
+        if any(k in cat_lower for k in ['river', 'pond', 'port', 'boat', 'harbor', 'coast', 'beach', 'sea', 'lake']):
+            supported_obj_groups.add('water_obj')
+        if any(k in cat_lower for k in ['forest', 'meadow', 'park', 'farmland', 'baseballfield', 'playground', 'grass', 'bareland', 'desert']):
+            supported_obj_groups.add('vegetation_obj')
+        if any(k in cat_lower for k in ['airport', 'plane', 'runway', 'road', 'bridge', 'residential', 'industrial', 'church', 'school', 'stadium', 'square', 'center', 'railway', 'parking', 'building', 'viaduct']):
+            supported_obj_groups.add('urban_obj')
+        if not supported_obj_groups:
+            supported_obj_groups = {'water_obj', 'vegetation_obj', 'urban_obj'}
 
-        confidence = 'HIGH' if high_conf else ('MEDIUM' if med_conf else 'LOW')
+        img_color_claims = img_color_mismatch = 0
+        img_object_claims = img_object_mismatch = 0
+        for cap in caps:
+            toks = set(tokenize(cap))
+
+            claimed_colors = set()
+            for cname, kws in color_lexicon_img.items():
+                hit_count = sum(1 for w in kws if w in toks)
+                direct = cname in toks or (cname == 'gray' and 'grey' in toks)
+                if hit_count >= 2 or direct:
+                    claimed_colors.add(cname)
+            vivid_claims = {x for x in claimed_colors if x not in {'white', 'gray'}}
+            if vivid_claims:
+                img_color_claims += 1
+                if vivid_claims.isdisjoint(supported_colors_img):
+                    img_color_mismatch += 1
+
+            claimed_groups = []
+            for gname, kws in object_lexicon_img.items():
+                hit_count = sum(1 for w in kws if w in toks)
+                if hit_count >= 2:
+                    claimed_groups.append(gname)
+            if claimed_groups:
+                img_object_claims += 1
+                if all(g not in supported_obj_groups for g in claimed_groups):
+                    img_object_mismatch += 1
+
+        img_color_rate = (img_color_mismatch / img_color_claims) if img_color_claims else 0.0
+        img_object_rate = (img_object_mismatch / img_object_claims) if img_object_claims else 0.0
+
+        prior_meta = contradiction_by_cat.get(cat, {'color_rate': 0.0, 'object_rate': 0.0})
+        prior_color_rate = prior_meta['color_rate']
+        prior_object_rate = prior_meta['object_rate']
+
+        # weak prior: image-level evidence dominates
+        color_rate = 0.85 * img_color_rate + 0.15 * prior_color_rate
+        object_rate = 0.85 * img_object_rate + 0.15 * prior_object_rate
+        layer_b_score = 0.65 * color_rate + 0.35 * object_rate
+
+        # Layer C (uncertainty)
+        token_counts = [len(re.findall(r"\b[a-z]+\b", cap.lower())) for cap in caps]
+        avg_tokens = float(np.mean(token_counts)) if token_counts else 0.0
+        low_info_penalty = float(np.clip((8.0 - avg_tokens) / 8.0, 0.0, 1.0))
+        uncertainty_score = 0.7 * low_info_penalty + 0.3 * min(outlier_count / 3.0, 1.0)
+
+        noise_score = float(np.clip(
+            0.58 * layer_a_score + 0.30 * layer_b_score + 0.12 * uncertainty_score,
+            0.0,
+            1.0,
+        ))
+
+        if noise_score >= 0.62 and layer_a_score >= 0.45 and (layer_b_score >= 0.35 or outlier_count >= 2):
+            confidence = 'HIGH'
+        elif noise_score >= 0.50 and (layer_a_score >= 0.36 or layer_b_score >= 0.25 or outlier_count >= 1):
+            confidence = 'MEDIUM'
+        else:
+            confidence = 'LOW'
+
+        if confidence == 'HIGH' and layer_b_score >= 0.40:
+            noise_type = 'cross_modal_mismatch'
+        elif confidence in {'HIGH', 'MEDIUM'} and layer_a_score >= 0.42:
+            noise_type = 'semantic_drift'
+        elif confidence in {'HIGH', 'MEDIUM'} and uncertainty_score >= 0.45:
+            noise_type = 'linguistic_low_info'
+        else:
+            noise_type = 'clean_or_borderline'
 
         image_noise_rows.append({
             'filename': filename,
             'category': cat,
             'confidence': confidence,
+            'noise_type': noise_type,
             'noise_score': noise_score,
+            'layer_a_score': layer_a_score,
+            'layer_b_score': layer_b_score,
+            'layer_c_score': uncertainty_score,
             'mean_pairwise': mean_pair,
             'center_min': center_min,
             'outlier_count': outlier_count,
+            'avg_caption_tokens': avg_tokens,
             'color_mismatch_rate': color_rate,
             'object_mismatch_rate': object_rate,
+            'img_color_mismatch_rate': img_color_rate,
+            'img_object_mismatch_rate': img_object_rate,
+            'prior_color_mismatch_rate': prior_color_rate,
+            'prior_object_mismatch_rate': prior_object_rate,
             'captions': caps,
         })
 
@@ -1172,12 +1257,13 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
             'category': cat,
             'loo_sim': center_min,
             'layer_a': bool((not np.isnan(layer_a_cutoff)) and (center_min < layer_a_cutoff)),
-            'layer_b': bool((color_rate >= 0.5) or (object_rate >= 0.5)),
+            'layer_b': bool(layer_b_score >= 0.35),
+            'layer_c': bool(uncertainty_score >= 0.45),
         })
 
     image_noise_df = pd.DataFrame(image_noise_rows)
     if not image_noise_df.empty:
-        image_noise_df = image_noise_df.sort_values(['noise_score', 'mean_pairwise', 'center_min'], ascending=[False, True, True])
+        image_noise_df = image_noise_df.sort_values(['noise_score', 'layer_a_score', 'layer_b_score'], ascending=[False, False, False])
 
         export_df = image_noise_df.copy()
         export_df['captions'] = export_df['captions'].apply(lambda c: ' ||| '.join(c))
@@ -1194,8 +1280,8 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                 'caption': ' ||| '.join(r['captions']),
                 'confidence': r['confidence'],
                 'reason': (
-                    f"noise={r['noise_score']:.3f}; pair={r['mean_pairwise']:.3f}; center_min={r['center_min']:.3f}; "
-                    f"outliers={int(r['outlier_count'])}; color={r['color_mismatch_rate']:.2f}; object={r['object_mismatch_rate']:.2f}"
+                    f"type={r['noise_type']}; noise={r['noise_score']:.3f}; A={r['layer_a_score']:.3f}; "
+                    f"B={r['layer_b_score']:.3f}; C={r['layer_c_score']:.3f}; outliers={int(r['outlier_count'])}"
                 ),
             })
 
@@ -1204,10 +1290,14 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
         n_low = int((image_noise_df['confidence'] == 'LOW').sum())
         print(f"\n  Noise ranking complete: {len(image_noise_df)} images")
         print(f"    Confidence counts => HIGH={n_high}, MEDIUM={n_med}, LOW={n_low}")
+        if 'noise_type' in image_noise_df.columns:
+            print("    Noise type counts:")
+            for k, v in image_noise_df['noise_type'].value_counts().to_dict().items():
+                print(f"      - {k}: {v}")
         print(f"    Exported: noisy_samples_strict_{split}.csv (all rows)")
         print("    Highest-noise samples (first 10 rows):")
         for _, r in image_noise_df.head(10).iterrows():
-            print(f"      - {r['filename']} | {r['category']} | {r['confidence']} | score={r['noise_score']:.3f}")
+            print(f"      - {r['filename']} | {r['category']} | {r['confidence']} | {r['noise_type']} | score={r['noise_score']:.3f}")
 
     return {
         'variabilities': variabilities,

@@ -397,15 +397,56 @@ def contradiction_map(train_imgs, dom_map):
 
 
 @st.cache_data(show_spinner=False, persist="disk")
-def image_noise_probe(imgs):
-    """Detect noisy/unstable caption sets at image level.
+def image_noise_probe(imgs, contradiction_df, dom_map_items):
+    """Three-layer noise scoring (A semantic, B contradiction, C uncertainty).
 
-    A sample is considered noisy when:
-    - captions are semantically far from each other (low mean pairwise similarity), and/or
-    - at least one caption is an outlier against the image caption set centroid.
+    Layer B uses image-level contradiction as primary evidence and category prior
+    only as a weak prior (15%).
     """
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
+
+    dom_map = dict(dom_map_items)
+    contradiction_by_cat = {}
+    if contradiction_df is not None and not contradiction_df.empty:
+        for _, r in contradiction_df.iterrows():
+            contradiction_by_cat[str(r["category"])] = {
+                "color_rate": float(r.get("color_mismatch_rate", 0.0)),
+                "object_rate": float(r.get("object_mismatch_rate", 0.0)),
+            }
+
+    color_lexicon = {
+        "blue": ["blue", "water", "ocean", "sea", "lake", "river", "coast"],
+        "green": ["green", "forest", "tree", "trees", "woods", "grass", "park", "vegetation"],
+        "red": ["red", "brick", "roof", "clay"],
+        "brown": ["brown", "soil", "earth", "sand", "desert"],
+        "white": ["white", "snow", "cloud", "cloudy"],
+        "gray": ["gray", "grey", "concrete", "asphalt"],
+    }
+    object_lexicon = {
+        "water_obj": ["water", "ocean", "sea", "lake", "river", "harbor", "ship", "boat"],
+        "vegetation_obj": ["forest", "tree", "trees", "grass", "field", "farm", "vegetation"],
+        "urban_obj": ["building", "buildings", "road", "roads", "bridge", "airport", "runway", "city"],
+    }
+    dom_to_supported_colors = {
+        "G>R>B": {"green", "white", "gray"},
+        "B>R>G": {"blue", "white", "gray"},
+        "R>G>B": {"red", "brown", "white", "gray"},
+        "R≈G>B": {"gray", "white", "brown", "green", "blue"},
+    }
+
+    def infer_supported_object_groups(cat_name: str):
+        c = cat_name.lower()
+        groups = set()
+        if any(k in c for k in ["river", "pond", "port", "boat", "harbor", "coast", "beach", "sea", "lake"]):
+            groups.add("water_obj")
+        if any(k in c for k in ["forest", "meadow", "park", "farmland", "baseballfield", "playground", "grass", "bareland", "desert"]):
+            groups.add("vegetation_obj")
+        if any(k in c for k in ["airport", "plane", "runway", "road", "bridge", "residential", "industrial", "church", "school", "stadium", "square", "center", "railway", "parking", "building", "viaduct"]):
+            groups.add("urban_obj")
+        if not groups:
+            groups = {"water_obj", "vegetation_obj", "urban_obj"}
+        return groups
 
     rows = []
     for img in imgs:
@@ -416,31 +457,89 @@ def image_noise_probe(imgs):
             v = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1, lowercase=True)
             m = v.fit_transform(caps)
             sim = cosine_similarity(m)
-
             iu = np.triu_indices_from(sim, k=1)
             pair_vals = sim[iu] if len(iu[0]) else np.array([1.0])
             mean_pair = float(np.mean(pair_vals))
-            std_pair = float(np.std(pair_vals))
 
             centroid = np.asarray(m.mean(axis=0))
             cap_to_center = cosine_similarity(m, centroid).reshape(-1)
             center_mean = float(np.mean(cap_to_center))
             center_std = float(np.std(cap_to_center))
-
             outlier_mask = cap_to_center < (center_mean - 1.0 * center_std)
             outlier_count = int(np.sum(outlier_mask))
             worst_idx = int(np.argmin(cap_to_center))
+            center_min = float(np.min(cap_to_center))
 
-            noise_score = float(np.clip((1.0 - mean_pair) * 0.7 + std_pair * 0.2 + (outlier_count / len(caps)) * 0.1, 0.0, 1.0))
+            # Layer A
+            sem_noise = float(np.clip(1.0 - mean_pair, 0.0, 1.0))
+            center_penalty = float(np.clip((0.55 - center_min) / 0.55, 0.0, 1.0)) if np.isfinite(center_min) else 0.0
+            layer_a_score = 0.7 * sem_noise + 0.3 * center_penalty
+
+            # Layer B (image-level dominant + weak category prior)
+            cat = parse_category(img["filename"])
+            dom = dom_map.get(cat, "R≈G>B")
+            supported_colors = dom_to_supported_colors.get(dom, {"white", "gray"})
+            supported_objs = infer_supported_object_groups(cat)
+
+            img_color_claims = img_color_mismatch = 0
+            img_object_claims = img_object_mismatch = 0
+            for cap in caps:
+                toks = set(tokenize(cap))
+
+                claimed_colors = set()
+                for cname, kws in color_lexicon.items():
+                    hit_count = sum(1 for w in kws if w in toks)
+                    direct = cname in toks or (cname == "gray" and "grey" in toks)
+                    if hit_count >= 2 or direct:
+                        claimed_colors.add(cname)
+                vivid_claims = {x for x in claimed_colors if x not in {"white", "gray"}}
+                if vivid_claims:
+                    img_color_claims += 1
+                    if vivid_claims.isdisjoint(supported_colors):
+                        img_color_mismatch += 1
+
+                claimed_groups = []
+                for gname, kws in object_lexicon.items():
+                    if sum(1 for w in kws if w in toks) >= 2:
+                        claimed_groups.append(gname)
+                if claimed_groups:
+                    img_object_claims += 1
+                    if all(g not in supported_objs for g in claimed_groups):
+                        img_object_mismatch += 1
+
+            img_color_rate = (img_color_mismatch / img_color_claims) if img_color_claims else 0.0
+            img_object_rate = (img_object_mismatch / img_object_claims) if img_object_claims else 0.0
+
+            prior = contradiction_by_cat.get(cat, {"color_rate": 0.0, "object_rate": 0.0})
+            prior_color_rate = prior["color_rate"]
+            prior_object_rate = prior["object_rate"]
+
+            color_rate = 0.85 * img_color_rate + 0.15 * prior_color_rate
+            object_rate = 0.85 * img_object_rate + 0.15 * prior_object_rate
+            layer_b_score = 0.65 * color_rate + 0.35 * object_rate
+
+            # Layer C
+            token_counts = [len(re.findall(r"\b[a-z]+\b", cap.lower())) for cap in caps]
+            avg_tokens = float(np.mean(token_counts)) if token_counts else 0.0
+            low_info_penalty = float(np.clip((8.0 - avg_tokens) / 8.0, 0.0, 1.0))
+            layer_c_score = 0.7 * low_info_penalty + 0.3 * min(outlier_count / 3.0, 1.0)
+
+            noise_score = float(np.clip(0.58 * layer_a_score + 0.30 * layer_b_score + 0.12 * layer_c_score, 0.0, 1.0))
 
             rows.append({
                 "filename": img["filename"],
-                "category": parse_category(img["filename"]),
+                "category": cat,
                 "mean_pairwise": mean_pair,
-                "std_pairwise": std_pair,
                 "center_mean": center_mean,
-                "center_min": float(np.min(cap_to_center)),
+                "center_min": center_min,
                 "outlier_count": outlier_count,
+                "layer_a_score": layer_a_score,
+                "layer_b_score": layer_b_score,
+                "layer_c_score": layer_c_score,
+                "img_color_mismatch_rate": img_color_rate,
+                "img_object_mismatch_rate": img_object_rate,
+                "prior_color_mismatch_rate": prior_color_rate,
+                "prior_object_mismatch_rate": prior_object_rate,
                 "noise_score": noise_score,
                 "worst_caption": caps[worst_idx],
             })
@@ -676,10 +775,21 @@ elif step == 5:
         spinner_text=f"Computing semantic consistency ({split}, char_wb_3_5)..."
     )
     imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+    px_df_split = get_or_compute(
+        f"image_pixel_stats::{split}",
+        lambda: image_pixel_stats(imgs_split),
+        spinner_text=f"Computing pixel stats ({split})..."
+    )
+    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
+    cdf_split = get_or_compute(
+        f"contradiction_map::{split}",
+        lambda: contradiction_map(imgs_split, dom_map_split),
+        spinner_text=f"Computing contradiction map ({split})..."
+    )
     noise_df = get_or_compute(
-        f"image_noise_probe::{split}",
-        lambda: image_noise_probe(imgs_split),
-        spinner_text=f"Computing image-level noise probe ({split})..."
+        f"image_noise_probe::{split}::three_layer_v2",
+        lambda: image_noise_probe(imgs_split, cdf_split, tuple(sorted(dom_map_split.items()))),
+        spinner_text=f"Computing three-layer image noise probe ({split})..."
     )
 
     if sem.empty:
@@ -740,13 +850,24 @@ elif step == 5:
         render_bento_table(
             title="Potential noisy samples",
             icon="🧪",
-            df=noisy_candidates[["filename", "category", "noise_score", "mean_pairwise", "outlier_count", "center_min"]].head(80),
+            df=noisy_candidates[[
+                "filename", "category", "noise_score", "layer_a_score", "layer_b_score", "layer_c_score",
+                "img_color_mismatch_rate", "img_object_mismatch_rate", "prior_color_mismatch_rate", "prior_object_mismatch_rate",
+                "mean_pairwise", "outlier_count", "center_min"
+            ]].head(80),
             use_container_width=True,
             hide_index=True,
             column_config={
                 "filename": st.column_config.TextColumn("File 📁"),
                 "category": st.column_config.TextColumn("Category 🏷️"),
                 "noise_score": st.column_config.ProgressColumn("Noise Score", min_value=0.0, max_value=1.0, format="%.3f"),
+                "layer_a_score": st.column_config.ProgressColumn("A: Semantic", min_value=0.0, max_value=1.0, format="%.3f"),
+                "layer_b_score": st.column_config.ProgressColumn("B: Contradiction", min_value=0.0, max_value=1.0, format="%.3f"),
+                "layer_c_score": st.column_config.ProgressColumn("C: Uncertainty", min_value=0.0, max_value=1.0, format="%.3f"),
+                "img_color_mismatch_rate": st.column_config.NumberColumn("Img Color Mis", format="%.2f"),
+                "img_object_mismatch_rate": st.column_config.NumberColumn("Img Object Mis", format="%.2f"),
+                "prior_color_mismatch_rate": st.column_config.NumberColumn("Prior Color", format="%.2f"),
+                "prior_object_mismatch_rate": st.column_config.NumberColumn("Prior Object", format="%.2f"),
                 "mean_pairwise": st.column_config.ProgressColumn("Mean Pairwise Sim", min_value=0.0, max_value=1.0, format="%.3f"),
                 "outlier_count": st.column_config.NumberColumn("Caption Outliers", format="%d"),
                 "center_min": st.column_config.NumberColumn("Worst-to-Center Sim", format="%.3f"),
