@@ -469,7 +469,7 @@ def loo_caption_centroid_similarities(caps):
     out = []
     for i in range(n):
         others = [caps[j] for j in range(n) if j != i]
-        vec = TfidfVectorizer(stop_words='english', min_df=1)
+        vec = TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5), min_df=1, lowercase=True)
         mat_o = vec.fit_transform(others)
         centroid = np.asarray(mat_o.mean(axis=0))
         cap_vec = vec.transform([caps[i]])
@@ -861,7 +861,7 @@ def main():
         print(f"  - {f.name}")
 
 
-def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None, iqr_multiplier=1.5):
+def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=None, iqr_multiplier=2.0):
     print(f"\n{'='*60}")
     print(f"MULTIMODAL ANALYSIS — {split.upper()} SET")
     print(f"{'='*60}")
@@ -877,7 +877,7 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
 
         sem_sim = np.nan
         if len(caps_raw) >= 2:
-            vec_local = TfidfVectorizer(stop_words='english', min_df=1)
+            vec_local = TfidfVectorizer(analyzer='char_wb', ngram_range=(3, 5), min_df=1, lowercase=True)
             mat_local = vec_local.fit_transform(caps_raw)
             sim_local = cosine_similarity(mat_local)
             upper_idx = np.triu_indices_from(sim_local, k=1)
@@ -964,41 +964,80 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
             if prep in cl:
                 SPATIAL_PREPS[prep] += 1
 
-    # Category-level contradiction map: caption color claims vs pixel dominant channels
+    # Category-level contradiction map: multi-color + object token mismatch (heuristic, model-free)
     contradiction_rows = []
     if pixel_stats and 'dom_channel' in pixel_stats:
-        cap_stats = defaultdict(lambda: {'n': 0, 'blue_claims': 0, 'green_claims': 0, 'blue_mismatch': 0, 'green_mismatch': 0})
-        water_blue_kws = ['water', 'blue', 'ocean', 'sea', 'lake', 'river']
-        green_forest_kws = ['green', 'forest', 'tree', 'woods', 'grass', 'park']
+        color_lexicon = {
+            'blue': ['blue', 'water', 'ocean', 'sea', 'lake', 'river', 'coast'],
+            'green': ['green', 'forest', 'tree', 'trees', 'woods', 'grass', 'park', 'vegetation'],
+            'red': ['red', 'brick', 'roof', 'clay'],
+            'brown': ['brown', 'soil', 'earth', 'sand', 'desert'],
+            'white': ['white', 'snow', 'cloud', 'cloudy'],
+            'gray': ['gray', 'grey', 'concrete', 'asphalt'],
+        }
+        object_lexicon = {
+            'water_obj': ['water', 'ocean', 'sea', 'lake', 'river', 'harbor', 'ship', 'boat'],
+            'vegetation_obj': ['forest', 'tree', 'trees', 'grass', 'field', 'farm', 'vegetation'],
+            'urban_obj': ['building', 'buildings', 'road', 'roads', 'bridge', 'airport', 'runway', 'city'],
+        }
+
+        # dominant-channel to likely supported colors (coarse prior)
+        dom_to_supported_colors = {
+            'G>R>B': {'green'},
+            'B>R>G': {'blue'},
+            'R>G>B': {'red', 'brown'},
+            'R≈G>B': {'gray', 'white', 'brown'},
+        }
+
+        cap_stats = defaultdict(lambda: {
+            'n': 0,
+            'color_claims': 0,
+            'color_mismatch': 0,
+            'object_claims': 0,
+            'object_mismatch': 0,
+        })
 
         for img in imgs:
             cat = parse_filename(img['filename'])
             img_dom_channel = pixel_stats['dom_channel'].get(cat, 'R≈G>B')
-            for s in img['sentences']:
-                cap = s['raw'].lower()
-                toks = cap.replace(',', ' ').replace('.', ' ').split()
-                has_blue = any(w in toks for w in water_blue_kws)
-                has_green = any(w in toks for w in green_forest_kws)
+            supported_colors = dom_to_supported_colors.get(img_dom_channel, {'gray'})
+            cat_lower = cat.lower()
 
+            for s in img['sentences']:
+                toks = set(tokenize(s['raw']))
                 cap_stats[cat]['n'] += 1
-                if has_blue:
-                    cap_stats[cat]['blue_claims'] += 1
-                    if img_dom_channel in ['R>G>B', 'G>R>B']:
-                        cap_stats[cat]['blue_mismatch'] += 1
-                if has_green:
-                    cap_stats[cat]['green_claims'] += 1
-                    if img_dom_channel in ['R>G>B', 'B>R>G']:
-                        cap_stats[cat]['green_mismatch'] += 1
+
+                # Color claims
+                claimed_colors = set()
+                for cname, kws in color_lexicon.items():
+                    if any(w in toks for w in kws):
+                        claimed_colors.add(cname)
+                if claimed_colors:
+                    cap_stats[cat]['color_claims'] += 1
+                    if claimed_colors.isdisjoint(supported_colors):
+                        cap_stats[cat]['color_mismatch'] += 1
+
+                # Object claims (mismatch if token group is absent from category name)
+                claimed_obj_groups = []
+                for group, kws in object_lexicon.items():
+                    if any(w in toks for w in kws):
+                        claimed_obj_groups.append((group, kws))
+                if claimed_obj_groups:
+                    cap_stats[cat]['object_claims'] += 1
+                    if not any(any(kw in cat_lower for kw in kws) for _, kws in claimed_obj_groups):
+                        cap_stats[cat]['object_mismatch'] += 1
 
         for cat, d in cap_stats.items():
-            blue_rate = (d['blue_mismatch'] / d['blue_claims']) if d['blue_claims'] > 0 else 0.0
-            green_rate = (d['green_mismatch'] / d['green_claims']) if d['green_claims'] > 0 else 0.0
+            color_rate = (d['color_mismatch'] / d['color_claims']) if d['color_claims'] > 0 else 0.0
+            object_rate = (d['object_mismatch'] / d['object_claims']) if d['object_claims'] > 0 else 0.0
+            combined = 0.6 * color_rate + 0.4 * object_rate
             contradiction_rows.append({
                 'category': cat,
-                'blue_mismatch_rate': blue_rate,
-                'green_mismatch_rate': green_rate,
-                'blue_claims': d['blue_claims'],
-                'green_claims': d['green_claims'],
+                'color_mismatch_rate': color_rate,
+                'object_mismatch_rate': object_rate,
+                'combined_mismatch_rate': combined,
+                'color_claims': d['color_claims'],
+                'object_claims': d['object_claims'],
                 'total_caps': d['n'],
             })
     print(f"\n  Spatial relationships:")
@@ -1047,8 +1086,20 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                     raise ValueError(f"[LỖI] p05_rgb['{k}'] không hợp lệ: {v!r}")
                 p05_rgb[k] = fv
 
-    water_blue_kws = ['water', 'blue', 'ocean', 'sea', 'lake', 'river']
-    green_forest_kws = ['green', 'forest', 'tree', 'woods', 'grass', 'park']
+    # Layer-B lexicons & rules (aligned with multi-color + object contradiction logic)
+    color_lexicon = {
+        'blue': ['blue', 'water', 'ocean', 'sea', 'lake', 'river', 'coast'],
+        'green': ['green', 'forest', 'tree', 'trees', 'woods', 'grass', 'park', 'vegetation'],
+        'red': ['red', 'brick', 'roof', 'clay'],
+        'brown': ['brown', 'soil', 'earth', 'sand', 'desert'],
+        'white': ['white', 'snow', 'cloud', 'cloudy'],
+        'gray': ['gray', 'grey', 'concrete', 'asphalt'],
+    }
+    object_lexicon = {
+        'water_obj': ['water', 'ocean', 'sea', 'lake', 'river', 'harbor', 'ship', 'boat'],
+        'vegetation_obj': ['forest', 'tree', 'trees', 'grass', 'field', 'farm', 'vegetation'],
+        'urban_obj': ['building', 'buildings', 'road', 'roads', 'bridge', 'airport', 'runway', 'city'],
+    }
 
     # Layer A: one LOO centroid score per caption; global Tukey lower fence on all scores
     per_image_loo = {}
@@ -1079,13 +1130,16 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
     else:
         print(f"    Q1={layer_a_q1}  Q3={layer_a_q3}  IQR={layer_a_iqr}  (cutoff disabled: IQR=0 or insufficient scores)")
 
-    print(f"\n  Layer B (cross-modal): water/blue vs P05(B); green/forest vs P05(G) on full-split RGB means")
+    print(f"\n  Layer B (cross-modal): multi-color + object-token consistency on image RGB means")
     if imgs:
-        if not rgb_lookup or any(np.isnan(p05_rgb.get(k, np.nan)) for k in ('b', 'g')):
+        if not rgb_lookup or any(np.isnan(p05_rgb.get(k, np.nan)) for k in ('r', 'g', 'b')):
             raise RuntimeError(
-                "[LỖI] Multimodal Layer B cần global_rgb_df và p05_rgb hợp lệ từ analyze_image_pixel (đọc đủ ảnh TIF)."
+                "[LỖI] Multimodal Layer B cần global_rgb_df và p05_rgb(R,G,B) hợp lệ từ analyze_image_pixel (đọc đủ ảnh TIF)."
             )
-        print(f"    P05(B)={p05_rgb['b']:.4f}  P05(G)={p05_rgb['g']:.4f}  (from {len(rgb_lookup)} images)")
+        print(
+            f"    P05(R)={p05_rgb['r']:.4f}  P05(G)={p05_rgb['g']:.4f}  P05(B)={p05_rgb['b']:.4f}  "
+            f"(from {len(rgb_lookup)} images)"
+        )
 
     if imgs:
         for img in imgs:
@@ -1110,22 +1164,54 @@ def analyze_multimodal(imgs, split='train', cat_keyword_dict=None, pixel_stats=N
                         )
 
                 cap_lower = cap.lower()
-                split_toks = cap_lower.replace(',', ' ').replace('.', ' ').split()
-                has_blue = any(w in split_toks for w in water_blue_kws)
-                has_green = any(w in split_toks for w in green_forest_kws)
+                split_toks = set(cap_lower.replace(',', ' ').replace('.', ' ').split())
+                layer_b_score = 0.0
+                token_count = len(split_toks)
 
-                if row_rgb is not None and not np.isnan(p05_rgb.get('b', np.nan)):
-                    if has_blue and row_rgb['b_mean'] < p05_rgb['b']:
-                        layer_b_flag = True
-                        reasons.append(
-                            f"water/blue lexicon but b_mean={row_rgb['b_mean']:.3f} < P05(B)={p05_rgb['b']:.3f}"
-                        )
-                if row_rgb is not None and not np.isnan(p05_rgb.get('g', np.nan)):
-                    if has_green and row_rgb['g_mean'] < p05_rgb['g']:
-                        layer_b_flag = True
-                        reasons.append(
-                            f"green/forest lexicon but g_mean={row_rgb['g_mean']:.3f} < P05(G)={p05_rgb['g']:.3f}"
-                        )
+                # Multi-color checks (caption color claims vs RGB channel lower-tail priors)
+                # Guardrails to reduce false positives:
+                # - require >=2 token hits for a color claim
+                # - neutral colors (white/gray) contribute lower score
+                color_checks = [
+                    ('blue', ('b_mean', 'b', color_lexicon['blue'])),
+                    ('green', ('g_mean', 'g', color_lexicon['green'])),
+                    ('red', ('r_mean', 'r', color_lexicon['red'])),
+                    ('brown', ('r_mean', 'r', color_lexicon['brown'])),
+                    ('white', ('r_mean', 'r', color_lexicon['white'])),
+                    ('gray', ('r_mean', 'r', color_lexicon['gray'])),
+                ]
+                if row_rgb is not None:
+                    for cname, (rgb_key, pkey, kws) in color_checks:
+                        hit_count = sum(1 for w in kws if w in split_toks)
+                        if hit_count < 2:
+                            continue
+                        pval = p05_rgb.get(pkey, np.nan)
+                        rval = row_rgb.get(rgb_key, np.nan)
+                        # stricter margin: must be meaningfully below lower tail
+                        margin = 0.015
+                        if (not np.isnan(pval)) and (not np.isnan(rval)) and (rval < (pval - margin)):
+                            w = 0.55 if cname in {'white', 'gray'} else 0.9
+                            layer_b_score += w
+                            reasons.append(
+                                f"{cname} claim({hit_count} toks) but {rgb_key}={rval:.3f} < P05({pkey.upper()})-m={pval-margin:.3f}"
+                            )
+
+                # Object-token checks (coarse category-token compatibility)
+                # Guardrails:
+                # - require >=2 token hits in a group
+                cat_lower = cat.lower()
+                for group, kws in object_lexicon.items():
+                    obj_hits = sum(1 for w in kws if w in split_toks)
+                    if obj_hits < 2:
+                        continue
+                    # avoid over-penalizing short captions
+                    if token_count < 7:
+                        continue
+                    if not any(kw in cat_lower for kw in kws):
+                        layer_b_score += 0.9
+                        reasons.append(f"{group} claim({obj_hits} toks) not supported by category='{cat}'")
+
+                layer_b_flag = layer_b_score >= 1.8
 
                 anomaly_probe.append({
                     'filename': filename,
@@ -1347,15 +1433,18 @@ def viz_multimodal(mm_stats, split='train'):
     contradiction_df = mm_stats.get('contradiction_df', pd.DataFrame())
     if not contradiction_df.empty:
         top_cd = contradiction_df.copy()
-        top_cd['combined'] = 0.5 * top_cd['blue_mismatch_rate'] + 0.5 * top_cd['green_mismatch_rate']
-        top_cd = top_cd.sort_values('combined', ascending=False).head(20)
-        heat_df = top_cd.set_index('category')[['blue_mismatch_rate', 'green_mismatch_rate']]
+        if 'combined_mismatch_rate' not in top_cd.columns:
+            top_cd['combined_mismatch_rate'] = 0.0
+        top_cd = top_cd.sort_values('combined_mismatch_rate', ascending=False).head(20)
 
-        fig_c, ax_c = plt.subplots(figsize=(8.2, 6.8))
+        heat_cols = [c for c in ['color_mismatch_rate', 'object_mismatch_rate', 'combined_mismatch_rate'] if c in top_cd.columns]
+        heat_df = top_cd.set_index('category')[heat_cols]
+
+        fig_c, ax_c = plt.subplots(figsize=(9.0, 7.0))
         fig_c.patch.set_facecolor(BG)
         sns.heatmap(heat_df, annot=True, fmt='.2f', cmap='OrRd', vmin=0, vmax=1, ax=ax_c)
         ax_c.set_title(f'Cross-modal Contradiction Map ({split.upper()})')
-        ax_c.set_xlabel('Caption claim type')
+        ax_c.set_xlabel('Mismatch type')
         ax_c.set_ylabel('Category')
         plt.tight_layout()
         plt.savefig(OUTPUT_DIR / f'mm_06_contradiction_map_{split}.png', dpi=180, bbox_inches='tight')

@@ -354,7 +354,7 @@ if st.session_state.phase == "idle":
         st.session_state.phase = "transitioning"
         st.session_state.step  = 0
         st.session_state.log   = []
-        st.experimental_rerun()
+        st.rerun()
 
     st.markdown(f"<span class='hero-divider'></span>", unsafe_allow_html=True)
     st.markdown(f"<p class='footer'>P4AI-DS · UIT · 2025–2026</p>",
@@ -378,7 +378,7 @@ if st.session_state.phase == "transitioning":
     st.session_state.df = df
     st.session_state.data_source = data_source
     st.session_state.phase = "running"
-    st.experimental_rerun()
+    st.rerun()
 
 # Restore from session_state
 df = st.session_state.get("df")
@@ -508,7 +508,7 @@ if df is not None:
                 f"Overview: {len(df)} rows · {len(df.columns)} cols"
             )
             st.session_state.step = 1
-            st.experimental_rerun()
+            st.rerun()
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 1: Missing Values

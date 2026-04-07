@@ -109,8 +109,8 @@ STEP_LABELS = {
     2: "Image EDA Core",
     3: "Multimodal Baseline",
     4: "Category Cosine Similarity",
-    5: "Semantic Consistency",
-    6: "Contradiction Map + Samples",
+    5: "Semantic Consistency + Noise Probe",
+    6: "Contradiction Map + Evidence Explorer",
 }
 
 STOP_WORDS = {
@@ -397,40 +397,57 @@ def contradiction_map(train_imgs, dom_map):
 
 
 @st.cache_data(show_spinner=False, persist="disk")
-def anomaly_probe(train_imgs, dom_map):
-    if not SKLEARN_AVAILABLE:
-        return []
-    cat_caps = defaultdict(list)
-    for img in train_imgs:
-        c = parse_category(img["filename"])
-        for s in img["sentences"]:
-            cat_caps[c].append(s["raw"])
-    vecs, cents = {}, {}
-    for c, caps in cat_caps.items():
-        if len(caps) > 2:
-            v = TfidfVectorizer(stop_words="english", min_df=1)
-            m = v.fit_transform(caps)
-            vecs[c] = v
-            cents[c] = np.asarray(m.mean(axis=0))
+def image_noise_probe(imgs):
+    """Detect noisy/unstable caption sets at image level.
 
-    blue = ['water','blue','ocean','sea','lake','river']
-    green = ['green','forest','tree','woods','grass','park']
-    probes = []
-    for img in train_imgs:
-        c = parse_category(img["filename"])
-        d = dom_map.get(c, "R≈G>B")
-        for s in img["sentences"]:
-            cap = s["raw"]
-            sim = np.nan
-            if c in vecs:
-                cv = vecs[c].transform([cap]).toarray()
-                sim = cosine_similarity(cv, cents[c])[0][0] if np.sum(cv) > 0 else 0.0
-            toks = tokenize(cap)
-            hb = any(w in toks for w in blue)
-            hg = any(w in toks for w in green)
-            layer_b = (hb and d in ["R>G>B","G>R>B"]) or (hg and d in ["R>G>B","B>R>G"])
-            probes.append({"sim": sim, "layer_b": layer_b})
-    return probes
+    A sample is considered noisy when:
+    - captions are semantically far from each other (low mean pairwise similarity), and/or
+    - at least one caption is an outlier against the image caption set centroid.
+    """
+    if not SKLEARN_AVAILABLE:
+        return pd.DataFrame()
+
+    rows = []
+    for img in imgs:
+        caps = [s.get("raw", "") for s in img.get("sentences", []) if s.get("raw", "").strip()]
+        if len(caps) < 2:
+            continue
+        try:
+            v = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), min_df=1, lowercase=True)
+            m = v.fit_transform(caps)
+            sim = cosine_similarity(m)
+
+            iu = np.triu_indices_from(sim, k=1)
+            pair_vals = sim[iu] if len(iu[0]) else np.array([1.0])
+            mean_pair = float(np.mean(pair_vals))
+            std_pair = float(np.std(pair_vals))
+
+            centroid = np.asarray(m.mean(axis=0))
+            cap_to_center = cosine_similarity(m, centroid).reshape(-1)
+            center_mean = float(np.mean(cap_to_center))
+            center_std = float(np.std(cap_to_center))
+
+            outlier_mask = cap_to_center < (center_mean - 1.0 * center_std)
+            outlier_count = int(np.sum(outlier_mask))
+            worst_idx = int(np.argmin(cap_to_center))
+
+            noise_score = float(np.clip((1.0 - mean_pair) * 0.7 + std_pair * 0.2 + (outlier_count / len(caps)) * 0.1, 0.0, 1.0))
+
+            rows.append({
+                "filename": img["filename"],
+                "category": parse_category(img["filename"]),
+                "mean_pairwise": mean_pair,
+                "std_pairwise": std_pair,
+                "center_mean": center_mean,
+                "center_min": float(np.min(cap_to_center)),
+                "outlier_count": outlier_count,
+                "noise_score": noise_score,
+                "worst_caption": caps[worst_idx],
+            })
+        except Exception:
+            continue
+
+    return pd.DataFrame(rows)
 
 
 if st.session_state.D is None:
@@ -651,12 +668,20 @@ elif step == 4:
 
 elif step == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
-    st.caption("Semantic metric: Char-wb TF-IDF (3–5)")
+    st.caption("Semantic metric: Char-wb TF-IDF (3–5) + image-level noise probe")
+
     sem = get_or_compute(
         f"semantic_consistency::{split}::char_wb_3_5",
         lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
         spinner_text=f"Computing semantic consistency ({split}, char_wb_3_5)..."
     )
+    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+    noise_df = get_or_compute(
+        f"image_noise_probe::{split}",
+        lambda: image_noise_probe(imgs_split),
+        spinner_text=f"Computing image-level noise probe ({split})..."
+    )
+
     if sem.empty:
         st.error("scikit-learn unavailable; cannot compute semantic consistency.")
     else:
@@ -687,17 +712,57 @@ elif step == 5:
             }
         )
 
-        st.markdown("#### Inspect image + 5 captions (semantic)")
-        selected_sem_file = st.selectbox(
-            "Choose a sample from low-consistency set",
-            options=low_view["filename"].tolist(),
-            key="sem_inspect_file"
+    st.markdown("### Noise pattern detection (image-level)")
+    if noise_df.empty:
+        st.info("Noise probe unavailable for current split.")
+    else:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            noise_bins = st.slider("Noise bins", 10, 45, 22, key="noise_bins")
+        with c2:
+            low_pair_th = st.slider("Low pairwise similarity threshold", 0.20, 0.95, 0.55, 0.01, key="noise_pair_th")
+        with c3:
+            high_noise_th = st.slider("High noise score threshold", 0.10, 0.95, 0.45, 0.01, key="noise_score_th")
+
+        fig_noise, axn = make_fig(w_mult=1.0, h_mult=0.85)
+        axn.hist(noise_df["noise_score"].dropna(), bins=noise_bins, color="#ef4444", edgecolor="white", alpha=0.88)
+        axn.axvline(noise_df["noise_score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={noise_df['noise_score'].mean():.3f}")
+        axn.axvline(high_noise_th, color="#1f2937", linestyle=":", linewidth=2, label=f"Threshold={high_noise_th:.2f}")
+        axn.legend(frameon=False)
+        axn.set_title(f"Caption noise-score distribution ({split})", color=TEXT, pad=10)
+        axn.set_xlabel("Noise score")
+        axn.set_ylabel("Frequency")
+        render_chart(fig_noise)
+
+        noisy_candidates = noise_df[(noise_df["noise_score"] >= high_noise_th) | (noise_df["mean_pairwise"] <= low_pair_th)].copy()
+        noisy_candidates = noisy_candidates.sort_values(["noise_score", "mean_pairwise"], ascending=[False, True])
+
+        render_bento_table(
+            title="Potential noisy samples",
+            icon="🧪",
+            df=noisy_candidates[["filename", "category", "noise_score", "mean_pairwise", "outlier_count", "center_min"]].head(80),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "filename": st.column_config.TextColumn("File 📁"),
+                "category": st.column_config.TextColumn("Category 🏷️"),
+                "noise_score": st.column_config.ProgressColumn("Noise Score", min_value=0.0, max_value=1.0, format="%.3f"),
+                "mean_pairwise": st.column_config.ProgressColumn("Mean Pairwise Sim", min_value=0.0, max_value=1.0, format="%.3f"),
+                "outlier_count": st.column_config.NumberColumn("Caption Outliers", format="%d"),
+                "center_min": st.column_config.NumberColumn("Worst-to-Center Sim", format="%.3f"),
+            }
         )
-        sem_split_imgs = D["train_imgs"] if split == "train" else D["test_imgs"]
-        sem_selected_img = next((img for img in sem_split_imgs if img["filename"] == selected_sem_file), None)
-        if sem_selected_img is not None:
-            p = IMG_DIR / sem_selected_img["filename"]
-            cimg, ccap = st.columns([1, 1.2])
+
+        inspect_pool = noisy_candidates["filename"].tolist() if len(noisy_candidates) else noise_df.sort_values("noise_score", ascending=False)["filename"].head(30).tolist()
+        st.markdown("#### Inspect image + 5 captions (noise evidence)")
+        selected_noise_file = st.selectbox("Choose a sample to inspect", options=inspect_pool, key="noise_inspect_file")
+
+        selected_noise_row = noise_df[noise_df["filename"] == selected_noise_file].head(1)
+        selected_noise_img = next((img for img in imgs_split if img["filename"] == selected_noise_file), None)
+
+        if selected_noise_img is not None:
+            p = IMG_DIR / selected_noise_img["filename"]
+            cimg, ccap = st.columns([1, 1.25])
             with cimg:
                 if p.exists():
                     try:
@@ -708,12 +773,15 @@ elif step == 5:
                 else:
                     st.warning("Image file not found on disk.")
             with ccap:
-                sem_score = low_view.loc[low_view["filename"] == selected_sem_file, "score"]
-                if not sem_score.empty:
-                    st.write(f"**Consistency score:** `{float(sem_score.iloc[0]):.3f}`")
-                st.write(f"**File:** `{sem_selected_img['filename']}`")
-                st.write(f"**Category:** `{parse_category(sem_selected_img['filename'])}`")
-                for i, s in enumerate(sem_selected_img.get("sentences", [])[:5]):
+                st.write(f"**File:** `{selected_noise_img['filename']}`")
+                st.write(f"**Category:** `{parse_category(selected_noise_img['filename'])}`")
+                if not selected_noise_row.empty:
+                    row = selected_noise_row.iloc[0]
+                    st.write(f"**Noise score:** `{float(row['noise_score']):.3f}`")
+                    st.write(f"**Mean pairwise similarity:** `{float(row['mean_pairwise']):.3f}`")
+                    st.write(f"**Caption outliers:** `{int(row['outlier_count'])}`")
+                    st.write(f"**Worst-to-center similarity:** `{float(row['center_min']):.3f}`")
+                for i, s in enumerate(selected_noise_img.get("sentences", [])[:5]):
                     st.write(f"- [{i+1}] {s.get('raw', '')}")
 
 elif step == 6:
@@ -779,7 +847,7 @@ elif step == 6:
             }
         )
 
-        st.markdown("#### Category-level samples")
+        st.markdown("#### Category-level evidence explorer")
         top_cats = top["category"].tolist()
         csel1, csel2 = st.columns(2)
         with csel1:
@@ -792,7 +860,7 @@ elif step == 6:
         with csel2:
             evidence_mode = st.radio(
                 "Evidence mode",
-                ["Image-based (color mismatch)", "Text-based (object mismatch)"],
+                ["Image-based (color mismatch)", "Text-based (object mismatch)", "Noisy captions (semantic drift)"],
                 horizontal=True,
                 key="contr_evidence_mode"
             )
@@ -801,6 +869,12 @@ elif step == 6:
             per_cat = st.slider("Images per category", 3, 18, 6, 3, key="contr_images_per_cat")
         else:
             per_cat = st.slider("Samples per category (with 5 captions)", 1, 6, 2, 1, key="contr_text_per_cat")
+
+        noise_df_step6 = get_or_compute(
+            f"image_noise_probe::{split}",
+            lambda: image_noise_probe(imgs_split),
+            spinner_text=f"Computing image-level noise probe ({split})..."
+        )
 
         show_cats = selected_cats if selected_cats else top_cats[:1]
         for cat in show_cats:
@@ -826,11 +900,25 @@ elif step == 6:
                         continue
                 if shown == 0:
                     st.info("No image previews available for this category.")
-            else:
+            elif evidence_mode == "Text-based (object mismatch)":
                 for img in cat_imgs[:per_cat]:
                     st.write(f"**{img['filename']}**")
                     for i, s in enumerate(img.get("sentences", [])[:5]):
                         st.write(f"- [{i+1}] {s.get('raw', '')}")
+            else:
+                if noise_df_step6.empty:
+                    st.info("Noise probe unavailable for this split.")
+                else:
+                    cat_noise = noise_df_step6[noise_df_step6["category"] == cat].sort_values("noise_score", ascending=False).head(per_cat)
+                    if cat_noise.empty:
+                        st.info("No noisy-caption candidates found for this category.")
+                    for _, row in cat_noise.iterrows():
+                        st.write(f"**{row['filename']}** · noise={row['noise_score']:.3f} · pairwise={row['mean_pairwise']:.3f} · outliers={int(row['outlier_count'])}")
+                        img_obj = next((x for x in cat_imgs if x["filename"] == row["filename"]), None)
+                        if img_obj is None:
+                            continue
+                        for i, s in enumerate(img_obj.get("sentences", [])[:5]):
+                            st.write(f"- [{i+1}] {s.get('raw', '')}")
 
             st.markdown("---")
 
