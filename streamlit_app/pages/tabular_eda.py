@@ -442,12 +442,12 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 
 
 def render_chart(fig):
-    panel = st.session_state.get("tab_chart_panel", 0.68)
-    panel = min(max(panel, 0.45), 0.92)
+    panel = st.session_state.get("tab_chart_panel", 0.62)
+    panel = min(max(panel, 0.42), 0.86)
     side = (1 - panel) / 2
     c1, c2, c3 = st.columns([side, panel, side])
     with c2:
-        render_chart(fig)
+        st.pyplot(fig)
 
 
 def bento_table(title, df, **kwargs):
@@ -576,7 +576,7 @@ if df is not None:
                         f" {val:.1f}%", va="center", ha="left", fontsize=9, color=TEXT)
             ax.set_xlim(0, xlim_m)
             plt.tight_layout()
-            st.pyplot(fig)
+            render_chart(fig)
 
             bento_table("Missing value summary", has_missing.set_index("Feature"), use_container_width=True)
             st.markdown("""
@@ -667,7 +667,7 @@ if df is not None:
         else:
             vc = df[feat].value_counts()
 
-            fig, ax = plt.subplots(figsize=(9, 4.5))
+            fig, ax = plt.subplots(figsize=(5.8, 3.3))
             fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
             colors = ["#f093fb", "#667eea", "#4facfe"]
             ax.bar(vc.index.astype(str), vc.values, color=colors[:len(vc)], edgecolor="none")
@@ -763,7 +763,7 @@ if df is not None:
         corr_cols = [c for c in NUMERICAL_COLS if c in df.columns]
         corr_mat  = get_or_compute("corr_mat", lambda: df[corr_cols].corr())
 
-        fig, ax = plt.subplots(figsize=(10, 8.5))
+        fig, ax = plt.subplots(figsize=(6.2, 5.4))
         fig.patch.set_facecolor(BG)
         im = ax.imshow(corr_mat.values, cmap="RdBu_r", vmin=-1, vmax=1)
         ax.set_xticks(range(len(corr_cols)))
@@ -1163,22 +1163,6 @@ if st.session_state.phase == "done" and df is not None:
 
     # Key insights
     st.markdown("---")
-    panel = st.session_state.get("tab_chart_panel", 0.68)
-    panel = min(max(panel, 0.45), 0.92)
-    side = (1 - panel) / 2
-    c1, c2, c3 = st.columns([side, panel, side])
-    with c2:
-        st.markdown("""
-        <div class='insight' style='font-size:0.9rem;'>
-          **Key Findings — World Happiness Report 2019:**<br>
-          1. <strong>Clean Data:</strong> Dataset has 0% missing values — no imputation needed.<br>
-          2. <strong>Top Predictors:</strong> GDP per capita, Social support, and Healthy life
-             expectancy are the three strongest predictors of happiness (|r| > 0.70 with Score).<br>
-          3. <strong>Outliers:</strong> Features like Generosity and Perceptions of corruption
-             are right-skewed — only a few countries act as extreme positive outliers.<br>
-          4. <strong>Economic Impact:</strong> "High" GDP tier median Score > 6.5;
-             "Low" tier struggles to reach 4.5 — a stark divide.
-        </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(f"<p class='footer'>World Happiness Report 2019 · P4AI-DS · UIT · 2025–2026 · "
