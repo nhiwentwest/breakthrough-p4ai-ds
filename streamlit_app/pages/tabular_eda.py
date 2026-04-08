@@ -779,7 +779,7 @@ if df is not None:
                 val = corr_mat.iloc[i, j]
                 ax.text(j, i, f"{val:.2f}",
                         ha="center", va="center",
-                        color="white" if abs(val) > 0.5 else TEXT,
+                        color=TEXT if abs(val) < 0.75 else "#F7F3EB",
                         fontsize=8.5, fontweight="bold")
         plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Correlation")
         plt.tight_layout()
@@ -1079,7 +1079,7 @@ if st.session_state.phase == "done" and df is not None:
                 val = corr_mat.iloc[i, j]
                 ax3.text(j, i, f"{val:.2f}",
                         ha="center", va="center",
-                        color="white" if abs(val) > 0.5 else TEXT,
+                        color=TEXT if abs(val) < 0.75 else "#F7F3EB",
                         fontsize=7.5)
         plt.colorbar(im3, ax=ax3, fraction=0.046, pad=0.04)
         plt.tight_layout()
