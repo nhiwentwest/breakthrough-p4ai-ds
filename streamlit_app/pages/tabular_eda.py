@@ -1185,4 +1185,4 @@ if st.session_state.phase == "done" and df is not None:
     with col_btn:
         if st.button("← Start Over", key="start_over_done"):
             reset_tabular_state()
-            st.experimental_rerun()
+            st.rerun()
