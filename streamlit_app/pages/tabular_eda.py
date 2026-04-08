@@ -426,9 +426,9 @@ def get_or_compute(cache_key, compute_fn):
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):
-    scale = st.session_state.get("tab_chart_scale", 0.62)
+    scale = st.session_state.get("tab_chart_scale", 0.52)
     fig, ax = plt.subplots(
-        figsize=(st.session_state.get("tab_chart_w", 4.2) * w_mult * scale, st.session_state.get("tab_chart_h", 2.7) * h_mult * scale),
+        figsize=(st.session_state.get("tab_chart_w", 3.0) * w_mult * scale, st.session_state.get("tab_chart_h", 2.0) * h_mult * scale),
         dpi=120,
     )
     fig.patch.set_facecolor(BG)
@@ -437,8 +437,8 @@ def make_fig(w_mult=1.0, h_mult=1.0):
         ax.grid(axis="y", alpha=0.28, color=BOR, linestyle="--", linewidth=0.7)
     else:
         ax.grid(False)
-    fs = st.session_state.get("tab_font_scale", 1.0)
-    ax.tick_params(labelsize=max(7, int(9 * fs)))
+    fs = st.session_state.get("tab_font_scale", 0.70)
+    ax.tick_params(labelsize=max(6, int(8 * fs)))
     return fig, ax
 
 
@@ -478,16 +478,16 @@ if df is not None:
     with st.expander("🎛️ Visual controls", expanded=False):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.slider("Base width", 2.0, 6.5, 3.2, 0.2, key="tab_chart_w")
+            st.slider("Base width", 1.8, 5.6, 2.8, 0.2, key="tab_chart_w")
             st.slider("Histogram bins", 8, 50, 24, 1, key="tab_hist_bins")
         with c2:
-            st.slider("Base height", 1.6, 4.2, 2.2, 0.2, key="tab_chart_h")
+            st.slider("Base height", 1.4, 3.6, 1.8, 0.2, key="tab_chart_h")
             st.slider("Chart alpha", 0.45, 1.0, 0.82, 0.05, key="tab_alpha")
         with c3:
-            st.slider("Global scale", 0.4, 1.0, 0.62, 0.02, key="tab_chart_scale")
-            st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="tab_chart_panel")
+            st.slider("Global scale", 0.35, 0.9, 0.52, 0.02, key="tab_chart_scale")
+            st.slider("Panel width", 0.40, 0.80, 0.55, 0.05, key="tab_chart_panel")
         with c4:
-            st.slider("Font scale", 0.5, 1.1, 0.75, 0.05, key="tab_font_scale")
+            st.slider("Font scale", 0.45, 1.0, 0.70, 0.05, key="tab_font_scale")
             st.slider("Marker size", 6, 40, 18, 2, key="tab_marker_size")
             st.checkbox("Show grid", value=True, key="tab_show_grid")
 
