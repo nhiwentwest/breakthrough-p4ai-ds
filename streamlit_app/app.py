@@ -114,7 +114,7 @@ body, .stApp {{
 )
 
 st.markdown('<p class="hero-kicker">RSITMD · P4AI-DS</p>', unsafe_allow_html=True)
-st.markdown('<p class="hero-title">Exploratory Data Analysis</p>', unsafe_allow_html=True)
+st.markdown('<p class="hero-title">BREAKTHROUGH DEMO</p>', unsafe_allow_html=True)
 st.markdown(
     '<p class="hero-sub">Main routing page: Assignment 02 (Machine Learning) and Assignment 01 (EDA).</p>',
     unsafe_allow_html=True,
