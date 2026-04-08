@@ -426,9 +426,8 @@ def get_or_compute(cache_key, compute_fn):
 
 
 def make_fig(w_mult=1.0, h_mult=1.0):
-    scale = st.session_state.get("tab_chart_scale", 0.52)
     fig, ax = plt.subplots(
-        figsize=(st.session_state.get("tab_chart_w", 3.0) * w_mult * scale, st.session_state.get("tab_chart_h", 2.0) * h_mult * scale),
+        figsize=(st.session_state.get("tab_chart_w", 2.8) * w_mult, st.session_state.get("tab_chart_h", 1.8) * h_mult),
         dpi=120,
     )
     fig.patch.set_facecolor(BG)
@@ -443,10 +442,11 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 
 
 def render_chart(fig):
-    panel = st.session_state.get("tab_chart_panel", 0.62)
-    panel = min(max(panel, 0.45), 0.82)
+    panel = st.session_state.get("tab_chart_panel", 0.55)
+    panel = min(max(panel, 0.40), 0.80)
+    pad = st.session_state.get("tab_panel_pad", 0.08)
     side = (1 - panel) / 2
-    c1, c2, c3 = st.columns([side, panel, side])
+    c1, c2, c3 = st.columns([max(0, side - pad/2), panel, max(0, side - pad/2)])
     with c2:
         st.pyplot(fig)
 
@@ -484,8 +484,8 @@ if df is not None:
             st.slider("Base height", 1.4, 3.6, 1.8, 0.2, key="tab_chart_h")
             st.slider("Chart alpha", 0.45, 1.0, 0.82, 0.05, key="tab_alpha")
         with c3:
-            st.slider("Global scale", 0.35, 0.9, 0.52, 0.02, key="tab_chart_scale")
             st.slider("Panel width", 0.40, 0.80, 0.55, 0.05, key="tab_chart_panel")
+            st.slider("Panel padding", 0.0, 0.20, 0.08, 0.01, key="tab_panel_pad")
         with c4:
             st.slider("Font scale", 0.45, 1.0, 0.70, 0.05, key="tab_font_scale")
             st.slider("Marker size", 6, 40, 18, 2, key="tab_marker_size")
@@ -665,24 +665,26 @@ if df is not None:
         else:
             vc = df[feat].value_counts()
 
-            fig, ax = plt.subplots(figsize=(5.8, 3.3))
+            fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
             fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-            colors = ["#f093fb", "#667eea", "#4facfe"]
-            ax.bar(vc.index.astype(str), vc.values, color=colors[:len(vc)], edgecolor="none")
-            ax.set_xlabel(feat, fontsize=10)
-            ax.set_ylabel("Number of Countries", fontsize=9)
-            ax.set_title(f"{feat} — Distribution", fontsize=11, fontfamily="serif")
-            ax.tick_params(colors=MUT, labelsize=10)
-            for s in ax.spines.values(): s.set_visible(False)
-            ax.yaxis.set_visible(False)
-            ax.grid(axis="y", linewidth=0.5, color=BOR, zorder=0)
-            xlim_g = max(vc.values) * 1.15
-            for bar, val in zip(ax.patches, vc.values):
-                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
-                        f" {val}", ha="center", va="bottom", fontsize=10, color=TEXT, fontweight="bold")
-            ax.set_ylim(0, xlim_g)
+            order = [x for x in ["Low", "Medium", "High"] if x in vc.index]
+            vc_plot = vc.reindex(order)
+            colors = ["#B8C5D6", "#7A90A8", "#314E6E"]
+            bars = ax.bar(vc_plot.index.astype(str), vc_plot.values, color=colors[:len(vc_plot)], edgecolor=BG, linewidth=0.8)
+            ax.set_xlabel("GDP Level", fontsize=8.5, color=MUT)
+            ax.set_ylabel("Countries", fontsize=8.5, color=MUT)
+            ax.set_title("GDP Level Distribution", fontsize=10.5, fontfamily="serif", color=TEXT)
+            fs = st.session_state.get("tab_font_scale", 0.70)
+            ax.tick_params(colors=MUT, labelsize=max(7, int(8 * fs)))
+            for s in ax.spines.values(): s.set_edgecolor(BOR)
+            ax.grid(axis="y", linewidth=0.5, color=BOR, alpha=0.28, zorder=0)
+            ylim_top = max(vc_plot.values) * 1.18
+            ax.set_ylim(0, ylim_top)
+            for bar, val in zip(bars, vc_plot.values):
+                ax.text(bar.get_x() + bar.get_width()/2, val + ylim_top * 0.02,
+                        f"{int(val)}", ha="center", va="bottom", fontsize=8.5, color=TEXT)
             plt.tight_layout()
-            st.pyplot(fig)
+            render_chart(fig)
 
             st.markdown(f"**GDP_Level Statistics**")
             cat_rows = []
