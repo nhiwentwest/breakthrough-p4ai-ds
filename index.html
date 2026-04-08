@@ -215,22 +215,9 @@
         }
 
         /* ─── Assignment cards — pool-card style (gold / teal / blue) ── */
-        .assign-section-label {
-            font-size: 0.62rem;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--ink-faint);
-            margin: 10px 2px 8px;
-        }
-        .assign-grid-3 {
+        .assign-strip {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-        .assign-grid-4 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
         }
 
@@ -662,18 +649,18 @@
                     <div class="routing-strip">
                         <div class="routing-metric">
                             <div class="routing-metric-label">Assignments</div>
-                            <div class="routing-metric-val accent">2</div>
-                            <div class="routing-metric-sub">A01 + A02</div>
+                            <div class="routing-metric-val accent">3</div>
+                            <div class="routing-metric-sub">total</div>
                         </div>
                         <div class="routing-metric">
-                            <div class="routing-metric-label">A02 modules</div>
-                            <div class="routing-metric-val">3</div>
-                            <div class="routing-metric-sub">ML cards</div>
+                            <div class="routing-metric-label">In progress</div>
+                            <div class="routing-metric-val">1</div>
+                            <div class="routing-metric-sub">A01 only</div>
                         </div>
                         <div class="routing-metric">
-                            <div class="routing-metric-label">A01 modules</div>
-                            <div class="routing-metric-val">4</div>
-                            <div class="routing-metric-sub">EDA cards</div>
+                            <div class="routing-metric-label">Linked</div>
+                            <div class="routing-metric-val">1</div>
+                            <div class="routing-metric-sub">of 3 pages</div>
                         </div>
                         <div class="routing-metric">
                             <div class="routing-metric-label">Due</div>
@@ -682,154 +669,64 @@
                         </div>
                     </div>
 
-                    <div class="assign-section-label">Assignment 02 · Machine Learning</div>
-                    <div class="assign-grid-3">
+                    <div class="assign-strip">
+                        <!-- A01 — gold -->
+                        <a class="assign-card assign-card--a01" href="./assign1-eda/">
+                            <div class="assign-card-head">
+                                <div class="assign-card-badge-row">
+                                    <div class="assign-badge">01</div>
+                                    <div>
+                                        <div class="assign-title">Assignment 01</div>
+                                        <div class="assign-subject">Exploratory Data Analysis</div>
+                                    </div>
+                                </div>
+                                <span class="assign-tag tag-open">Open</span>
+                            </div>
+                            <div class="assign-stat">EDA — Tabular, Text, Image &amp; Multimodal (RSITMD).</div>
+                            <div class="assign-mini-bars">
+                                <div class="assign-mini-row">
+                                    <span class="assign-mini-label">EDA</span>
+                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 88%;"></div></div>
+                                </div>
+                                <div class="assign-mini-row">
+                                    <span class="assign-mini-label">Site</span>
+                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 60%;"></div></div>
+                                </div>
+                            </div>
+                            <div class="assign-pills">
+                                <span class="assign-pill"><span class="pill-icon">📊</span> Tabular</span>
+                                <span class="assign-pill"><span class="pill-icon">📝</span> Text</span>
+                                <span class="assign-pill"><span class="pill-icon">🖼</span> Image</span>
+                                <span class="assign-pill"><span class="pill-icon">🔗</span> Multimodal</span>
+                            </div>
+                        </a>
+
+                        <!-- A02 — teal -->
                         <div class="assign-card assign-card--a02 locked">
                             <div class="assign-card-head">
                                 <div class="assign-card-badge-row">
-                                    <div class="assign-badge">T</div>
+                                    <div class="assign-badge">02</div>
                                     <div>
-                                        <div class="assign-title">Tabular</div>
-                                        <div class="assign-subject">Machine Learning</div>
+                                        <div class="assign-title">Assignment 02</div>
+                                        <div class="assign-subject">Coming soon</div>
                                     </div>
                                 </div>
-                                <span class="assign-tag tag-locked">No demo yet</span>
+                                <span class="assign-tag tag-locked">Soon</span>
                             </div>
-                            <div class="assign-stat">Tabular modeling section for Assignment 02.</div>
+                            <div class="assign-stat">Tạo trang con khi đề bài &amp; nội dung sẵn sàng trên LMS.</div>
                             <div class="assign-mini-bars">
                                 <div class="assign-mini-row">
-                                    <span class="assign-mini-label">Build</span>
+                                    <span class="assign-mini-label">Prep</span>
                                     <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 0%;"></div></div>
                                 </div>
                             </div>
                             <div class="assign-pills">
-                                <span class="assign-pill">📊 Tabular</span>
-                                <span class="assign-pill">A02</span>
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
+                                <span class="assign-pill">—</span>
                             </div>
                         </div>
-
-                        <div class="assign-card assign-card--a02 locked">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">I</div>
-                                    <div>
-                                        <div class="assign-title">Image</div>
-                                        <div class="assign-subject">Machine Learning</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-locked">No demo yet</span>
-                            </div>
-                            <div class="assign-stat">Image modeling section for Assignment 02.</div>
-                            <div class="assign-mini-bars">
-                                <div class="assign-mini-row">
-                                    <span class="assign-mini-label">Build</span>
-                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 0%;"></div></div>
-                                </div>
-                            </div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">🖼 Image</span>
-                                <span class="assign-pill">A02</span>
-                            </div>
-                        </div>
-
-                        <div class="assign-card assign-card--a02 locked">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">X</div>
-                                    <div>
-                                        <div class="assign-title">Text</div>
-                                        <div class="assign-subject">Machine Learning</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-locked">No demo yet</span>
-                            </div>
-                            <div class="assign-stat">Text modeling section for Assignment 02.</div>
-                            <div class="assign-mini-bars">
-                                <div class="assign-mini-row">
-                                    <span class="assign-mini-label">Build</span>
-                                    <div class="assign-mini-track"><div class="assign-mini-fill" style="width: 0%;"></div></div>
-                                </div>
-                            </div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">📝 Text</span>
-                                <span class="assign-pill">A02</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="assign-section-label">Assignment 01 · Exploratory Data Analysis</div>
-                    <div class="assign-grid-4">
-                        <a class="assign-card assign-card--a01" href="./assign1-eda/tabular/">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">T</div>
-                                    <div>
-                                        <div class="assign-title">Tabular</div>
-                                        <div class="assign-subject">Exploratory Data Analysis</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-open">Open</span>
-                            </div>
-                            <div class="assign-stat">World Happiness EDA with statistics and visuals.</div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">📊 Tabular</span>
-                                <span class="assign-pill">A01</span>
-                            </div>
-                        </a>
-
-                        <a class="assign-card assign-card--a01" href="./assign1-eda/image/">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">I</div>
-                                    <div>
-                                        <div class="assign-title">Image</div>
-                                        <div class="assign-subject">Exploratory Data Analysis</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-open">Open</span>
-                            </div>
-                            <div class="assign-stat">MNIST image EDA and pixel-level insights.</div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">🖼 Image</span>
-                                <span class="assign-pill">A01</span>
-                            </div>
-                        </a>
-
-                        <a class="assign-card assign-card--a01" href="./assign1-eda/text/">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">X</div>
-                                    <div>
-                                        <div class="assign-title">Text</div>
-                                        <div class="assign-subject">Exploratory Data Analysis</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-open">Open</span>
-                            </div>
-                            <div class="assign-stat">Twitter Financial News text EDA and lexical patterns.</div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">📝 Text</span>
-                                <span class="assign-pill">A01</span>
-                            </div>
-                        </a>
-
-                        <a class="assign-card assign-card--a01" href="./assign1-eda/multimodal/">
-                            <div class="assign-card-head">
-                                <div class="assign-card-badge-row">
-                                    <div class="assign-badge">M</div>
-                                    <div>
-                                        <div class="assign-title">Multimodal</div>
-                                        <div class="assign-subject">Exploratory Data Analysis</div>
-                                    </div>
-                                </div>
-                                <span class="assign-tag tag-open">Open</span>
-                            </div>
-                            <div class="assign-stat">RSITMD cross-modal EDA and alignment diagnostics.</div>
-                            <div class="assign-pills">
-                                <span class="assign-pill">🔗 Multimodal</span>
-                                <span class="assign-pill">A01</span>
-                            </div>
-                        </a>
                     </div>
             </div><!-- /col-main -->
 
