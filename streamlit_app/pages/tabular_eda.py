@@ -427,7 +427,7 @@ def get_or_compute(cache_key, compute_fn):
 
 def make_fig(w_mult=1.0, h_mult=1.0):
     fig, ax = plt.subplots(
-        figsize=(st.session_state.get("tab_chart_w", 5.6) * w_mult, st.session_state.get("tab_chart_h", 3.4) * h_mult),
+        figsize=(st.session_state.get("tab_chart_w", 5.2) * w_mult, st.session_state.get("tab_chart_h", 3.2) * h_mult),
         dpi=120,
     )
     fig.patch.set_facecolor(BG)
@@ -439,6 +439,15 @@ def make_fig(w_mult=1.0, h_mult=1.0):
     fs = st.session_state.get("tab_font_scale", 1.0)
     ax.tick_params(labelsize=max(7, int(9 * fs)))
     return fig, ax
+
+
+def render_chart(fig):
+    panel = st.session_state.get("tab_chart_panel", 0.68)
+    panel = min(max(panel, 0.45), 0.92)
+    side = (1 - panel) / 2
+    c1, c2, c3 = st.columns([side, panel, side])
+    with c2:
+        render_chart(fig)
 
 
 def bento_table(title, df, **kwargs):
@@ -466,15 +475,17 @@ if df is not None:
                 f"{src_label}</p>", unsafe_allow_html=True)
 
     with st.expander("🎛️ Visual controls", expanded=False):
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.slider("Chart width", 3.0, 9.0, 5.6, 0.2, key="tab_chart_w")
+            st.slider("Chart width", 2.8, 7.0, 5.2, 0.2, key="tab_chart_w")
             st.slider("Histogram bins", 8, 50, 24, 1, key="tab_hist_bins")
         with c2:
-            st.slider("Chart height", 2.0, 6.0, 3.4, 0.2, key="tab_chart_h")
+            st.slider("Chart height", 1.8, 4.6, 3.2, 0.2, key="tab_chart_h")
             st.slider("Chart alpha", 0.45, 1.0, 0.85, 0.05, key="tab_alpha")
         with c3:
+            st.slider("Panel width", 0.5, 0.92, 0.68, 0.02, key="tab_chart_panel")
             st.slider("Font scale", 0.75, 1.35, 1.0, 0.05, key="tab_font_scale")
+        with c4:
             st.checkbox("Show grid", value=True, key="tab_show_grid")
 
     # ══════════════════════════════════════════════════════════════════════════
