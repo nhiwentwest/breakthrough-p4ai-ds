@@ -503,11 +503,6 @@ if df is not None:
         k3.metric("Numerical", str(n_num))
         k4.metric("Categorical", str(n_cat))
 
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
-          Target Variable: **Score** — continuous happiness score per country.
-          Feature Engineering: **GDP_Level** — binned from GDP per capita (Low / Medium / High).
-        </div>""", unsafe_allow_html=True)
 
         # Feature description table
         feat_rows = []
