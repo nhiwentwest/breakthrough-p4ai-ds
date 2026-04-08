@@ -126,8 +126,10 @@ with a2c1:
     st.markdown(
         """
 <div class="card">
-  <div class="card-title">📊 Tabular</div>
-  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+  <a href="/demo2_tabular" target="_self">
+    <div class="card-title">📊 Tabular</div>
+    <div class="card-desc">Assignment 02 · Machine Learning<br>Regression Demo</div>
+  </a>
 </div>
 """,
         unsafe_allow_html=True,
@@ -136,8 +138,10 @@ with a2c2:
     st.markdown(
         """
 <div class="card">
-  <div class="card-title">🖼️ Image</div>
-  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+  <a href="/demo2_image" target="_self">
+    <div class="card-title">🖼️ Image</div>
+    <div class="card-desc">Assignment 02 · Machine Learning<br>Classification Demo</div>
+  </a>
 </div>
 """,
         unsafe_allow_html=True,
@@ -146,8 +150,10 @@ with a2c3:
     st.markdown(
         """
 <div class="card">
-  <div class="card-title">📝 Text</div>
-  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+  <a href="/demo2_text" target="_self">
+    <div class="card-title">📝 Text</div>
+    <div class="card-desc">Assignment 02 · Machine Learning<br>Regression Demo</div>
+  </a>
 </div>
 """,
         unsafe_allow_html=True,
