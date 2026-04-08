@@ -1163,17 +1163,22 @@ if st.session_state.phase == "done" and df is not None:
 
     # Key insights
     st.markdown("---")
-    st.markdown("""
-    <div class='insight' style='font-size:0.9rem;'>
-      **Key Findings — World Happiness Report 2019:**<br>
-      1. <strong>Clean Data:</strong> Dataset has 0% missing values — no imputation needed.<br>
-      2. <strong>Top Predictors:</strong> GDP per capita, Social support, and Healthy life
-         expectancy are the three strongest predictors of happiness (|r| > 0.70 with Score).<br>
-      3. <strong>Outliers:</strong> Features like Generosity and Perceptions of corruption
-         are right-skewed — only a few countries act as extreme positive outliers.<br>
-      4. <strong>Economic Impact:</strong> "High" GDP tier median Score > 6.5;
-         "Low" tier struggles to reach 4.5 — a stark divide.
-    </div>""", unsafe_allow_html=True)
+    panel = st.session_state.get("tab_chart_panel", 0.68)
+    panel = min(max(panel, 0.45), 0.92)
+    side = (1 - panel) / 2
+    c1, c2, c3 = st.columns([side, panel, side])
+    with c2:
+        st.markdown("""
+        <div class='insight' style='font-size:0.9rem;'>
+          **Key Findings — World Happiness Report 2019:**<br>
+          1. <strong>Clean Data:</strong> Dataset has 0% missing values — no imputation needed.<br>
+          2. <strong>Top Predictors:</strong> GDP per capita, Social support, and Healthy life
+             expectancy are the three strongest predictors of happiness (|r| > 0.70 with Score).<br>
+          3. <strong>Outliers:</strong> Features like Generosity and Perceptions of corruption
+             are right-skewed — only a few countries act as extreme positive outliers.<br>
+          4. <strong>Economic Impact:</strong> "High" GDP tier median Score > 6.5;
+             "Low" tier struggles to reach 4.5 — a stark divide.
+        </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(f"<p class='footer'>World Happiness Report 2019 · P4AI-DS · UIT · 2025–2026 · "
