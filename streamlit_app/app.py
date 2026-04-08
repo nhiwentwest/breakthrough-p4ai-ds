@@ -116,56 +116,90 @@ body, .stApp {{
 st.markdown('<p class="hero-kicker">RSITMD · P4AI-DS</p>', unsafe_allow_html=True)
 st.markdown('<p class="hero-title">Exploratory Data Analysis</p>', unsafe_allow_html=True)
 st.markdown(
-    '<p class="hero-sub">Chọn một workspace để bắt đầu: Tabular, Image, Text hoặc Multimodal.</p>',
+    '<p class="hero-sub">Main routing page: Assignment 02 (Machine Learning) and Assignment 01 (EDA).</p>',
     unsafe_allow_html=True,
 )
 
-row1_col1, row1_col2 = st.columns(2)
-with row1_col1:
+st.markdown('<p class="hero-kicker" style="margin-top:0.2rem">Assignment 02 · Machine Learning</p>', unsafe_allow_html=True)
+a2c1, a2c2, a2c3 = st.columns(3)
+with a2c1:
+    st.markdown(
+        """
+<div class="card">
+  <div class="card-title">📊 Tabular</div>
+  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+with a2c2:
+    st.markdown(
+        """
+<div class="card">
+  <div class="card-title">🖼️ Image</div>
+  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+with a2c3:
+    st.markdown(
+        """
+<div class="card">
+  <div class="card-title">📝 Text</div>
+  <div class="card-desc">Assignment 02 · Machine Learning<br>No demo yet</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+st.markdown('<p class="hero-kicker" style="margin-top:1.2rem">Assignment 01 · Exploratory Data Analysis</p>', unsafe_allow_html=True)
+a1r1c1, a1r1c2 = st.columns(2)
+with a1r1c1:
     st.markdown(
         """
 <div class="card">
   <a href="/tabular_eda" target="_self">
     <div class="card-title">📊 Tabular</div>
-    <div class="card-desc">Dataset: World Happiness</div>
+    <div class="card-desc">World Happiness EDA</div>
   </a>
 </div>
 """,
         unsafe_allow_html=True,
     )
-with row1_col2:
+with a1r1c2:
     st.markdown(
         """
 <div class="card">
   <a href="/image_eda" target="_self">
     <div class="card-title">🖼️ Image</div>
-    <div class="card-desc">Dataset: MNIST</div>
+    <div class="card-desc">MNIST EDA</div>
   </a>
 </div>
 """,
         unsafe_allow_html=True,
     )
 
-row2_col1, row2_col2 = st.columns(2)
-with row2_col1:
+a1r2c1, a1r2c2 = st.columns(2)
+with a1r2c1:
     st.markdown(
         """
 <div class="card">
   <a href="/text_eda" target="_self">
     <div class="card-title">📝 Text</div>
-    <div class="card-desc">Dataset: Twitter Financial News Sentiment</div>
+    <div class="card-desc">Twitter Financial News EDA</div>
   </a>
 </div>
 """,
         unsafe_allow_html=True,
     )
-with row2_col2:
+with a1r2c2:
     st.markdown(
         """
 <div class="card">
   <a href="/multimodal_eda" target="_self">
     <div class="card-title">🔗 Multimodal</div>
-    <div class="card-desc">Dataset: RSITMD</div>
+    <div class="card-desc">RSITMD EDA</div>
   </a>
 </div>
 """,
