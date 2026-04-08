@@ -447,7 +447,7 @@ def render_chart(fig):
     side = (1 - panel) / 2
     c1, c2, c3 = st.columns([side, panel, side])
     with c2:
-        st.pyplot(fig)
+        render_chart(fig)
 
 
 def bento_table(title, df, **kwargs):
@@ -655,11 +655,6 @@ if df is not None:
     elif st.session_state.step == 3:
         st.markdown("<p class='section-head'>Step 4 of 9 — Categorical Feature: GDP Level</p>",
                     unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#6A1B9A;'>
-          **GDP_Level** is an engineered categorical feature: Low / Medium / High,
-          derived by binning GDP per capita. It captures the economic tier of each country.
-        </div>""", unsafe_allow_html=True)
 
         feat = "GDP_Level"
         if feat not in df.columns:
