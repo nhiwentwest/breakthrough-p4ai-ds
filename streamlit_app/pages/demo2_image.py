@@ -420,37 +420,12 @@ with left:
         model_ready = False
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
-    mode = st.radio("Input mode", ["Upload image", "Kaggle sample (bocon66/processed-rice-244)"], horizontal=True)
 
     image = None
-    true_label = None
-
-    if mode == "Upload image":
-        up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
-        if up:
-            image = Image.open(up).convert("RGB")
-            st.image(image, caption="Input image", use_container_width=True)
-    else:
-        if st.button("Load random sample", use_container_width=True):
-            try:
-                sample_img, sample_label, sample_meta = get_random_sample_image()
-                if sample_img is None:
-                    st.error("Random sample failed: dataset loaded but no usable split (test/validation/train).")
-                else:
-                    st.session_state["sample_img"] = sample_img
-                    st.session_state["sample_label"] = sample_label
-                    st.session_state["sample_meta"] = sample_meta
-            except Exception as e:
-                st.error(f"Random sample error: {e}")
-
-        if "sample_img" in st.session_state:
-            image = st.session_state["sample_img"]
-            true_label = st.session_state.get("sample_label")
-            meta = st.session_state.get("sample_meta", {})
-            st.image(image, caption=f"Sample from {meta.get('split', '?')}[{meta.get('index', '?')}]", use_container_width=True)
-            st.caption(f"Dataset path: {meta.get('dataset_path', '?')}")
-            if true_label is not None:
-                st.caption(f"Ground truth label: {true_label}")
+    up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
+    if up:
+        image = Image.open(up).convert("RGB")
+        st.image(image, caption="Input image", use_container_width=True)
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
     st.markdown("</div>", unsafe_allow_html=True)
