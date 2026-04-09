@@ -173,9 +173,10 @@ MAPPING_CANDIDATES = [
     PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
 ]
 
-# Google Drive file IDs
+# Google Drive assets
 DRIVE_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
 DRIVE_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
+DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1d5xkpBh-Rzeuj8dN7bNsPATrYsP-38ap?usp=sharing"
 
 
 def _pick_existing(paths):
@@ -279,6 +280,32 @@ def preprocess_image(img: Image.Image):
     return tfm(img.convert("RGB")).unsqueeze(0)
 
 
+def find_dataset_dict_root(base_dir: str):
+    for r, _d, files in os.walk(base_dir):
+        if "dataset_dict.json" in files:
+            return r
+    return None
+
+
+def ensure_dataset_folder_from_drive():
+    target_dir = PROJECT_ROOT / "streamlit_app" / "data_cache" / "processed_rice_244"
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    existing = find_dataset_dict_root(str(target_dir))
+    if existing is not None:
+        return existing
+
+    gdown.download_folder(url=DRIVE_DATASET_FOLDER_URL, output=str(target_dir), quiet=False, use_cookies=False)
+
+    found = find_dataset_dict_root(str(target_dir))
+    if found is None:
+        raise FileNotFoundError(
+            "Downloaded Drive folder but no dataset_dict.json found. "
+            "Please verify the folder contains a HuggingFace load_from_disk dataset."
+        )
+    return found
+
+
 def resolve_kaggle_processed_dataset_path():
     candidates = [
         "/kaggle/input/processed-rice-244",
@@ -294,12 +321,8 @@ def resolve_kaggle_processed_dataset_path():
         if os.path.exists(os.path.join(p, "dataset_dict.json")):
             return p
 
-    # strict mode: no fallback
-    raise FileNotFoundError(
-        "Kaggle dataset not found. Expected mounted dataset 'bocon66/processed-rice-244' "
-        "with a directory containing dataset_dict.json. "
-        f"Checked: {candidates}"
-    )
+    # strict mode: if Kaggle mount not found -> must load from provided Drive folder
+    return ensure_dataset_folder_from_drive()
 
 
 @st.cache_resource(show_spinner=False)
