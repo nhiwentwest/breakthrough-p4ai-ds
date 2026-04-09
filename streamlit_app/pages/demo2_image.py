@@ -178,26 +178,87 @@ class HybridCNNViT(nn.Module):
         return logits
 
 
+class ConvBNReLU(nn.Module):
+    def __init__(self, c_in, c_out):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(c_in, c_out, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(c_out),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        return self.block(x)
+
+
+class CNNScratch(nn.Module):
+    def __init__(self, num_classes=21, dropout=0.3):
+        super().__init__()
+        self.features = nn.Sequential(
+            ConvBNReLU(3, 64),
+            ConvBNReLU(64, 64),
+            nn.MaxPool2d(2),
+            ConvBNReLU(64, 128),
+            ConvBNReLU(128, 128),
+            nn.MaxPool2d(2),
+            ConvBNReLU(128, 256),
+            ConvBNReLU(256, 256),
+            nn.MaxPool2d(2),
+            ConvBNReLU(256, 512),
+            ConvBNReLU(512, 512),
+            nn.AdaptiveAvgPool2d((1, 1)),
+        )
+        self.head = nn.Sequential(
+            nn.Flatten(),
+            nn.Dropout(dropout),
+            nn.Linear(512, 256),
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout),
+            nn.Linear(256, num_classes),
+        )
+
+    def forward(self, x):
+        return self.head(self.features(x))
+
+
 # =========================
 # Paths + model loading
 # =========================
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-CHECKPOINT_CANDIDATES = [
-    PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
-    PROJECT_ROOT / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
-    PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_hybrid_cnn_vit.pt",
-]
+CHECKPOINT_CANDIDATES = {
+    "Hybrid CNN–ViT": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
+        PROJECT_ROOT / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_hybrid_cnn_vit.pt",
+    ],
+    "CNN Scratch": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
+        PROJECT_ROOT / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
+    ],
+}
 
-MAPPING_CANDIDATES = [
-    PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "label_mapping.json",
-    PROJECT_ROOT / "outputs_hybrid" / "label_mapping.json",
-    PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
-]
+MAPPING_CANDIDATES = {
+    "Hybrid CNN–ViT": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "label_mapping.json",
+        PROJECT_ROOT / "outputs_hybrid" / "label_mapping.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_hybrid.json",
+    ],
+    "CNN Scratch": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
+        PROJECT_ROOT / "outputs_cnn_scratch" / "label_mapping.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
+    ],
+}
 
 # Google Drive assets
-DRIVE_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
-DRIVE_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
+HYBRID_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
+HYBRID_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
+
+CNN_SCRATCH_CHECKPOINT_FILE_ID = "14U3qDWxUVOuIGPq4SdXSXASi33ev1AdM"
+CNN_SCRATCH_LABEL_MAP_FILE_ID = "1ZHZ7bjFl2pp1ZWpmdlHdBfQRrly4oYRX"
+
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1d5xkpBh-Rzeuj8dN7bNsPATrYsP-38ap?usp=sharing"
 
 
@@ -208,15 +269,21 @@ def _pick_existing(paths):
     return None
 
 
-def ensure_checkpoint_from_drive():
+def ensure_checkpoint_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_ckpt = target_dir / "best_hybrid_cnn_vit.pt"
+
+    if model_choice == "Hybrid CNN–ViT":
+        target_ckpt = target_dir / "best_hybrid_cnn_vit.pt"
+        file_id = HYBRID_CHECKPOINT_FILE_ID
+    else:
+        target_ckpt = target_dir / "best_cnn_scratch.pt"
+        file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
 
     if target_ckpt.exists():
         return target_ckpt
 
-    url = f"https://drive.google.com/uc?id={DRIVE_CHECKPOINT_FILE_ID}"
+    url = f"https://drive.google.com/uc?id={file_id}"
     gdown.download(url, str(target_ckpt), quiet=False)
 
     if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
@@ -225,15 +292,21 @@ def ensure_checkpoint_from_drive():
     return target_ckpt
 
 
-def ensure_label_mapping_from_drive():
+def ensure_label_mapping_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
-    target_map = target_dir / "label_mapping.json"
+
+    if model_choice == "Hybrid CNN–ViT":
+        target_map = target_dir / "label_mapping_hybrid.json"
+        file_id = HYBRID_LABEL_MAP_FILE_ID
+    else:
+        target_map = target_dir / "label_mapping_cnn_scratch.json"
+        file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
 
     if target_map.exists():
         return target_map
 
-    url = f"https://drive.google.com/uc?id={DRIVE_LABEL_MAP_FILE_ID}"
+    url = f"https://drive.google.com/uc?id={file_id}"
     gdown.download(url, str(target_map), quiet=False)
 
     if not target_map.exists() or target_map.stat().st_size == 0:
@@ -242,12 +315,15 @@ def ensure_label_mapping_from_drive():
     return target_map
 
 
-def load_model_and_labels():
-    ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES)
-    map_path = _pick_existing(MAPPING_CANDIDATES)
+def load_model_and_labels(model_choice: str):
+    ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES[model_choice])
+    map_path = _pick_existing(MAPPING_CANDIDATES[model_choice])
 
     if ckpt_path is None:
-        ckpt_path = ensure_checkpoint_from_drive()
+        ckpt_path = ensure_checkpoint_from_drive(model_choice)
+
+    if map_path is None:
+        map_path = ensure_label_mapping_from_drive(model_choice)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -268,17 +344,23 @@ def load_model_and_labels():
             "Please include 'label2id' and 'id2label' in checkpoint OR provide label_mapping.json."
         )
 
-    model = HybridCNNViT(
-        num_classes=len(id2label),
-        embed_dim=cfg.get("embed_dim", 256),
-        num_heads=cfg.get("num_heads", 8),
-        depth=cfg.get("depth", 4),
-        mlp_ratio=cfg.get("mlp_ratio", 4.0),
-        dropout=cfg.get("dropout", 0.1),
-    ).to(device)
+    if model_choice == "Hybrid CNN–ViT":
+        model = HybridCNNViT(
+            num_classes=len(id2label),
+            embed_dim=cfg.get("embed_dim", 256),
+            num_heads=cfg.get("num_heads", 8),
+            depth=cfg.get("depth", 4),
+            mlp_ratio=cfg.get("mlp_ratio", 4.0),
+            dropout=cfg.get("dropout", 0.1),
+        ).to(device)
+    else:
+        model = CNNScratch(
+            num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
+        ).to(device)
 
     state_dict = ckpt["model_state_dict"]
-    if "pos_embed" in state_dict:
+    if model_choice == "Hybrid CNN–ViT" and "pos_embed" in state_dict:
         state_dict = {k: v for k, v in state_dict.items() if k != "pos_embed"}
 
     load_msg = model.load_state_dict(state_dict, strict=False)
@@ -361,16 +443,9 @@ def load_sample_source():
 
 
 def _choose_sample_split(ds):
-    # preferred split order
-    for k in ["test", "validation", "train", "healthy", "pests", "diseases", "nutrition"]:
-        if k in ds and len(ds[k]) > 0:
-            return k
-
-    # any non-empty split
-    for k in ds.keys():
-        if len(ds[k]) > 0:
-            return k
-
+    # strict: only use test split for demo random sample
+    if "test" in ds and len(ds["test"]) > 0:
+        return "test"
     return None
 
 
@@ -429,20 +504,29 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
     return overlay
 
 
-def predict_with_explanations(model, id2label, device, img_pil, k=5):
+def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     x = preprocess_image(img_pil).to(device)
 
-    # hooks for Grad-CAM at inception output
+    # hooks for Grad-CAM
     cache = {}
+
     def fwd_hook(_m, _i, o):
         cache["act"] = o
+
     def bwd_hook(_m, _gi, go):
         cache["grad"] = go[0]
 
-    h1 = model.inception.register_forward_hook(fwd_hook)
-    h2 = model.inception.register_full_backward_hook(bwd_hook)
-
-    logits, _inc, last_attn, token_hw = model(x, return_maps=True)
+    if model_choice == "Hybrid CNN–ViT":
+        h1 = model.inception.register_forward_hook(fwd_hook)
+        h2 = model.inception.register_full_backward_hook(bwd_hook)
+        logits, _inc, last_attn, token_hw = model(x, return_maps=True)
+    else:
+        # last conv feature before head for scratch CNN
+        target_layer = model.features[9]
+        h1 = target_layer.register_forward_hook(fwd_hook)
+        h2 = target_layer.register_full_backward_hook(bwd_hook)
+        logits = model(x)
+        last_attn, token_hw = None, None
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
     pred_idx = int(top_idx[0].item())
@@ -459,9 +543,9 @@ def predict_with_explanations(model, id2label, device, img_pil, k=5):
     cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
     cam = _norm01(cam)
 
-    # Attention map (last block)
+    # Attention map (only for Hybrid)
     attn_map = None
-    if last_attn is not None:
+    if last_attn is not None and token_hw is not None:
         # (B, heads, N, N)
         a = last_attn[0].mean(dim=0)   # (N,N)
         a = a.mean(dim=0)              # (N,)
@@ -471,7 +555,9 @@ def predict_with_explanations(model, id2label, device, img_pil, k=5):
 
     base = _to_uint8(img_pil)
     gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
-    attention_overlay = _apply_heatmap_overlay(base, attn_map if attn_map is not None else np.zeros((8,8), dtype=np.float32), alpha=0.45)
+    attention_overlay = None
+    if attn_map is not None:
+        attention_overlay = _apply_heatmap_overlay(base, attn_map, alpha=0.45)
 
     rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
     return rows, gradcam_overlay, attention_overlay
@@ -492,14 +578,19 @@ with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model</div>", unsafe_allow_html=True)
 
+    model_choice = st.selectbox("Choose model", ["Hybrid CNN–ViT", "CNN Scratch"], index=0)
+
     try:
-        model, id2label, device, ckpt_used = load_model_and_labels()
+        model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
         st.success(f"Loaded checkpoint: `{ckpt_used}`")
-        st.markdown(f"<div class='small-note'>Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b></div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b></div>",
+            unsafe_allow_html=True,
+        )
         model_ready = True
     except Exception as e:
         st.error(f"Model loading failed: {e}")
-        st.info("Put checkpoint at `assign2-ml/outputs_hybrid/best_hybrid_cnn_vit.pt` and label_mapping.json in same folder.")
+        st.info("Please ensure Drive checkpoint + label mapping are accessible.")
         model_ready = False
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
@@ -543,7 +634,7 @@ with right:
         if image is None:
             st.warning("Please upload an image first.")
         else:
-            topk, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, k=5)
+            topk, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
@@ -557,11 +648,14 @@ with right:
 
             st.markdown("---")
             st.markdown("**Visual Explanations**")
-            c1, c2 = st.columns(2)
-            with c1:
-                st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
-            with c2:
-                st.image(attention_overlay, caption="Attention map (Transformer focus)", use_container_width=True)
+            if attention_overlay is not None:
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+                with c2:
+                    st.image(attention_overlay, caption="Attention map (Transformer focus)", use_container_width=True)
+            else:
+                st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
     else:
         st.info("Upload image and click Predict.")
 
