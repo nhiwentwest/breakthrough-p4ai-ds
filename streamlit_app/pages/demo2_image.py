@@ -8,7 +8,7 @@ import numpy as np
 import streamlit as st
 import torch
 import torch.nn as nn
-from datasets import load_from_disk
+from datasets import Dataset, DatasetDict, load_from_disk
 from PIL import Image
 from torchvision import models, transforms
 
@@ -308,23 +308,54 @@ def load_sample_source():
     if p is None:
         return None, None
     ds = load_from_disk(p)
+
+    # normalize return type to DatasetDict-like behavior
+    if isinstance(ds, Dataset):
+        ds = DatasetDict({"train": ds})
+
     return ds, p
+
+
+def _choose_sample_split(ds):
+    # preferred split order
+    for k in ["test", "validation", "train", "healthy", "pests", "diseases", "nutrition"]:
+        if k in ds and len(ds[k]) > 0:
+            return k
+
+    # any non-empty split
+    for k in ds.keys():
+        if len(ds[k]) > 0:
+            return k
+
+    return None
+
+
+def _extract_label(ex):
+    if "label" in ex:
+        return ex["label"]
+    if "labels" in ex:
+        return ex["labels"]
+    return None
 
 
 def get_random_sample_image():
     ds, ds_path = load_sample_source()
     if ds is None:
-        return None, None, None
+        raise RuntimeError("dataset path not found")
 
-    split_name = "test" if "test" in ds else ("validation" if "validation" in ds else ("train" if "train" in ds else None))
-    if split_name is None or len(ds[split_name]) == 0:
-        return None, None, None
+    split_name = _choose_sample_split(ds)
+    if split_name is None:
+        raise RuntimeError(f"dataset loaded but all splits are empty: {list(ds.keys())}")
 
     idx = random.randint(0, len(ds[split_name]) - 1)
     ex = ds[split_name][idx]
+
+    if "image" not in ex:
+        raise RuntimeError(f"split '{split_name}' does not contain 'image' column. columns={list(ex.keys())}")
+
     img = ex["image"].convert("RGB")
-    label = ex.get("label", None)
-    meta = {"split": split_name, "index": idx, "dataset_path": ds_path}
+    label = _extract_label(ex)
+    meta = {"split": split_name, "index": idx, "dataset_path": ds_path, "columns": list(ex.keys())}
     return img, label, meta
 
 
