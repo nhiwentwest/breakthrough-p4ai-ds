@@ -623,7 +623,7 @@ with left:
         up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
         if up:
             image = Image.open(up).convert("RGB")
-            st.image(image, caption="Input image", width=360)
+            st.image(image, caption="Input image", width=240)
     else:
         if st.button("Load random sample from Drive", use_container_width=True):
             try:
@@ -638,7 +638,7 @@ with left:
             image = st.session_state["sample_img"]
             true_label = st.session_state.get("sample_label")
             meta = st.session_state.get("sample_meta", {})
-            st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", use_container_width=True)
+            st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
             if true_label is not None:
                 st.caption(f"Ground truth label: {true_label}")
 
