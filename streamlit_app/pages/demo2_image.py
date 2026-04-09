@@ -8,6 +8,7 @@ import numpy as np
 import streamlit as st
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from datasets import Dataset, DatasetDict, load_from_disk
 from PIL import Image
 from torchvision import models, transforms
@@ -106,13 +107,21 @@ class TransformerEncoderBlock(nn.Module):
         self.norm2 = nn.LayerNorm(dim)
         self.mlp = MLP(dim, mlp_ratio=mlp_ratio, dropout=dropout)
 
-    def forward(self, x):
+    def forward(self, x, return_attn=False):
         h = x
-        x, _ = self.attn(self.norm1(x), self.norm1(x), self.norm1(x), need_weights=False)
-        x = x + h
+        x_norm = self.norm1(x)
+        if return_attn:
+            x_attn, attn = self.attn(x_norm, x_norm, x_norm, need_weights=True, average_attn_weights=False)
+        else:
+            x_attn, attn = self.attn(x_norm, x_norm, x_norm, need_weights=False), None
+        if isinstance(x_attn, tuple):
+            x_attn = x_attn[0]
+        x = x_attn + h
         h = x
         x = self.mlp(self.norm2(x))
         x = x + h
+        if return_attn:
+            return x, attn
         return x
 
 
@@ -144,18 +153,29 @@ class HybridCNNViT(nn.Module):
             nn.init.trunc_normal_(pe, std=0.02)
             self.pos_embed = nn.Parameter(pe)
 
-    def forward(self, x):
+    def forward(self, x, return_maps=False):
         x = self.cnn_front(x)
-        x = self.inception(x)
-        x = self.patch_embed(x)
+        inc = self.inception(x)
+        x = self.patch_embed(inc)
+        h_t, w_t = x.shape[-2], x.shape[-1]
         x = x.flatten(2).transpose(1, 2)
         self._build_pos_embed_if_needed(x.shape[1], x.shape[2], x.device)
         x = self.pos_drop(x + self.pos_embed)
-        for blk in self.transformer:
-            x = blk(x)
+
+        last_attn = None
+        for i, blk in enumerate(self.transformer):
+            if return_maps and i == len(self.transformer) - 1:
+                x, last_attn = blk(x, return_attn=True)
+            else:
+                x = blk(x)
+
         x = self.norm(x)
         x = x.mean(dim=1)
-        return self.head(x)
+        logits = self.head(x)
+
+        if return_maps:
+            return logits, inc, last_attn, (h_t, w_t)
+        return logits
 
 
 # =========================
@@ -384,16 +404,78 @@ def get_random_sample_image():
     return img, label, meta
 
 
-@torch.no_grad()
-def predict_topk(model, id2label, device, img_tensor, k=5):
-    img_tensor = img_tensor.to(device)
-    logits = model(img_tensor)
+def _to_uint8(img_pil: Image.Image):
+    return np.array(img_pil.convert("RGB"), dtype=np.uint8)
+
+
+def _norm01(arr):
+    arr = arr.astype(np.float32)
+    mn, mx = arr.min(), arr.max()
+    return (arr - mn) / (mx - mn + 1e-8)
+
+
+def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
+    heat = _norm01(heatmap_01)
+    heat_img = Image.fromarray((heat * 255).astype(np.uint8)).resize((base_rgb_uint8.shape[1], base_rgb_uint8.shape[0]), Image.BILINEAR)
+    heat_np = np.array(heat_img, dtype=np.float32) / 255.0
+
+    # simple jet-like RGB without matplotlib dependency
+    r = np.clip(1.5 * heat_np - 0.5, 0, 1)
+    g = np.clip(1.5 - np.abs(2 * heat_np - 1.0), 0, 1)
+    b = np.clip(1.5 * (1 - heat_np) - 0.5, 0, 1)
+    color = np.stack([r, g, b], axis=-1)
+    color = (color * 255.0).astype(np.uint8)
+
+    overlay = (alpha * color + (1 - alpha) * base_rgb_uint8).astype(np.uint8)
+    return overlay
+
+
+def predict_with_explanations(model, id2label, device, img_pil, k=5):
+    x = preprocess_image(img_pil).to(device)
+
+    # hooks for Grad-CAM at inception output
+    cache = {}
+    def fwd_hook(_m, _i, o):
+        cache["act"] = o
+    def bwd_hook(_m, _gi, go):
+        cache["grad"] = go[0]
+
+    h1 = model.inception.register_forward_hook(fwd_hook)
+    h2 = model.inception.register_full_backward_hook(bwd_hook)
+
+    logits, _inc, last_attn, token_hw = model(x, return_maps=True)
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
-    rows = []
-    for p, i in zip(top_vals.cpu().numpy(), top_idx.cpu().numpy()):
-        rows.append((id2label[int(i)], float(p)))
-    return rows
+    pred_idx = int(top_idx[0].item())
+
+    model.zero_grad(set_to_none=True)
+    logits[0, pred_idx].backward()
+
+    h1.remove(); h2.remove()
+
+    # Grad-CAM
+    act = cache["act"][0]        # (C,H,W)
+    grad = cache["grad"][0]      # (C,H,W)
+    w = grad.mean(dim=(1, 2), keepdim=True)
+    cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
+    cam = _norm01(cam)
+
+    # Attention map (last block)
+    attn_map = None
+    if last_attn is not None:
+        # (B, heads, N, N)
+        a = last_attn[0].mean(dim=0)   # (N,N)
+        a = a.mean(dim=0)              # (N,)
+        h_t, w_t = token_hw
+        attn_map = a.view(h_t, w_t).detach().cpu().numpy()
+        attn_map = _norm01(attn_map)
+
+    base = _to_uint8(img_pil)
+    gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
+    attention_overlay = _apply_heatmap_overlay(base, attn_map if attn_map is not None else np.zeros((8,8), dtype=np.float32), alpha=0.45)
+
+    rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+    return rows, gradcam_overlay, attention_overlay
 
 
 # =========================
@@ -462,8 +544,7 @@ with right:
         if image is None:
             st.warning("Please upload an image first.")
         else:
-            x = preprocess_image(image)
-            topk = predict_topk(model, id2label, device, x, k=5)
+            topk, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, k=5)
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
@@ -474,6 +555,14 @@ with right:
             st.markdown("**Top-5 predictions**")
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
+
+            st.markdown("---")
+            st.markdown("**Visual Explanations**")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+            with c2:
+                st.image(attention_overlay, caption="Attention map (Transformer focus)", use_container_width=True)
     else:
         st.info("Upload image and click Predict.")
 
