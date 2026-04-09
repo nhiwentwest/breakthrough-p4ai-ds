@@ -27,6 +27,8 @@ st.markdown(
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
 body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
+section[data-testid="stSidebar"] {{ display:none !important; }}
+div[data-testid="collapsedControl"] {{ display:none !important; }}
 .block-container {{ padding-top:1.2rem; }}
 .hero {{ font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; margin:0; }}
 .sub {{ color:{MUT}; margin-top:.25rem; margin-bottom:1rem; }}
