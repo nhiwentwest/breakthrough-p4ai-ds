@@ -284,7 +284,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
         return target_ckpt
 
     url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, str(target_ckpt), quiet=False)
+    gdown.download(url, str(target_ckpt), quiet=False, fuzzy=True)
 
     if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
         raise FileNotFoundError("Downloaded checkpoint is missing or empty.")
