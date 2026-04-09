@@ -255,7 +255,16 @@ def load_model_and_labels():
         dropout=cfg.get("dropout", 0.1),
     ).to(device)
 
-    load_msg = model.load_state_dict(ckpt["model_state_dict"], strict=False)
+    state_dict = ckpt["model_state_dict"]
+    if "pos_embed" in state_dict:
+        state_dict = {k: v for k, v in state_dict.items() if k != "pos_embed"}
+
+    load_msg = model.load_state_dict(state_dict, strict=False)
+    if len(load_msg.unexpected_keys) > 0:
+        st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
+    if len(load_msg.missing_keys) > 0:
+        st.warning(f"Missing keys initialized by model: {load_msg.missing_keys}")
+
     model.eval()
 
     return model, id2label, device, str(ckpt_path)
