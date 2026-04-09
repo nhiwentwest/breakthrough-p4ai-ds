@@ -19,3 +19,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Assignment 2 artifacts / datasets
+assign2-ml/outputs_hybrid/
+assign2-ml/p4-btl2/processed_rice_224/
+*.pt
+*.pth
+*.ckpt
