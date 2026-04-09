@@ -255,7 +255,7 @@ def load_model_and_labels():
         dropout=cfg.get("dropout", 0.1),
     ).to(device)
 
-    model.load_state_dict(ckpt["model_state_dict"], strict=True)
+    load_msg = model.load_state_dict(ckpt["model_state_dict"], strict=False)
     model.eval()
 
     return model, id2label, device, str(ckpt_path)
