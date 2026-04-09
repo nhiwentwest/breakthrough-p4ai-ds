@@ -323,6 +323,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
     return target_map
 
 
+@st.cache_resource(show_spinner=True)
 def load_model_and_labels(model_choice: str):
     ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES[model_choice])
     map_path = _pick_existing(MAPPING_CANDIDATES[model_choice])
@@ -600,7 +601,8 @@ with left:
     model_choice = st.selectbox("Choose model", ["Hybrid CNN–ViT", "CNN Scratch"], index=0)
 
     try:
-        model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
+        with st.spinner(f"Loading {model_choice} checkpoint..."):
+            model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
         st.success(f"Loaded checkpoint: `{ckpt_used}`")
         st.markdown(
             f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b></div>",
