@@ -3,6 +3,7 @@ import os
 import random
 from pathlib import Path
 
+import gdown
 import numpy as np
 import streamlit as st
 import torch
@@ -163,12 +164,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHECKPOINT_CANDIDATES = [
     PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
     PROJECT_ROOT / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
+    PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_hybrid_cnn_vit.pt",
 ]
 
 MAPPING_CANDIDATES = [
     PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "label_mapping.json",
     PROJECT_ROOT / "outputs_hybrid" / "label_mapping.json",
+    PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
 ]
+
+# Google Drive file IDs
+DRIVE_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
+DRIVE_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
 
 
 def _pick_existing(paths):
@@ -178,15 +185,30 @@ def _pick_existing(paths):
     return None
 
 
+def ensure_checkpoint_from_drive():
+    target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_ckpt = target_dir / "best_hybrid_cnn_vit.pt"
+
+    if target_ckpt.exists():
+        return target_ckpt
+
+    url = f"https://drive.google.com/uc?id={DRIVE_CHECKPOINT_FILE_ID}"
+    gdown.download(url, str(target_ckpt), quiet=False)
+
+    if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
+        raise FileNotFoundError("Downloaded checkpoint is missing or empty.")
+
+    return target_ckpt
+
+
 @st.cache_resource(show_spinner=False)
 def load_model_and_labels():
     ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES)
     map_path = _pick_existing(MAPPING_CANDIDATES)
 
     if ckpt_path is None:
-        raise FileNotFoundError(
-            "Checkpoint not found. Expected at assign2-ml/outputs_hybrid/best_hybrid_cnn_vit.pt"
-        )
+        ckpt_path = ensure_checkpoint_from_drive()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -202,7 +224,10 @@ def load_model_and_labels():
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
     if id2label is None:
-        raise RuntimeError("Cannot load label mapping from checkpoint or label_mapping.json")
+        raise RuntimeError(
+            "Cannot load label mapping from checkpoint. "
+            "Please include 'label2id' and 'id2label' in checkpoint OR provide label_mapping.json."
+        )
 
     model = HybridCNNViT(
         num_classes=len(id2label),
