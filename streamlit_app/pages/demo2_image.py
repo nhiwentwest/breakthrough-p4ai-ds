@@ -600,6 +600,10 @@ with left:
 
     model_choice = st.selectbox("Choose model", ["Hybrid CNN–ViT", "CNN Scratch"], index=0)
 
+    model = None
+    id2label = None
+    device = None
+
     try:
         with st.spinner(f"Loading {model_choice} checkpoint..."):
             model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
@@ -653,7 +657,9 @@ with right:
     st.markdown("<div class='section'>Prediction & Explainability</div>", unsafe_allow_html=True)
 
     if pred_btn:
-        if image is None:
+        if not model_ready or model is None or id2label is None or device is None:
+            st.error("Model is not ready. Please fix model loading first.")
+        elif image is None:
             st.warning("Please upload an image first.")
         else:
             topk, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
