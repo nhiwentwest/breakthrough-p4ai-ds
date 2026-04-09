@@ -202,6 +202,23 @@ def ensure_checkpoint_from_drive():
     return target_ckpt
 
 
+def ensure_label_mapping_from_drive():
+    target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_map = target_dir / "label_mapping.json"
+
+    if target_map.exists():
+        return target_map
+
+    url = f"https://drive.google.com/uc?id={DRIVE_LABEL_MAP_FILE_ID}"
+    gdown.download(url, str(target_map), quiet=False)
+
+    if not target_map.exists() or target_map.stat().st_size == 0:
+        raise FileNotFoundError("Downloaded label_mapping.json is missing or empty.")
+
+    return target_map
+
+
 @st.cache_resource(show_spinner=False)
 def load_model_and_labels():
     ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES)
