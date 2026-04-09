@@ -38,6 +38,14 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 .stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
 .small-note {{ color:{MUT}; font-size:0.82rem; }}
+.kpi-grid {{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:.65rem; margin:.8rem 0 1rem; }}
+.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.65rem .8rem; }}
+.kpi-lbl {{ font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
+.kpi-val {{ font-weight:700; font-size:1rem; margin-top:.15rem; }}
+.editor-bar {{ display:flex; align-items:center; gap:.35rem; margin-bottom:.55rem; }}
+.dot {{ width:.55rem; height:.55rem; border-radius:999px; display:inline-block; }}
+.dot-r {{ background:#e57373; }} .dot-y {{ background:#ffca28; }} .dot-g {{ background:#66bb6a; }}
+@media (max-width: 900px) {{ .kpi-grid {{ grid-template-columns: 1fr; }} }}
 </style>
 """,
     unsafe_allow_html=True,
@@ -568,15 +576,26 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 # =========================
 st.markdown("<p class='hero'>Demo 2 · Image Classification</p>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='sub'>Rice disease classifier (Hybrid CNN–ViT). Upload one image to predict class with checkpoint.</p>",
+    "<p class='sub'>Editor-style inference console with bento layout · Hybrid CNN–ViT and CNN Scratch.</p>",
     unsafe_allow_html=True,
 )
 
-left, right = st.columns([1.2, 1])
+st.markdown(
+    """
+    <div class='kpi-grid'>
+      <div class='kpi-card'><div class='kpi-lbl'>Task</div><div class='kpi-val'>Rice Disease Classification</div></div>
+      <div class='kpi-card'><div class='kpi-lbl'>Input Size</div><div class='kpi-val'>224 × 224</div></div>
+      <div class='kpi-card'><div class='kpi-lbl'>Explainability</div><div class='kpi-val'>Grad-CAM + Attention</div></div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+left, right = st.columns([1.25, 1])
 
 with left:
-    st.markdown("<div class='bento'>", unsafe_allow_html=True)
-    st.markdown("<div class='section'>Model</div>", unsafe_allow_html=True)
+    st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
     model_choice = st.selectbox("Choose model", ["Hybrid CNN–ViT", "CNN Scratch"], index=0)
 
@@ -627,8 +646,8 @@ with left:
     st.markdown("</div>", unsafe_allow_html=True)
 
 with right:
-    st.markdown("<div class='bento'>", unsafe_allow_html=True)
-    st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
+    st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section'>Prediction & Explainability</div>", unsafe_allow_html=True)
 
     if pred_btn:
         if image is None:
