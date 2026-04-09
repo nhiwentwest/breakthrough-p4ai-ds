@@ -623,7 +623,7 @@ with left:
         up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
         if up:
             image = Image.open(up).convert("RGB")
-            st.image(image, caption="Input image", use_container_width=True)
+            st.image(image, caption="Input image", width=360)
     else:
         if st.button("Load random sample from Drive", use_container_width=True):
             try:
