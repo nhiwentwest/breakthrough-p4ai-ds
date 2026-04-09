@@ -378,13 +378,16 @@ with left:
             st.image(image, caption="Input image", use_container_width=True)
     else:
         if st.button("Load random sample", use_container_width=True):
-            sample_img, sample_label, sample_meta = get_random_sample_image()
-            if sample_img is None:
-                st.warning("Cannot find mounted Kaggle dataset. Please attach bocon66/processed-rice-244.")
-            else:
-                st.session_state["sample_img"] = sample_img
-                st.session_state["sample_label"] = sample_label
-                st.session_state["sample_meta"] = sample_meta
+            try:
+                sample_img, sample_label, sample_meta = get_random_sample_image()
+                if sample_img is None:
+                    st.error("Random sample failed: dataset loaded but no usable split (test/validation/train).")
+                else:
+                    st.session_state["sample_img"] = sample_img
+                    st.session_state["sample_label"] = sample_label
+                    st.session_state["sample_meta"] = sample_meta
+            except Exception as e:
+                st.error(f"Random sample error: {e}")
 
         if "sample_img" in st.session_state:
             image = st.session_state["sample_img"]
