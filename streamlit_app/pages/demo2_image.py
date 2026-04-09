@@ -242,7 +242,6 @@ def ensure_label_mapping_from_drive():
     return target_map
 
 
-@st.cache_resource(show_spinner=False)
 def load_model_and_labels():
     ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES)
     map_path = _pick_existing(MAPPING_CANDIDATES)
