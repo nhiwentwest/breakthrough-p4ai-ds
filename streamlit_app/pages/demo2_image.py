@@ -285,14 +285,12 @@ def resolve_kaggle_processed_dataset_path():
         if os.path.exists(os.path.join(p, "dataset_dict.json")):
             return p
 
-    # recursive scan in kaggle input
-    root = "/kaggle/input"
-    if os.path.isdir(root):
-        for r, _d, files in os.walk(root):
-            if "dataset_dict.json" in files:
-                return r
-
-    return None
+    # strict mode: no fallback
+    raise FileNotFoundError(
+        "Kaggle dataset not found. Expected mounted dataset 'bocon66/processed-rice-244' "
+        "with a directory containing dataset_dict.json. "
+        f"Checked: {candidates}"
+    )
 
 
 @st.cache_resource(show_spinner=False)
