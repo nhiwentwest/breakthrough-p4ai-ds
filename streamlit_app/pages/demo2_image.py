@@ -421,11 +421,33 @@ with left:
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
+    mode = st.radio("Input mode", ["Upload image", "Drive random sample"], horizontal=True)
+
     image = None
-    up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
-    if up:
-        image = Image.open(up).convert("RGB")
-        st.image(image, caption="Input image", use_container_width=True)
+    true_label = None
+
+    if mode == "Upload image":
+        up = st.file_uploader("Upload rice leaf image", type=["png", "jpg", "jpeg", "webp"])
+        if up:
+            image = Image.open(up).convert("RGB")
+            st.image(image, caption="Input image", use_container_width=True)
+    else:
+        if st.button("Load random sample from Drive", use_container_width=True):
+            try:
+                sample_img, sample_label, sample_meta = get_random_sample_image()
+                st.session_state["sample_img"] = sample_img
+                st.session_state["sample_label"] = sample_label
+                st.session_state["sample_meta"] = sample_meta
+            except Exception as e:
+                st.error(f"Drive sample error: {e}")
+
+        if "sample_img" in st.session_state:
+            image = st.session_state["sample_img"]
+            true_label = st.session_state.get("sample_label")
+            meta = st.session_state.get("sample_meta", {})
+            st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", use_container_width=True)
+            if true_label is not None:
+                st.caption(f"Ground truth label: {true_label}")
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
     st.markdown("</div>", unsafe_allow_html=True)
