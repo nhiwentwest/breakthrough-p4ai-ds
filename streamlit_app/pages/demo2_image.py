@@ -136,7 +136,9 @@ class TransformerEncoderBlock(nn.Module):
 class HybridCNNViT(nn.Module):
     def __init__(self, num_classes=21, embed_dim=256, num_heads=8, depth=4, mlp_ratio=4.0, dropout=0.1):
         super().__init__()
-        vgg = models.vgg16(weights=models.VGG16_Weights.IMAGENET1K_V1)
+        # In demo inference, checkpoint already contains trained weights.
+        # Avoid downloading ImageNet pretrained VGG weights at app startup.
+        vgg = models.vgg16(weights=None)
         self.cnn_front = nn.Sequential(*list(vgg.features.children())[:10])
 
         self.inception = InceptionBlock(in_ch=128, b1=64, b3=64, b5=32, bp=32)
