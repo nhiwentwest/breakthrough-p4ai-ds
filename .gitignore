@@ -27,3 +27,4 @@ assign2-ml/p4-btl2/processed_rice_224/
 *.pth
 *.ckpt
 assign2-ml/p4-btl2/
+assign2-ml/logs-*.txt
