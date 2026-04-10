@@ -13,11 +13,11 @@ STEP 6: Train / Validate / Test loops
 STEP 7: Main
 
 Run (local):
-  python hybrid_cnn_vit.py --data_dir processed_rice_224 --epochs 20 --batch_size 16
+  python hybrid_cnn_vit.py --data_dir processed_rice_224 --epochs 20 --batch_size 32
 
 Run (Kaggle, dataset owner bocon66):
   # Add dataset in notebook: bocon66/processed_rice_224
-  python hybrid_cnn_vit.py --kaggle_dataset_ref bocon66/processed_rice_224 --epochs 20 --batch_size 16
+  python hybrid_cnn_vit.py --kaggle_dataset_ref bocon66/processed_rice_224 --epochs 20 --batch_size 32
 """
 
 # =========================
@@ -41,7 +41,7 @@ class CFG:
 
     # training
     epochs: int = 20
-    batch_size: int = 16
+    batch_size: int = 32
     num_workers: int = 4
     lr: float = 3e-4
     weight_decay: float = 1e-4
@@ -770,7 +770,7 @@ def parse_args():
     p.add_argument("--data_dir", type=str, default="processed_rice_224")
     p.add_argument("--output_dir", type=str, default="outputs_hybrid")
     p.add_argument("--epochs", type=int, default=20)
-    p.add_argument("--batch_size", type=int, default=16)
+    p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--num_workers", type=int, default=2)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
