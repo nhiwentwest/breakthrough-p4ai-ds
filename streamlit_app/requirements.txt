@@ -1,5 +1,6 @@
 # Core
 streamlit==1.40.0
+rich==13.9.4
 Pillow>=10.0.0
 numpy>=1.26.0
 pandas>=2.2.0
