@@ -489,6 +489,37 @@ def get_random_sample_image():
     return img, label, meta
 
 
+def parse_split_index(user_text: str):
+    s = (user_text or "").strip().lower()
+    m = re.fullmatch(r"([a-z_]+)\s*\[\s*(\d+)\s*\]", s)
+    if not m:
+        raise ValueError("Format must be like: test[7]")
+    split_name = m.group(1)
+    idx = int(m.group(2))
+    return split_name, idx
+
+
+def get_named_sample_image(spec_text: str):
+    ds, ds_path = load_sample_source()
+    if ds is None:
+        raise RuntimeError("dataset path not found")
+
+    split_name, idx = parse_split_index(spec_text)
+    if split_name not in ds:
+        raise ValueError(f"Split '{split_name}' not found. Available: {list(ds.keys())}")
+    if idx < 0 or idx >= len(ds[split_name]):
+        raise IndexError(f"Index out of range for split '{split_name}': 0..{len(ds[split_name]) - 1}")
+
+    ex = ds[split_name][idx]
+    if "image" not in ex:
+        raise RuntimeError(f"split '{split_name}' does not contain 'image' column. columns={list(ex.keys())}")
+
+    img = ex["image"].convert("RGB")
+    label = _extract_label(ex)
+    meta = {"split": split_name, "index": idx, "dataset_path": ds_path, "columns": list(ex.keys())}
+    return img, label, meta
+
+
 def _to_uint8(img_pil: Image.Image):
     return np.array(img_pil.convert("RGB"), dtype=np.uint8)
 
@@ -622,7 +653,7 @@ with left:
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
-    mode = st.radio("Input mode", ["Upload image", "Drive random sample"], horizontal=True)
+    mode = st.radio("Input mode", ["Upload image", "Drive random sample", "Drive named sample"], horizontal=True)
 
     image = None
     true_label = None
@@ -632,7 +663,7 @@ with left:
         if up:
             image = Image.open(up).convert("RGB")
             st.image(image, caption="Input image", width=240)
-    else:
+    elif mode == "Drive random sample":
         if st.button("Load random sample from Drive", use_container_width=True):
             try:
                 with st.spinner("Loading one random sample from Drive cache..."):
@@ -642,6 +673,25 @@ with left:
                 st.session_state["sample_meta"] = sample_meta
             except Exception as e:
                 st.error(f"Drive sample error: {e}")
+
+        if "sample_img" in st.session_state:
+            image = st.session_state["sample_img"]
+            true_label = st.session_state.get("sample_label")
+            meta = st.session_state.get("sample_meta", {})
+            st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
+            if true_label is not None:
+                st.caption(f"Ground truth label: {true_label}")
+    else:
+        spec = st.text_input("Sample key", value="test[0]", help="Format: split[index], e.g., test[7]")
+        if st.button("Load named sample", use_container_width=True):
+            try:
+                with st.spinner("Loading requested sample from Drive cache..."):
+                    sample_img, sample_label, sample_meta = get_named_sample_image(spec)
+                st.session_state["sample_img"] = sample_img
+                st.session_state["sample_label"] = sample_label
+                st.session_state["sample_meta"] = sample_meta
+            except Exception as e:
+                st.error(f"Drive named sample error: {e}")
 
         if "sample_img" in st.session_state:
             image = st.session_state["sample_img"]
