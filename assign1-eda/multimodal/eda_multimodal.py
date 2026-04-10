@@ -23,7 +23,6 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-# Bắt buộc: nltk (bigram), scikit-learn (TF-IDF), Pillow (ảnh). Không fallback.
 try:
     from nltk.util import ngrams
 except ImportError as e:
