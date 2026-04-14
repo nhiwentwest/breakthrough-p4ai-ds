@@ -20,6 +20,7 @@ jobs:
           mkdir -p deploy
           cp index.html deploy/
           cp -r assign1-eda deploy/
+          cp -r assign2-ml deploy/
           cp -r report deploy/
 
       - name: Deploy to gh-pages
