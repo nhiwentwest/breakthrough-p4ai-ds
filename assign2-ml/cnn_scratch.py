@@ -80,22 +80,16 @@ class HFDiskImageDataset(Dataset):
 
 
 def resolve_data_dir(data_dir: str) -> str:
-    candidates = [
-        data_dir,
-        "/kaggle/input/processed-rice-224/processed_rice_224",
-        "/kaggle/input/processed_rice_224",
-        "/kaggle/input/processed-rice-224",
-    ]
-    for p in candidates:
-        if os.path.exists(os.path.join(p, "dataset_dict.json")):
-            return p
+    # 1. Local or explicitly provided path
+    if os.path.exists(os.path.join(data_dir, "dataset_dict.json")):
+        return data_dir
 
-    if os.path.isdir("/kaggle/input"):
-        for root, _dirs, files in os.walk("/kaggle/input"):
-            if "dataset_dict.json" in files:
-                return root
+    # 2. Kaggle fallback path
+    kaggle_path = "/kaggle/input/processed-rice-224/processed_rice_224"
+    if os.path.exists(os.path.join(kaggle_path, "dataset_dict.json")):
+        return kaggle_path
 
-    raise FileNotFoundError("Cannot find dataset folder containing dataset_dict.json")
+    raise FileNotFoundError(f"Cannot find dataset folder containing dataset_dict.json in {data_dir} or {kaggle_path}")
 
 
 def build_dataloaders(cfg: CFG):

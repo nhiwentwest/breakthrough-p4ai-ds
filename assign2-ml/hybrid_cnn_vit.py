@@ -116,30 +116,18 @@ class HFDiskImageDataset(Dataset):
 
 def resolve_data_dir(cfg: CFG) -> str:
     """Resolve processed dataset path robustly (local + Kaggle)."""
-    candidates = [
-        cfg.data_dir,
-        "/kaggle/input/processed-rice-224/processed_rice_224",
-        "/kaggle/input/processed_rice_224/processed_rice_224",
-        "/kaggle/input/processed-rice-224",
-        "/kaggle/input/processed_rice_224",
-    ]
+    # 1. Local or explicitly provided path
+    if os.path.exists(os.path.join(cfg.data_dir, "dataset_dict.json")):
+        return cfg.data_dir
 
-    # 1) direct candidates
-    for p in candidates:
-        if os.path.exists(os.path.join(p, "dataset_dict.json")):
-            return p
-
-    # 2) auto-discover recursively under /kaggle/input
-    kaggle_root = "/kaggle/input"
-    if os.path.isdir(kaggle_root):
-        for root, dirs, files in os.walk(kaggle_root):
-            if "dataset_dict.json" in files:
-                return root
+    # 2. Kaggle fallback path
+    kaggle_path = "/kaggle/input/processed-rice-224/processed_rice_224"
+    if os.path.exists(os.path.join(kaggle_path, "dataset_dict.json")):
+        return kaggle_path
 
     raise FileNotFoundError(
-        "Cannot find processed dataset directory with dataset_dict.json. "
-        f"Checked direct candidates: {candidates}. "
-        "Attach dataset in Kaggle Input or pass --data_dir explicitly to the folder that contains dataset_dict.json."
+        f"Cannot find dataset_dict.json in {cfg.data_dir} or {kaggle_path}. "
+        "Attach dataset in Kaggle Input or pass --data_dir explicitly."
     )
 
 
