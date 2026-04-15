@@ -59,7 +59,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from PIL import Image
 from datasets import load_from_disk
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from torch.utils.data import DataLoader, Dataset
 from torchvision import models, transforms
 
@@ -336,13 +336,22 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             sal = grad.abs().max(dim=0).values.cpu().numpy()
             sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
 
-            # Grad-CAM on layer4
+            # Grad-CAM on layer4 and LSAM Attention Map
             activations, gradients = {}, {}
+            lsam_map = {}
             def fwd_hook(m, inp, out): activations["x"] = out
             def bwd_hook(m, gin, gout): gradients["x"] = gout[0]
+            def lsam_hook(m, inp, out): lsam_map["s_attn"] = out.detach()
             
             h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
             h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
+            
+            # Hook the LSAM module in the very last block of layer4
+            last_block = model.backbone.layer4[-1]
+            if hasattr(last_block, "clam"):
+                h3 = last_block.clam.lsam.register_forward_hook(lsam_hook)
+            else:
+                h3 = None
             
             model.zero_grad(set_to_none=True)
             logits_gc = model(xi)
@@ -351,6 +360,7 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             
             h1.remove()
             h2.remove()
+            if h3 is not None: h3.remove()
             
             if "x" in activations and "x" in gradients:
                 act = activations["x"][0]
@@ -361,13 +371,21 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             else:
                 cam = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
 
+            if "s_attn" in lsam_map:
+                attn_map = lsam_map["s_attn"][0, 0].cpu().numpy()
+                attn_map = (attn_map - attn_map.min()) / (attn_map.max() - attn_map.min() + 1e-8)
+            else:
+                attn_map = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
+
             base = denormalize_image(xi[0].detach())
             H, W = base.shape[:2]
             sal_r = np.array(Image.fromarray((sal*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
             cam_r = np.array(Image.fromarray((cam*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
+            attn_r = np.array(Image.fromarray((attn_map*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
 
             save_overlay(base, cam_r, os.path.join(viz_dir, f"sample_{done:03d}_gradcam_pred{pred_idx}.png"))
             save_overlay(base, sal_r, os.path.join(viz_dir, f"sample_{done:03d}_saliency_pred{pred_idx}.png"))
+            save_overlay(base, attn_r, os.path.join(viz_dir, f"sample_{done:03d}_attention_pred{pred_idx}.png"))
             done += 1
 
 
@@ -460,9 +478,41 @@ def run_training(cfg: CFG):
         model.load_state_dict(torch.load(best_path, map_location=device)["model_state_dict"])
     
     test_metrics = run_eval(model, test_loader, device)
+    
+    # Render and save Confusion Matrix
+    cm = confusion_matrix(test_metrics["y_true"], test_metrics["y_pred"])
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in range(len(id2label))])
+    fig, ax = plt.subplots(figsize=(10, 10))
+    disp.plot(ax=ax, cmap="Blues", xticks_rotation="vertical")
+    plt.tight_layout()
+    fig.savefig(os.path.join(cfg.output_dir, "confusion_matrix.png"), dpi=150)
+    plt.close(fig)
+
     cls_report = classification_report(test_metrics["y_true"], test_metrics["y_pred"], target_names=[id2label[i] for i in range(len(id2label))], digits=4, output_dict=True, zero_division=0)
     
     generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples)
+
+    # Plot Learning Curves
+    if history:
+        ep_range = [h["epoch"] for h in history]
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        ax1.plot(ep_range, [h.get("train_loss") for h in history], label="Train", marker="o")
+        ax1.plot(ep_range, [h.get("val_loss") for h in history], label="Validation", marker="o")
+        ax1.set_title("Loss over Epochs")
+        ax1.set_xlabel("Epoch")
+        ax1.set_ylabel("Loss")
+        ax1.legend()
+        ax1.grid(True)
+        ax2.plot(ep_range, [h.get("train_macro_f1") for h in history], label="Train", marker="o")
+        ax2.plot(ep_range, [h.get("val_macro_f1") for h in history], label="Validation", marker="o")
+        ax2.set_title("Macro F1 over Epochs")
+        ax2.set_xlabel("Epoch")
+        ax2.set_ylabel("Macro F1")
+        ax2.legend()
+        ax2.grid(True)
+        plt.tight_layout()
+        fig.savefig(os.path.join(cfg.output_dir, "learning_curves.png"), dpi=150)
+        plt.close(fig)
 
     report_path = os.path.join(cfg.output_dir, "mblanet_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
