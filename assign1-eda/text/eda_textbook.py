@@ -346,27 +346,33 @@ if df is not None:
     #══════════════════════════════════════════════════════════════════════════════
 
     from sklearn.metrics.pairwise import cosine_similarity
-    label_names = {0: '0', 1: '1', 2: '2'}
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    import numpy as np
+    import plotly.graph_objects as go
+
+    label_names = {0: 'Bearish', 1: 'Bullish', 2: 'Neutral'}
     categories = [0, 1, 2]
     category_labels = [label_names[cat] for cat in categories]
 
-    vectorizer = TfidfVectorizer(max_features=5000, stop_words=list(STOP_WORDS))
-    tfidf_matrix = vectorizer.fit_transform(df['text'])
+    vectorizer = TfidfVectorizer(max_features=5000) 
+    tfidf_matrix = vectorizer.fit_transform(df['text'].astype(str))
 
     n_cats = len(categories)
     similarity_matrix = np.zeros((n_cats, n_cats))
 
     for i, cat1 in enumerate(categories):
-        cat1_indices = df[df['label'] == cat1].index
-        cat1_vectors = tfidf_matrix[cat1_indices]
     
-    for j, cat2 in enumerate(categories):
-        cat2_indices = df[df['label'] == cat2].index
-        cat2_vectors = tfidf_matrix[cat2_indices]
+        cat1_indices = df[df['label'] == cat1].index.tolist()
+        cat1_vectors = tfidf_matrix[cat1_indices]
+        
+        for j, cat2 in enumerate(categories):
+            cat2_indices = df[df['label'] == cat2].index.tolist()
+            cat2_vectors = tfidf_matrix[cat2_indices]
 
-        pairwise_sim = cosine_similarity(cat1_vectors, cat2_vectors)
+            pairwise_sim = cosine_similarity(cat1_vectors, cat2_vectors)
 
-        similarity_matrix[i, j] = np.mean(pairwise_sim)
+            similarity_matrix[i, j] = np.mean(pairwise_sim)
+
     fig = go.Figure(data=go.Heatmap(
         z=similarity_matrix,
         x=category_labels,
