@@ -992,8 +992,8 @@ elif step == 6:
             per_cat = st.slider("Samples per category (with 5 captions)", 1, 6, 2, 1, key="contr_text_per_cat")
 
         noise_df_step6 = get_or_compute(
-            f"image_noise_probe::{split}",
-            lambda: image_noise_probe(imgs_split),
+            f"image_noise_probe::{split}::three_layer_v2",
+            lambda: image_noise_probe(imgs_split, cdf, tuple(sorted(dom_map_split.items()))),
             spinner_text=f"Computing image-level noise probe ({split})..."
         )
 
