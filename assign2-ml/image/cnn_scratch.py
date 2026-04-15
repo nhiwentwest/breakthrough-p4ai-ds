@@ -46,9 +46,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from datasets import load_from_disk
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 
 def set_seed(seed: int = 42):
@@ -325,6 +326,16 @@ def run_training(cfg: CFG):
     model.load_state_dict(ckpt["model_state_dict"])
 
     test = evaluate(model, test_loader, device)
+
+    # Render and save Confusion Matrix
+    cm = confusion_matrix(test["y_true"], test["y_pred"])
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in range(len(id2label))])
+    fig, ax = plt.subplots(figsize=(10, 10))
+    disp.plot(ax=ax, cmap="Blues", xticks_rotation="vertical")
+    plt.tight_layout()
+    fig.savefig(os.path.join(cfg.output_dir, "confusion_matrix.png"), dpi=150)
+    plt.close(fig)
+
     cls_report = classification_report(
         test["y_true"], test["y_pred"],
         target_names=[id2label[i] for i in range(len(id2label))],
