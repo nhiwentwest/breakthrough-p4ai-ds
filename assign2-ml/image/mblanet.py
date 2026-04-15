@@ -492,6 +492,28 @@ def run_training(cfg: CFG):
     
     generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples)
 
+    # Plot Learning Curves
+    if history:
+        ep_range = [h["epoch"] for h in history]
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+        ax1.plot(ep_range, [h.get("train_loss") for h in history], label="Train", marker="o")
+        ax1.plot(ep_range, [h.get("val_loss") for h in history], label="Validation", marker="o")
+        ax1.set_title("Loss over Epochs")
+        ax1.set_xlabel("Epoch")
+        ax1.set_ylabel("Loss")
+        ax1.legend()
+        ax1.grid(True)
+        ax2.plot(ep_range, [h.get("train_macro_f1") for h in history], label="Train", marker="o")
+        ax2.plot(ep_range, [h.get("val_macro_f1") for h in history], label="Validation", marker="o")
+        ax2.set_title("Macro F1 over Epochs")
+        ax2.set_xlabel("Epoch")
+        ax2.set_ylabel("Macro F1")
+        ax2.legend()
+        ax2.grid(True)
+        plt.tight_layout()
+        fig.savefig(os.path.join(cfg.output_dir, "learning_curves.png"), dpi=150)
+        plt.close(fig)
+
     report_path = os.path.join(cfg.output_dir, "mblanet_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump({"test": test_metrics, "classification_report": cls_report, "history": history}, f, indent=2)
