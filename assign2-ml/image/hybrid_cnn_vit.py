@@ -81,7 +81,7 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 from PIL import Image
 from datasets import load_from_disk
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from torch.utils.data import DataLoader, Dataset
 from torchvision import models, transforms
 
@@ -685,6 +685,15 @@ def run_training(cfg: CFG):
 
     test_metrics = run_eval(model, test_loader, device)
     speed = measure_inference_speed(model, test_loader, device)
+
+    # Render and save Confusion Matrix
+    cm = confusion_matrix(test_metrics["y_true"], test_metrics["y_pred"])
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in range(len(id2label))])
+    fig, ax = plt.subplots(figsize=(10, 10))
+    disp.plot(ax=ax, cmap="Blues", xticks_rotation="vertical")
+    plt.tight_layout()
+    fig.savefig(os.path.join(cfg.output_dir, "confusion_matrix.png"), dpi=150)
+    plt.close(fig)
 
     cls_report = classification_report(
         test_metrics["y_true"],
