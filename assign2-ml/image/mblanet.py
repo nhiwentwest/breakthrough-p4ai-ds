@@ -336,13 +336,22 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             sal = grad.abs().max(dim=0).values.cpu().numpy()
             sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
 
-            # Grad-CAM on layer4
+            # Grad-CAM on layer4 and LSAM Attention Map
             activations, gradients = {}, {}
+            lsam_map = {}
             def fwd_hook(m, inp, out): activations["x"] = out
             def bwd_hook(m, gin, gout): gradients["x"] = gout[0]
+            def lsam_hook(m, inp, out): lsam_map["s_attn"] = out.detach()
             
             h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
             h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
+            
+            # Hook the LSAM module in the very last block of layer4
+            last_block = model.backbone.layer4[-1]
+            if hasattr(last_block, "clam"):
+                h3 = last_block.clam.lsam.register_forward_hook(lsam_hook)
+            else:
+                h3 = None
             
             model.zero_grad(set_to_none=True)
             logits_gc = model(xi)
@@ -351,6 +360,7 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             
             h1.remove()
             h2.remove()
+            if h3 is not None: h3.remove()
             
             if "x" in activations and "x" in gradients:
                 act = activations["x"][0]
@@ -361,13 +371,21 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
             else:
                 cam = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
 
+            if "s_attn" in lsam_map:
+                attn_map = lsam_map["s_attn"][0, 0].cpu().numpy()
+                attn_map = (attn_map - attn_map.min()) / (attn_map.max() - attn_map.min() + 1e-8)
+            else:
+                attn_map = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
+
             base = denormalize_image(xi[0].detach())
             H, W = base.shape[:2]
             sal_r = np.array(Image.fromarray((sal*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
             cam_r = np.array(Image.fromarray((cam*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
+            attn_r = np.array(Image.fromarray((attn_map*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
 
             save_overlay(base, cam_r, os.path.join(viz_dir, f"sample_{done:03d}_gradcam_pred{pred_idx}.png"))
             save_overlay(base, sal_r, os.path.join(viz_dir, f"sample_{done:03d}_saliency_pred{pred_idx}.png"))
+            save_overlay(base, attn_r, os.path.join(viz_dir, f"sample_{done:03d}_attention_pred{pred_idx}.png"))
             done += 1
 
 
