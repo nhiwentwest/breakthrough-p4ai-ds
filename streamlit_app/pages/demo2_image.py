@@ -476,7 +476,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
     # Attention map (only for MBLANet)
     attn_overlay = None
-    if model_choice == "MBLANet" and "lsam" in attn_storage:
+    if model_choice == "MBLANet":
         last_block = model.backbone.layer4[-1]
         if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn") and last_block.clam.lsam.raw_attn is not None:
             attn_map = last_block.clam.lsam.raw_attn[0, 0].detach().cpu().numpy()
