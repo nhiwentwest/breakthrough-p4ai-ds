@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 @dataclass
 class CFG:
-    data_dir: str = "processed_rice_224"
+    data_dir: str = "processed_rsitmd_256_clean"
     output_dir: str = "outputs_cnn_scratch"
     seed: int = 42
     image_size: int = 224
@@ -24,9 +24,6 @@ class CFG:
     num_workers: int = 4
     lr: float = 3e-4
     weight_decay: float = 1e-4
-
-    focal_gamma: float = 2.0
-    cb_beta: float = 0.9999
 
     early_stop_patience: int = 3
     early_stop_min_delta: float = 1e-4
@@ -86,7 +83,7 @@ def resolve_data_dir(data_dir: str) -> str:
         return data_dir
 
     # 2. Kaggle fallback path
-    kaggle_path = "/kaggle/input/processed-rice-224/processed_rice_224"
+    kaggle_path = "/kaggle/input/datasets/phantrntngvyk64cntt/processed-rsitmd-256-clean"
     if os.path.exists(os.path.join(kaggle_path, "dataset_dict.json")):
         return kaggle_path
 
@@ -156,27 +153,7 @@ class CNNScratch(nn.Module):
 
 
 # =========================
-# STEP 4 — Class-Balanced Focal Loss
-# =========================
-class CBFocalLoss(nn.Module):
-    def __init__(self, class_counts, beta=0.9999, gamma=2.0):
-        super().__init__()
-        counts = torch.tensor(class_counts, dtype=torch.float32)
-        effective_num = 1.0 - torch.pow(torch.tensor(beta, dtype=torch.float32), counts)
-        weights = (1.0 - beta) / (effective_num + 1e-12)
-        weights = weights / weights.sum() * len(class_counts)
-        self.register_buffer("weights", weights)
-        self.gamma = gamma
-
-    def forward(self, logits, targets):
-        weights = self.weights.to(device=logits.device, dtype=logits.dtype)
-        ce = F.cross_entropy(logits, targets, reduction="none", weight=weights)
-        pt = torch.exp(-ce)
-        return (((1 - pt) ** self.gamma) * ce).mean()
-
-
-# =========================
-# STEP 5 — Metrics
+# STEP 4 — Metrics
 # =========================
 @torch.no_grad()
 def evaluate(model, loader, device):
@@ -258,7 +235,7 @@ def run_training(cfg: CFG):
     train_loader, val_loader, test_loader, label2id, id2label, class_counts = build_dataloaders(cfg)
 
     model = CNNScratch(num_classes=len(label2id)).to(device)
-    criterion = CBFocalLoss(class_counts=class_counts, beta=cfg.cb_beta, gamma=cfg.focal_gamma).to(device)
+    criterion = nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
     scaler = torch.amp.GradScaler(device="cuda", enabled=(device.type == "cuda"))
@@ -328,17 +305,20 @@ def run_training(cfg: CFG):
     test = evaluate(model, test_loader, device)
 
     # Render and save Confusion Matrix
-    cm = confusion_matrix(test["y_true"], test["y_pred"])
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in range(len(id2label))])
+    labels = sorted(id2label.keys())
+    cm = confusion_matrix(test["y_true"], test["y_pred"], labels=labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in labels])
     fig, ax = plt.subplots(figsize=(10, 10))
     disp.plot(ax=ax, cmap="Blues", xticks_rotation="vertical")
     plt.tight_layout()
     fig.savefig(os.path.join(cfg.output_dir, "confusion_matrix.png"), dpi=150)
     plt.close(fig)
 
+    labels = sorted(id2label.keys())
     cls_report = classification_report(
         test["y_true"], test["y_pred"],
-        target_names=[id2label[i] for i in range(len(id2label))],
+        labels=labels,
+        target_names=[id2label[i] for i in labels],
         digits=4, output_dict=True, zero_division=0,
     )
 
@@ -408,15 +388,13 @@ def run_training(cfg: CFG):
 # =========================
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--data_dir", type=str, default="processed_rice_224")
+    p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
     p.add_argument("--output_dir", type=str, default="outputs_cnn_scratch")
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
-    p.add_argument("--focal_gamma", type=float, default=2.0)
-    p.add_argument("--cb_beta", type=float, default=0.9999)
     p.add_argument("--early_stop_patience", type=int, default=3)
     p.add_argument("--early_stop_min_delta", type=float, default=1e-4)
     p.add_argument("--seed", type=int, default=42)
@@ -434,8 +412,6 @@ def main():
         num_workers=a.num_workers,
         lr=a.lr,
         weight_decay=a.weight_decay,
-        focal_gamma=a.focal_gamma,
-        cb_beta=a.cb_beta,
         early_stop_patience=a.early_stop_patience,
         early_stop_min_delta=a.early_stop_min_delta,
         seed=a.seed,

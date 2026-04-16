@@ -1,18 +1,17 @@
 """
 MBLANet (Multi-Branch Local Attention Network) based on ResNet50
 ================================================================
-This script implements a practical version of MBLANet (ResNet50 + CLAM)
-for image classification. 
+This script implements a paper-aligned version of MBLANet (ResNet50 + CLAM)
+for image classification.
 
 Features:
 - STEP 0: Config
 - STEP 1: Imports + Seed
 - STEP 2: Dataset (HF Disk)
 - STEP 3: Model (ResNet50 + CCAM + LSAM embedded in blocks)
-- STEP 4: Class-Balanced Focal Loss
-- STEP 5: Metrics + Timing + GradCAM/Saliency Viz
-- STEP 6: Train / Validate / Test loops
-- STEP 7: Main
+- STEP 4: Metrics + Timing + GradCAM/Saliency Viz
+- STEP 5: Train / Validate / Test loops
+- STEP 6: Main
 """
 
 # =========================
@@ -24,20 +23,17 @@ from dataclasses import dataclass
 
 @dataclass
 class CFG:
-    data_dir: str = "processed_rice_224"
+    data_dir: str = "processed_rsitmd_256_clean"
     output_dir: str = "outputs_mblanet"
     seed: int = 42
     image_size: int = 224
     num_classes: int = 21
 
-    epochs: int = 20
-    batch_size: int = 32
+    epochs: int = 15
+    batch_size: int = 64
     num_workers: int = 4
-    lr: float = 1e-4  # Fine-tuning learning rate (thường nhỏ hơn)
+    lr: float = 0.01
     weight_decay: float = 1e-4
-
-    focal_gamma: float = 2.0
-    cb_beta: float = 0.9999
 
     early_stop_patience: int = 3
     early_stop_min_delta: float = 1e-4
@@ -61,7 +57,9 @@ from PIL import Image
 from datasets import load_from_disk
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score, confusion_matrix, ConfusionMatrixDisplay
 from torch.utils.data import DataLoader, Dataset
+from copy import deepcopy
 from torchvision import models, transforms
+from torchvision.models.resnet import Bottleneck
 
 def set_seed(seed: int = 42):
     random.seed(seed)
@@ -92,7 +90,7 @@ class HFDiskImageDataset(Dataset):
 def resolve_data_dir(cfg: CFG) -> str:
     if os.path.exists(os.path.join(cfg.data_dir, "dataset_dict.json")):
         return cfg.data_dir
-    kaggle_path = "/kaggle/input/processed-rice-224/processed_rice_224"
+    kaggle_path = "/kaggle/input/datasets/phantrntngvyk64cntt/processed-rsitmd-256-clean"
     if os.path.exists(os.path.join(kaggle_path, "dataset_dict.json")):
         return kaggle_path
     raise FileNotFoundError(f"Cannot find dataset_dict.json in {cfg.data_dir} or {kaggle_path}.")
@@ -143,36 +141,45 @@ def build_dataloaders(cfg: CFG):
 class CCAM(nn.Module):
     def __init__(self, channels, reduction=16):
         super().__init__()
+        hidden = max(1, channels // reduction)
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
-        # Prevent zero division if channels < reduction
-        reduced_dim = max(1, channels // reduction)
+        self.conv2x1 = nn.Conv2d(channels, channels, kernel_size=(2, 1), bias=False)
         self.mlp = nn.Sequential(
-            nn.Conv2d(channels, reduced_dim, 1, bias=False),
+            nn.Conv2d(channels, hidden, kernel_size=1, bias=False),
             nn.ReLU(inplace=True),
-            nn.Conv2d(reduced_dim, channels, 1, bias=False)
+            nn.Conv2d(hidden, channels, kernel_size=1, bias=False),
         )
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        a = self.mlp(self.avg_pool(x))
-        m = self.mlp(self.max_pool(x))
-        return self.sigmoid(a + m)
+        avg = self.avg_pool(x)                  # (B, C, 1, 1)
+        mx = self.max_pool(x)                   # (B, C, 1, 1)
+        fused = torch.cat([mx, avg], dim=2)     # (B, C, 2, 1)
+        fused = self.conv2x1(fused)             # (B, C, 1, 1)
+        fused = self.mlp(fused)                 # (B, C, 1, 1)
+        return self.sigmoid(fused)
 
 class LSAM(nn.Module):
     def __init__(self, channels):
         super().__init__()
-        self.local_avg = nn.AvgPool2d(kernel_size=3, stride=1, padding=1)
-        self.local_max = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
-        self.conv = nn.Conv2d(2, 1, kernel_size=3, padding=2, dilation=2, bias=False)
+        self.eps = 8
+        self.local_max = nn.MaxPool2d(kernel_size=self.eps, stride=self.eps)
+        self.local_avg = nn.AvgPool2d(kernel_size=self.eps, stride=self.eps)
+        self.dilated = nn.Conv2d(2, 1, kernel_size=3, dilation=2, padding=2, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        a = self.local_avg(x).mean(dim=1, keepdim=True)
-        # max pool returns (values, indices), we take values [0]
-        m = self.local_max(x).max(dim=1, keepdim=True)[0]
-        s = torch.cat([a, m], dim=1)
-        return self.sigmoid(self.conv(s))
+        h, w = x.shape[-2:]
+        k = min(self.eps, h, w)
+        local_max = torch.nn.functional.max_pool2d(x, kernel_size=k, stride=k)
+        local_avg = torch.nn.functional.avg_pool2d(x, kernel_size=k, stride=k)
+        max_desc = torch.max(local_max, dim=1, keepdim=True).values
+        avg_desc = torch.mean(local_avg, dim=1, keepdim=True)
+        fused = torch.cat([max_desc, avg_desc], dim=1)
+        fused = self.dilated(fused)
+        fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
+        return self.sigmoid(fused)
 
 class CLAM(nn.Module):
     def __init__(self, channels):
@@ -181,66 +188,90 @@ class CLAM(nn.Module):
         self.lsam = LSAM(channels)
 
     def forward(self, x):
-        c_attn = self.ccam(x)
-        s_attn = self.lsam(x)
-        return x * c_attn * s_attn
+        mc = self.ccam(x)
+        ms = self.lsam(x)
+        return (mc * ms) * x
 
-class BottleneckWithCLAM(nn.Module):
-    def __init__(self, original_block, out_channels):
+class CLAMResBlock(nn.Module):
+    def __init__(self, block):
         super().__init__()
-        self.block = original_block
-        self.clam = CLAM(out_channels)
+        self.conv1 = deepcopy(block.conv1)
+        self.bn1 = deepcopy(block.bn1)
+        self.conv2 = deepcopy(block.conv2)
+        self.bn2 = deepcopy(block.bn2)
+        self.conv3 = deepcopy(block.conv3)
+        self.bn3 = deepcopy(block.bn3)
+        self.relu = deepcopy(block.relu)
+        self.clam = CLAM(self.conv3.out_channels)
 
     def forward(self, x):
-        y = self.block(x)
-        y = self.clam(y)
-        return y
+        identity = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out = self.bn3(out)
+        out = self.clam(out)
+        out += identity
+        out = self.relu(out)
+        return out
+
+class CLAMDnSample(nn.Module):
+    def __init__(self, block):
+        super().__init__()
+        self.conv1 = deepcopy(block.conv1)
+        self.bn1 = deepcopy(block.bn1)
+        self.conv2 = deepcopy(block.conv2)
+        self.bn2 = deepcopy(block.bn2)
+        self.conv3 = deepcopy(block.conv3)
+        self.bn3 = deepcopy(block.bn3)
+        self.relu = deepcopy(block.relu)
+        self.downsample = deepcopy(block.downsample)
+        self.clam = CLAM(self.conv3.out_channels)
+
+    def forward(self, x):
+        identity = self.downsample(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out = self.bn3(out)
+        out = self.clam(out)
+        out += identity
+        out = self.relu(out)
+        return out
 
 class MBLANet(nn.Module):
     def __init__(self, num_classes=21, pretrained=True):
         super().__init__()
         weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
         self.backbone = models.resnet50(weights=weights)
-        
-        # MBLANet embeds CLAM into residual blocks at each stage
-        self._wrap_stage_with_clam(self.backbone.layer1, out_channels=256)
-        self._wrap_stage_with_clam(self.backbone.layer2, out_channels=512)
-        self._wrap_stage_with_clam(self.backbone.layer3, out_channels=1024)
-        self._wrap_stage_with_clam(self.backbone.layer4, out_channels=2048)
-        
-        # Replace the fully connected classifier head
+        self._inject_clam(self.backbone.layer1, channels=256)
+        self._inject_clam(self.backbone.layer2, channels=512)
+        self._inject_clam(self.backbone.layer3, channels=1024)
+        self._inject_clam(self.backbone.layer4, channels=2048)
         in_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Linear(in_features, num_classes)
 
-    def _wrap_stage_with_clam(self, stage, out_channels):
+    def _inject_clam(self, stage, channels):
         for i in range(len(stage)):
-            stage[i] = BottleneckWithCLAM(stage[i], out_channels)
+            block = stage[i]
+            if block.downsample is not None:
+                stage[i] = CLAMDnSample(block)
+            else:
+                stage[i] = CLAMResBlock(block)
 
     def forward(self, x):
         return self.backbone(x)
 
 # =========================
-# STEP 4 — Class-Balanced Focal Loss
-# =========================
-class CBFocalLoss(nn.Module):
-    def __init__(self, class_counts, beta=0.9999, gamma=2.0):
-        super().__init__()
-        counts = torch.tensor(class_counts, dtype=torch.float32)
-        effective_num = 1.0 - torch.pow(torch.tensor(beta, dtype=torch.float32), counts)
-        weights = (1.0 - beta) / (effective_num + 1e-12)
-        weights = weights / weights.sum() * len(class_counts)
-        self.register_buffer("weights", weights)
-        self.gamma = gamma
-
-    def forward(self, logits, targets):
-        weights = self.weights.to(device=logits.device, dtype=logits.dtype)
-        ce = F.cross_entropy(logits, targets, reduction="none", weight=weights)
-        pt = torch.exp(-ce)
-        focal = ((1 - pt) ** self.gamma) * ce
-        return focal.mean()
-
-# =========================
-# STEP 5 — Metrics + Timing + Viz
+# STEP 4 — Metrics + Timing + Viz
 # =========================
 @torch.no_grad()
 def run_eval(model, loader, device):
@@ -435,8 +466,8 @@ def run_training(cfg: CFG):
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
 
-    criterion = CBFocalLoss(class_counts=class_counts, beta=cfg.cb_beta, gamma=cfg.focal_gamma).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    criterion = nn.CrossEntropyLoss().to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
     scaler = torch.amp.GradScaler(device="cuda", enabled=(device.type == "cuda"))
 
@@ -480,15 +511,24 @@ def run_training(cfg: CFG):
     test_metrics = run_eval(model, test_loader, device)
     
     # Render and save Confusion Matrix
-    cm = confusion_matrix(test_metrics["y_true"], test_metrics["y_pred"])
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in range(len(id2label))])
+    labels = list(range(len(id2label)))
+    cm = confusion_matrix(test_metrics["y_true"], test_metrics["y_pred"], labels=labels)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[id2label[i] for i in labels])
     fig, ax = plt.subplots(figsize=(10, 10))
     disp.plot(ax=ax, cmap="Blues", xticks_rotation="vertical")
     plt.tight_layout()
     fig.savefig(os.path.join(cfg.output_dir, "confusion_matrix.png"), dpi=150)
     plt.close(fig)
 
-    cls_report = classification_report(test_metrics["y_true"], test_metrics["y_pred"], target_names=[id2label[i] for i in range(len(id2label))], digits=4, output_dict=True, zero_division=0)
+    cls_report = classification_report(
+        test_metrics["y_true"],
+        test_metrics["y_pred"],
+        labels=labels,
+        target_names=[id2label[i] for i in labels],
+        digits=4,
+        output_dict=True,
+        zero_division=0,
+    )
     
     generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples)
 
@@ -525,10 +565,10 @@ def run_training(cfg: CFG):
 # =========================
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("--data_dir", type=str, default="processed_rice_224")
-    p.add_argument("--epochs", type=int, default=20)
+    p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
+    p.add_argument("--epochs", type=int, default=30)
     p.add_argument("--batch_size", type=int, default=32)
-    p.add_argument("--lr", type=float, default=1e-4) # Smaller LR for fine-tuning
+    p.add_argument("--lr", type=float, default=0.01)
     args, _ = p.parse_known_args()
     return args
 
