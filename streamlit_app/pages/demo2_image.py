@@ -60,6 +60,9 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 # Model definition (same family as training script)
 # =========================
 
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
 def _load_source_mblanet_class():
     model_path = PROJECT_ROOT / "assign2-ml" / "image" / "mblanet.py"
     spec = importlib.util.spec_from_file_location("mblanet_source", model_path)
