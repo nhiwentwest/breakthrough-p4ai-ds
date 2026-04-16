@@ -447,12 +447,17 @@ def _choose_sample_split(ds):
     return None
 
 
-def _extract_label(ex):
-    if "label" in ex:
-        return ex["label"]
-    if "labels" in ex:
-        return ex["labels"]
-    return None
+def _extract_label(ex, ds_split=None):
+    raw = ex.get("label", ex.get("labels", None))
+    if raw is None:
+        return None
+    # If the dataset split has ClassLabel features, convert int to str
+    if ds_split is not None and hasattr(ds_split, "features") and "label" in ds_split.features:
+        from datasets import ClassLabel
+        feature = ds_split.features["label"]
+        if isinstance(feature, ClassLabel) and isinstance(raw, (int, np.integer)):
+            return feature.int2str(int(raw))
+    return raw
 
 
 def get_random_sample_image():
@@ -471,7 +476,7 @@ def get_random_sample_image():
         raise RuntimeError(f"split '{split_name}' does not contain 'image' column. columns={list(ex.keys())}")
 
     img = ex["image"].convert("RGB")
-    label = _extract_label(ex)
+    label = _extract_label(ex, ds[split_name])
     meta = {"split": split_name, "index": idx, "dataset_path": ds_path, "columns": list(ex.keys())}
     return img, label, meta
 
@@ -502,7 +507,7 @@ def get_named_sample_image(spec_text: str):
         raise RuntimeError(f"split '{split_name}' does not contain 'image' column. columns={list(ex.keys())}")
 
     img = ex["image"].convert("RGB")
-    label = _extract_label(ex)
+    label = _extract_label(ex, ds[split_name])
     meta = {"split": split_name, "index": idx, "dataset_path": ds_path, "columns": list(ex.keys())}
     return img, label, meta
 
@@ -675,12 +680,12 @@ with left:
             true_label = st.session_state.get("sample_label")
             meta = st.session_state.get("sample_meta", {})
             st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
-            if true_label is not None and id2label is not None:
-                if isinstance(true_label, (int, np.integer)) and int(true_label) in id2label:
+            if true_label is not None:
+                if isinstance(true_label, (int, np.integer)) and id2label is not None and int(true_label) in id2label:
                     true_name = id2label[int(true_label)]
                 else:
                     true_name = str(true_label)
-                st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='demo-label'>Ground truth label: <b>{true_name}</b></div>", unsafe_allow_html=True)
     else:
         spec = st.text_input("Sample key", value="test[0]", help="Format: split[index], e.g., test[7]")
         if st.button("Load named sample", use_container_width=True):
