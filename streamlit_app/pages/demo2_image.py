@@ -205,31 +205,16 @@ class ConvBNReLU(nn.Module):
 class CNNScratch(nn.Module):
     def __init__(self, num_classes=21, dropout=0.3):
         super().__init__()
-        self.features = nn.Sequential(
-            ConvBNReLU(3, 64),
-            ConvBNReLU(64, 64),
-            nn.MaxPool2d(2),
-            ConvBNReLU(64, 128),
-            ConvBNReLU(128, 128),
-            nn.MaxPool2d(2),
-            ConvBNReLU(128, 256),
-            ConvBNReLU(256, 256),
-            nn.MaxPool2d(2),
-            ConvBNReLU(256, 512),
-            ConvBNReLU(512, 512),
-            nn.AdaptiveAvgPool2d((1, 1)),
-        )
-        self.head = nn.Sequential(
-            nn.Flatten(),
+        # Match the training script: ResNet18 backbone trained from scratch.
+        self.model = models.resnet18(weights=None)
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Sequential(
             nn.Dropout(dropout),
-            nn.Linear(512, 256),
-            nn.ReLU(inplace=True),
-            nn.Dropout(dropout),
-            nn.Linear(256, num_classes),
+            nn.Linear(in_features, num_classes),
         )
 
     def forward(self, x):
-        return self.head(self.features(x))
+        return self.model(x)
 
 
 # =========================
