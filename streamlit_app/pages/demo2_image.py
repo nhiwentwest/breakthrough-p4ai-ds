@@ -504,7 +504,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_min = float(np.min(attn_map))
         attn_max = float(np.max(attn_map))
         attn_std = float(np.std(attn_map))
-        st.caption(f"LSAM stats · source={attn_source} · min={attn_min:.4f} · max={attn_max:.4f} · std={attn_std:.4f}")
+        st.markdown(
+            f"<div class='demo-label'>LSAM stats — source: {attn_source} | min: {attn_min:.4f} | max: {attn_max:.4f} | std: {attn_std:.4f}</div>",
+            unsafe_allow_html=True,
+        )
 
         # If map is too flat, amplify contrast before normalization
         if attn_std < 1e-4 or (attn_max - attn_min) < 1e-4:
