@@ -257,6 +257,14 @@ MAPPING_CANDIDATES = {
     ],
 }
 
+RSITMD_CLASSES = [
+    'airport', 'bareland', 'baseballfield', 'beach', 'boat', 'bridge', 'center', 'church', 'commercial',
+    'denseresidential', 'desert', 'farmland', 'forest', 'industrial', 'intersection', 'meadow',
+    'mediumresidential', 'mountain', 'park', 'parking', 'plane', 'playground', 'pond', 'port',
+    'railwaystation', 'resort', 'river', 'school', 'sparseresidential', 'square', 'stadium',
+    'storagetanks', 'viaduct'
+]
+
 # Google Drive assets
 MBLANET_CHECKPOINT_FILE_ID = "1vFg4Dz3Ak6cSMNpWtcR7XE5BoPs_i2XE"
 MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
@@ -339,11 +347,10 @@ def load_model_and_labels(model_choice: str):
         label2id = mp.get("label2id", {})
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if id2label is None:
-        raise RuntimeError(
-            "Cannot load label mapping from checkpoint. "
-            "Please include 'label2id' and 'id2label' in checkpoint OR provide label_mapping.json."
-        )
+    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
+        # Fallback to RSITMD standard classes if mapping is missing or only contains indices
+        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
 
     if model_choice == "MBLANet":
         model = MBLANet(
