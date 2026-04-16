@@ -436,10 +436,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         cache["grad"] = go[0]
 
     if model_choice == "MBLANet":
-        target_layer = model.backbone.layer4
+        target_layer = model.backbone.layer3
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
+        h3 = model.backbone.layer3[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
         logits = model(x)
         last_attn = None
     else:
