@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import importlib.util
 from pathlib import Path
 
 import gdown
@@ -58,144 +59,18 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 # =========================
 # Model definition (same family as training script)
 # =========================
-class CCAM(nn.Module):
-    def __init__(self, channels, reduction=16):
-        super().__init__()
-        hidden = max(1, channels // reduction)
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.max_pool = nn.AdaptiveMaxPool2d(1)
-        self.conv2x1 = nn.Conv2d(channels, channels, kernel_size=(2, 1), bias=False)
-        self.mlp = nn.Sequential(
-            nn.Conv2d(channels, hidden, kernel_size=1, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden, channels, kernel_size=1, bias=False),
-        )
-        self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
-        avg = self.avg_pool(x)
-        mx = self.max_pool(x)
-        fused = torch.cat([mx, avg], dim=2)
-        fused = self.conv2x1(fused)
-        fused = self.mlp(fused)
-        return self.sigmoid(fused)
+def _load_source_mblanet_class():
+    model_path = PROJECT_ROOT / "assign2-ml" / "image" / "mblanet.py"
+    spec = importlib.util.spec_from_file_location("mblanet_source", model_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load model source from {model_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.MBLANet
 
 
-class LSAM(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.eps = 8
-        self.dilated = nn.Conv2d(2, 1, kernel_size=3, dilation=2, padding=2, bias=False)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        h, w = x.shape[-2:]
-        k = min(self.eps, h, w)
-        local_max = torch.nn.functional.max_pool2d(x, kernel_size=k, stride=k)
-        local_avg = torch.nn.functional.avg_pool2d(x, kernel_size=k, stride=k)
-        max_desc = torch.max(local_max, dim=1, keepdim=True).values
-        avg_desc = torch.mean(local_avg, dim=1, keepdim=True)
-        fused = torch.cat([max_desc, avg_desc], dim=1)
-        fused = self.dilated(fused)
-        fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
-        return self.sigmoid(fused)
-
-
-class CLAM(nn.Module):
-    def __init__(self, channels):
-        super().__init__()
-        self.ccam = CCAM(channels)
-        self.lsam = LSAM(channels)
-
-    def forward(self, x):
-        mc = self.ccam(x)
-        ms = self.lsam(x)
-        return (mc * ms) * x
-
-
-class CLAMResBlock(nn.Module):
-    def __init__(self, block):
-        super().__init__()
-        import copy
-        self.conv1 = copy.deepcopy(block.conv1)
-        self.bn1 = copy.deepcopy(block.bn1)
-        self.conv2 = copy.deepcopy(block.conv2)
-        self.bn2 = copy.deepcopy(block.bn2)
-        self.conv3 = copy.deepcopy(block.conv3)
-        self.bn3 = copy.deepcopy(block.bn3)
-        self.relu = copy.deepcopy(block.relu)
-        self.clam = CLAM(self.conv3.out_channels)
-
-    def forward(self, x):
-        identity = x
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
-        out = self.clam(out)
-        out += identity
-        out = self.relu(out)
-        return out
-
-
-class CLAMDnSample(nn.Module):
-    def __init__(self, block):
-        super().__init__()
-        import copy
-        self.conv1 = copy.deepcopy(block.conv1)
-        self.bn1 = copy.deepcopy(block.bn1)
-        self.conv2 = copy.deepcopy(block.conv2)
-        self.bn2 = copy.deepcopy(block.bn2)
-        self.conv3 = copy.deepcopy(block.conv3)
-        self.bn3 = copy.deepcopy(block.bn3)
-        self.relu = copy.deepcopy(block.relu)
-        self.downsample = copy.deepcopy(block.downsample)
-        self.clam = CLAM(self.conv3.out_channels)
-
-    def forward(self, x):
-        identity = self.downsample(x)
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out = self.bn3(out)
-        out = self.clam(out)
-        out += identity
-        out = self.relu(out)
-        return out
-
-
-class MBLANet(nn.Module):
-    def __init__(self, num_classes=21, pretrained=True):
-        super().__init__()
-        # In demo inference, weights are loaded from checkpoint.
-        # resnet50(weights=None) is safer to avoid auto-download.
-        self.backbone = models.resnet50(weights=None)
-        self._inject_clam(self.backbone.layer1)
-        self._inject_clam(self.backbone.layer2)
-        self._inject_clam(self.backbone.layer3)
-        self._inject_clam(self.backbone.layer4)
-        in_features = self.backbone.fc.in_features
-        self.backbone.fc = nn.Linear(in_features, num_classes)
-
-    def _inject_clam(self, stage):
-        for i in range(len(stage)):
-            block = stage[i]
-            if block.downsample is not None:
-                stage[i] = CLAMDnSample(block)
-            else:
-                stage[i] = CLAMResBlock(block)
-
-    def forward(self, x):
-        return self.backbone(x)
-
+MBLANet = _load_source_mblanet_class()
 
 
 class ConvBNReLU(nn.Module):
