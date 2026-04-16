@@ -539,8 +539,8 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         h2 = model.inception.register_full_backward_hook(bwd_hook)
         logits, _inc, last_attn, token_hw = model(x, return_maps=True)
     else:
-        # last conv feature before head for scratch CNN
-        target_layer = model.features[9]
+        # last conv feature before head for scratch CNN (ResNet18 backbone)
+        target_layer = model.model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         logits = model(x)
