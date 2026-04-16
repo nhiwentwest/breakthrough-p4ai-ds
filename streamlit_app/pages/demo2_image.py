@@ -474,8 +474,16 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet" and "lsam" in attn_storage:
-        # LSAM map (1, 1, H, W)
-        attn_map = attn_storage["lsam"][0, 0].cpu().numpy()
+        lsam_out = attn_storage["lsam"]
+        attn_map = None
+        # Prefer module-exposed cached map when available
+        last_block = model.backbone.layer4[-1]
+        if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "att_map") and last_block.clam.lsam.att_map is not None:
+            attn_map = last_block.clam.lsam.att_map[0, 0].detach().cpu().numpy()
+        elif hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn") and last_block.clam.lsam.raw_attn is not None:
+            attn_map = last_block.clam.lsam.raw_attn[0, 0].detach().cpu().numpy()
+        else:
+            attn_map = lsam_out[0, 0].detach().cpu().numpy()
         attn_map = _norm01(attn_map)
         attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.45)
 
