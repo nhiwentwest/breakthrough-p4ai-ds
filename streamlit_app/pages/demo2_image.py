@@ -271,6 +271,7 @@ CNN_SCRATCH_CHECKPOINT_FILE_ID = "14U3qDWxUVOuIGPq4SdXSXASi33ev1AdM"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "1ZHZ7bjFl2pp1ZWpmdlHdBfQRrly4oYRX"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
+FORCE_DRIVE_REFRESH = True
 
 
 def ensure_checkpoint_from_drive(model_choice: str):
@@ -284,8 +285,8 @@ def ensure_checkpoint_from_drive(model_choice: str):
         target_ckpt = target_dir / "best_cnn_scratch.pt"
         file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
 
-    if target_ckpt.exists():
-        return target_ckpt
+    if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+        target_ckpt.unlink()
 
     url = f"https://drive.google.com/uc?id={file_id}"
     gdown.download(url, str(target_ckpt), quiet=False)
@@ -307,8 +308,8 @@ def ensure_label_mapping_from_drive(model_choice: str):
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
 
-    if target_map.exists():
-        return target_map
+    if FORCE_DRIVE_REFRESH and target_map.exists():
+        target_map.unlink()
 
     url = f"https://drive.google.com/uc?id={file_id}"
     gdown.download(url, str(target_map), quiet=False)
