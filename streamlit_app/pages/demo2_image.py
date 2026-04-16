@@ -655,8 +655,12 @@ with left:
             true_label = st.session_state.get("sample_label")
             meta = st.session_state.get("sample_meta", {})
             st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
-            if true_label is not None:
-                st.caption(f"Ground truth label: {true_label}")
+            if true_label is not None and id2label is not None:
+                if isinstance(true_label, (int, np.integer)) and int(true_label) in id2label:
+                    true_name = id2label[int(true_label)]
+                else:
+                    true_name = str(true_label)
+                st.caption(f"Ground truth label: {true_name}")
     else:
         spec = st.text_input("Sample key", value="test[0]", help="Format: split[index], e.g., test[7]")
         if st.button("Load named sample", use_container_width=True):
@@ -674,8 +678,12 @@ with left:
             true_label = st.session_state.get("sample_label")
             meta = st.session_state.get("sample_meta", {})
             st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
-            if true_label is not None:
-                st.caption(f"Ground truth label: {true_label}")
+            if true_label is not None and id2label is not None:
+                if isinstance(true_label, (int, np.integer)) and int(true_label) in id2label:
+                    true_name = id2label[int(true_label)]
+                else:
+                    true_name = str(true_label)
+                st.caption(f"Ground truth label: {true_name}")
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -694,6 +702,7 @@ with right:
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
+            st.write(f"Predicted label: **{top_label}**")
             st.progress(float(top_prob))
             st.write(f"Confidence: **{top_prob:.2%}**")
 
