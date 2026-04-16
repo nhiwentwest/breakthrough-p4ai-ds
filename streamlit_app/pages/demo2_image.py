@@ -436,18 +436,12 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         cache["grad"] = go[0]
 
     if model_choice == "MBLANet":
-        # Target layer 4 for ResNet50-based Grad-CAM
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        
-        # Also hook LSAM attention map from the final block
-        attn_storage = {}
-        def lsam_hook(m, i, o): attn_storage["lsam"] = o.detach()
-        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lsam_hook)
-        
+        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
         logits = model(x)
-        last_attn = None # We use lsam_map instead
+        last_attn = None
     else:
         # last conv feature before head for scratch CNN (ResNet18 backbone)
         target_layer = model.model.layer4[-1].conv2
@@ -456,7 +450,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         h3 = None
         logits = model(x)
         last_attn = None
-        
+
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
     pred_idx = int(top_idx[0].item())
@@ -477,22 +471,23 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet":
-        last_block = model.backbone.layer4[-1]
-        has_raw_attn = bool(
-            hasattr(last_block, "clam")
-            and hasattr(last_block.clam.lsam, "raw_attn")
-            and last_block.clam.lsam.raw_attn is not None
-        )
+        raw_attn = cache.get("lsam_out", None)
+        if raw_attn is None:
+            # fallback to model instance state if hook path is unavailable
+            last_block = model.backbone.layer4[-1]
+            if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn"):
+                raw_attn = last_block.clam.lsam.raw_attn
 
+        has_raw_attn = raw_attn is not None
         st.markdown(
             f"<div class='demo-label'>LSAM raw_attn available: <b>{'YES' if has_raw_attn else 'NO'}</b></div>",
             unsafe_allow_html=True,
         )
 
         if has_raw_attn:
-            raw_attn = last_block.clam.lsam.raw_attn.detach().cpu().numpy()
-            attn_shape = tuple(raw_attn.shape)
-            attn_map = raw_attn[0, 0]
+            raw_np = raw_attn.detach().cpu().numpy() if torch.is_tensor(raw_attn) else np.asarray(raw_attn)
+            attn_shape = tuple(raw_np.shape)
+            attn_map = raw_np[0, 0] if raw_np.ndim == 4 else raw_np.squeeze()
             attn_min = float(np.min(attn_map))
             attn_max = float(np.max(attn_map))
             attn_std = float(np.std(attn_map))
@@ -504,10 +499,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
             if attn_std < 1e-4 or (attn_max - attn_min) < 1e-4:
                 st.warning("raw_attn có nhưng map quá phẳng, nên overlay có thể không hiện rõ.")
-                attn_map = attn_map - attn_map.mean()
-                attn_map = np.abs(attn_map)
+                attn_map = np.abs(attn_map - attn_map.mean())
 
             attn_map = _norm01(attn_map)
+            attn_map = np.array(Image.fromarray((attn_map * 255).astype(np.uint8)).resize((img_pil.width, img_pil.height), Image.Resampling.BILINEAR), dtype=np.float32) / 255.0
             attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.55)
         else:
             st.warning("Không lấy được raw_attn từ LSAM nên không thể hiển thị attention map.")
