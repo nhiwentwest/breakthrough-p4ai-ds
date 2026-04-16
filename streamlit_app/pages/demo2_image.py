@@ -391,7 +391,7 @@ def find_dataset_dict_root(base_dir: str):
 
 
 def ensure_dataset_folder_from_drive():
-    target_dir = PROJECT_ROOT / "streamlit_app" / "data_cache" / "processed_rice_244"
+    target_dir = PROJECT_ROOT / "streamlit_app" / "data_cache" / "drive_image_demo_v2"
     target_dir.mkdir(parents=True, exist_ok=True)
 
     existing = find_dataset_dict_root(str(target_dir))
