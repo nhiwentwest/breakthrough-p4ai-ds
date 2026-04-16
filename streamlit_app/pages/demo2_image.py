@@ -270,7 +270,7 @@ HYBRID_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "14U3qDWxUVOuIGPq4SdXSXASi33ev1AdM"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "1ZHZ7bjFl2pp1ZWpmdlHdBfQRrly4oYRX"
 
-DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1d5xkpBh-Rzeuj8dN7bNsPATrYsP-38ap?usp=sharing"
+DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 
 
 def _pick_existing(paths):
