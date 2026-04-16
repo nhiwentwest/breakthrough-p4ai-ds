@@ -58,137 +58,144 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 # =========================
 # Model definition (same family as training script)
 # =========================
-class InceptionBlock(nn.Module):
-    def __init__(self, in_ch, b1=64, b3=64, b5=32, bp=32):
+class CCAM(nn.Module):
+    def __init__(self, channels, reduction=16):
         super().__init__()
-        self.branch1 = nn.Sequential(
-            nn.Conv2d(in_ch, b1, kernel_size=1, bias=False),
-            nn.BatchNorm2d(b1),
+        hidden = max(1, channels // reduction)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.max_pool = nn.AdaptiveMaxPool2d(1)
+        self.conv2x1 = nn.Conv2d(channels, channels, kernel_size=(2, 1), bias=False)
+        self.mlp = nn.Sequential(
+            nn.Conv2d(channels, hidden, kernel_size=1, bias=False),
             nn.ReLU(inplace=True),
+            nn.Conv2d(hidden, channels, kernel_size=1, bias=False),
         )
-        self.branch3 = nn.Sequential(
-            nn.Conv2d(in_ch, b3, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(b3),
-            nn.ReLU(inplace=True),
-        )
-        self.branch5 = nn.Sequential(
-            nn.Conv2d(in_ch, b5, kernel_size=5, padding=2, bias=False),
-            nn.BatchNorm2d(b5),
-            nn.ReLU(inplace=True),
-        )
-        self.branchp = nn.Sequential(
-            nn.MaxPool2d(kernel_size=3, stride=1, padding=1),
-            nn.Conv2d(in_ch, bp, kernel_size=1, bias=False),
-            nn.BatchNorm2d(bp),
-            nn.ReLU(inplace=True),
-        )
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        return torch.cat([
-            self.branch1(x),
-            self.branch3(x),
-            self.branch5(x),
-            self.branchp(x),
-        ], dim=1)
+        avg = self.avg_pool(x)
+        mx = self.max_pool(x)
+        fused = torch.cat([mx, avg], dim=2)
+        fused = self.conv2x1(fused)
+        fused = self.mlp(fused)
+        return self.sigmoid(fused)
 
 
-class MLP(nn.Module):
-    def __init__(self, dim, mlp_ratio=4.0, dropout=0.1):
+class LSAM(nn.Module):
+    def __init__(self, channels):
         super().__init__()
-        hidden = int(dim * mlp_ratio)
-        self.fc1 = nn.Linear(dim, hidden)
-        self.act = nn.GELU()
-        self.fc2 = nn.Linear(hidden, dim)
-        self.drop = nn.Dropout(dropout)
+        self.eps = 8
+        self.dilated = nn.Conv2d(2, 1, kernel_size=3, dilation=2, padding=2, bias=False)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        x = self.fc1(x)
-        x = self.act(x)
-        x = self.drop(x)
-        x = self.fc2(x)
-        x = self.drop(x)
-        return x
+        h, w = x.shape[-2:]
+        k = min(self.eps, h, w)
+        local_max = torch.nn.functional.max_pool2d(x, kernel_size=k, stride=k)
+        local_avg = torch.nn.functional.avg_pool2d(x, kernel_size=k, stride=k)
+        max_desc = torch.max(local_max, dim=1, keepdim=True).values
+        avg_desc = torch.mean(local_avg, dim=1, keepdim=True)
+        fused = torch.cat([max_desc, avg_desc], dim=1)
+        fused = self.dilated(fused)
+        fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
+        return self.sigmoid(fused)
 
 
-class TransformerEncoderBlock(nn.Module):
-    def __init__(self, dim, num_heads=8, mlp_ratio=4.0, dropout=0.1):
+class CLAM(nn.Module):
+    def __init__(self, channels):
         super().__init__()
-        self.norm1 = nn.LayerNorm(dim)
-        self.attn = nn.MultiheadAttention(dim, num_heads=num_heads, dropout=dropout, batch_first=True)
-        self.norm2 = nn.LayerNorm(dim)
-        self.mlp = MLP(dim, mlp_ratio=mlp_ratio, dropout=dropout)
+        self.ccam = CCAM(channels)
+        self.lsam = LSAM(channels)
 
-    def forward(self, x, return_attn=False):
-        h = x
-        x_norm = self.norm1(x)
-        if return_attn:
-            x_attn, attn = self.attn(x_norm, x_norm, x_norm, need_weights=True, average_attn_weights=False)
-        else:
-            x_attn, attn = self.attn(x_norm, x_norm, x_norm, need_weights=False), None
-        if isinstance(x_attn, tuple):
-            x_attn = x_attn[0]
-        x = x_attn + h
-        h = x
-        x = self.mlp(self.norm2(x))
-        x = x + h
-        if return_attn:
-            return x, attn
-        return x
+    def forward(self, x):
+        mc = self.ccam(x)
+        ms = self.lsam(x)
+        return (mc * ms) * x
 
 
-class HybridCNNViT(nn.Module):
-    def __init__(self, num_classes=21, embed_dim=256, num_heads=8, depth=4, mlp_ratio=4.0, dropout=0.1):
+class CLAMResBlock(nn.Module):
+    def __init__(self, block):
         super().__init__()
-        # In demo inference, checkpoint already contains trained weights.
-        # Avoid downloading ImageNet pretrained VGG weights at app startup.
-        vgg = models.vgg16(weights=None)
-        self.cnn_front = nn.Sequential(*list(vgg.features.children())[:10])
+        import copy
+        self.conv1 = copy.deepcopy(block.conv1)
+        self.bn1 = copy.deepcopy(block.bn1)
+        self.conv2 = copy.deepcopy(block.conv2)
+        self.bn2 = copy.deepcopy(block.bn2)
+        self.conv3 = copy.deepcopy(block.conv3)
+        self.bn3 = copy.deepcopy(block.bn3)
+        self.relu = copy.deepcopy(block.relu)
+        self.clam = CLAM(self.conv3.out_channels)
 
-        self.inception = InceptionBlock(in_ch=128, b1=64, b3=64, b5=32, bp=32)
-        self.patch_embed = nn.Conv2d(192, embed_dim, kernel_size=4, stride=4)
-        self.pos_drop = nn.Dropout(dropout)
-        self.transformer = nn.ModuleList([
-            TransformerEncoderBlock(embed_dim, num_heads=num_heads, mlp_ratio=mlp_ratio, dropout=dropout)
-            for _ in range(depth)
-        ])
-        self.norm = nn.LayerNorm(embed_dim)
-        self.head = nn.Sequential(
-            nn.Linear(embed_dim, embed_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(embed_dim, num_classes),
-        )
-        self.pos_embed = None
+    def forward(self, x):
+        identity = x
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out = self.bn3(out)
+        out = self.clam(out)
+        out += identity
+        out = self.relu(out)
+        return out
 
-    def _build_pos_embed_if_needed(self, n_tokens, dim, device):
-        if self.pos_embed is None or self.pos_embed.shape[1] != n_tokens or self.pos_embed.shape[2] != dim:
-            pe = torch.zeros(1, n_tokens, dim, device=device)
-            nn.init.trunc_normal_(pe, std=0.02)
-            self.pos_embed = nn.Parameter(pe)
 
-    def forward(self, x, return_maps=False):
-        x = self.cnn_front(x)
-        inc = self.inception(x)
-        x = self.patch_embed(inc)
-        h_t, w_t = x.shape[-2], x.shape[-1]
-        x = x.flatten(2).transpose(1, 2)
-        self._build_pos_embed_if_needed(x.shape[1], x.shape[2], x.device)
-        x = self.pos_drop(x + self.pos_embed)
+class CLAMDnSample(nn.Module):
+    def __init__(self, block):
+        super().__init__()
+        import copy
+        self.conv1 = copy.deepcopy(block.conv1)
+        self.bn1 = copy.deepcopy(block.bn1)
+        self.conv2 = copy.deepcopy(block.conv2)
+        self.bn2 = copy.deepcopy(block.bn2)
+        self.conv3 = copy.deepcopy(block.conv3)
+        self.bn3 = copy.deepcopy(block.bn3)
+        self.relu = copy.deepcopy(block.relu)
+        self.downsample = copy.deepcopy(block.downsample)
+        self.clam = CLAM(self.conv3.out_channels)
 
-        last_attn = None
-        for i, blk in enumerate(self.transformer):
-            if return_maps and i == len(self.transformer) - 1:
-                x, last_attn = blk(x, return_attn=True)
+    def forward(self, x):
+        identity = self.downsample(x)
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out = self.bn3(out)
+        out = self.clam(out)
+        out += identity
+        out = self.relu(out)
+        return out
+
+
+class MBLANet(nn.Module):
+    def __init__(self, num_classes=21, pretrained=True):
+        super().__init__()
+        # In demo inference, weights are loaded from checkpoint.
+        # resnet50(weights=None) is safer to avoid auto-download.
+        self.backbone = models.resnet50(weights=None)
+        self._inject_clam(self.backbone.layer1)
+        self._inject_clam(self.backbone.layer2)
+        self._inject_clam(self.backbone.layer3)
+        self._inject_clam(self.backbone.layer4)
+        in_features = self.backbone.fc.in_features
+        self.backbone.fc = nn.Linear(in_features, num_classes)
+
+    def _inject_clam(self, stage):
+        for i in range(len(stage)):
+            block = stage[i]
+            if block.downsample is not None:
+                stage[i] = CLAMDnSample(block)
             else:
-                x = blk(x)
+                stage[i] = CLAMResBlock(block)
 
-        x = self.norm(x)
-        x = x.mean(dim=1)
-        logits = self.head(x)
+    def forward(self, x):
+        return self.backbone(x)
 
-        if return_maps:
-            return logits, inc, last_attn, (h_t, w_t)
-        return logits
 
 
 class ConvBNReLU(nn.Module):
@@ -339,13 +346,9 @@ def load_model_and_labels(model_choice: str):
         )
 
     if model_choice == "MBLANet":
-        model = HybridCNNViT(
+        model = MBLANet(
             num_classes=len(id2label),
-            embed_dim=cfg.get("embed_dim", 256),
-            num_heads=cfg.get("num_heads", 8),
-            depth=cfg.get("depth", 4),
-            mlp_ratio=cfg.get("mlp_ratio", 4.0),
-            dropout=cfg.get("dropout", 0.1),
+            pretrained=False,
         ).to(device)
     else:
         model = CNNScratch(
@@ -353,9 +356,10 @@ def load_model_and_labels(model_choice: str):
             dropout=cfg.get("dropout", 0.3),
         ).to(device)
 
+
     state_dict = ckpt["model_state_dict"]
-    if model_choice == "Hybrid CNN–ViT" and "pos_embed" in state_dict:
-        state_dict = {k: v for k, v in state_dict.items() if k != "pos_embed"}
+    # Check if there's a prefix like 'backbone.' or 'model.' and remove if needed, 
+    # but based on mblanet.py it should match the MBLANet class structure exactly.
 
     load_msg = model.load_state_dict(state_dict, strict=False)
     if len(load_msg.unexpected_keys) > 0:
@@ -541,17 +545,28 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     def bwd_hook(_m, _gi, go):
         cache["grad"] = go[0]
 
-    if model_choice == "Hybrid CNN–ViT":
-        h1 = model.inception.register_forward_hook(fwd_hook)
-        h2 = model.inception.register_full_backward_hook(bwd_hook)
-        logits, _inc, last_attn, token_hw = model(x, return_maps=True)
+    if model_choice == "MBLANet":
+        # Target layer 4 for ResNet50-based Grad-CAM
+        target_layer = model.backbone.layer4
+        h1 = target_layer.register_forward_hook(fwd_hook)
+        h2 = target_layer.register_full_backward_hook(bwd_hook)
+        
+        # Also hook LSAM attention map from the final block
+        attn_storage = {}
+        def lsam_hook(m, i, o): attn_storage["lsam"] = o.detach()
+        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lsam_hook)
+        
+        logits = model(x)
+        last_attn = None # We use lsam_map instead
     else:
         # last conv feature before head for scratch CNN (ResNet18 backbone)
         target_layer = model.model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
+        h3 = None
         logits = model(x)
-        last_attn, token_hw = None, None
+        last_attn = None
+        
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
     pred_idx = int(top_idx[0].item())
@@ -560,6 +575,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     logits[0, pred_idx].backward()
 
     h1.remove(); h2.remove()
+    if h3: h3.remove()
 
     # Grad-CAM
     act = cache["act"][0]        # (C,H,W)
@@ -568,24 +584,20 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
     cam = _norm01(cam)
 
-    # Attention map (only for Hybrid)
-    attn_map = None
-    if last_attn is not None and token_hw is not None:
-        # (B, heads, N, N)
-        a = last_attn[0].mean(dim=0)   # (N,N)
-        a = a.mean(dim=0)              # (N,)
-        h_t, w_t = token_hw
-        attn_map = a.view(h_t, w_t).detach().cpu().numpy()
+    # Attention map (only for MBLANet)
+    attn_overlay = None
+    if model_choice == "MBLANet" and "lsam" in attn_storage:
+        # LSAM map (1, 1, H, W)
+        attn_map = attn_storage["lsam"][0, 0].cpu().numpy()
         attn_map = _norm01(attn_map)
+        attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.45)
 
     base = _to_uint8(img_pil)
     gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
-    attention_overlay = None
-    if attn_map is not None:
-        attention_overlay = _apply_heatmap_overlay(base, attn_map, alpha=0.45)
-
+    
     rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
-    return rows, gradcam_overlay, attention_overlay
+    return rows, gradcam_overlay, attn_overlay
+
 
 
 # =========================
@@ -593,7 +605,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 # =========================
 st.markdown("<p class='hero'>Demo 2 · Image Classification</p>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='sub'>Editor-style inference console with bento layout · Hybrid CNN–ViT and CNN Scratch.</p>",
+    "<p class='sub'>Editor-style inference console with bento layout · MBLANet and CNN Scratch.</p>",
     unsafe_allow_html=True,
 )
 
@@ -614,7 +626,8 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["Hybrid CNN–ViT", "CNN Scratch"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch"], index=0)
+
 
     model = None
     id2label = None
