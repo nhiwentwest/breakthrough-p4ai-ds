@@ -477,45 +477,24 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet" and "lsam" in attn_storage:
-        lsam_out = attn_storage["lsam"]
-        attn_map = None
-        attn_source = "hook_lsam_out"
-
-        def _extract_map_from_block(block):
-            if not hasattr(block, "clam"):
-                return None, None
-            lsam = block.clam.lsam
-            if hasattr(lsam, "att_map") and lsam.att_map is not None:
-                return lsam.att_map[0, 0].detach().cpu().numpy(), "att_map"
-            if hasattr(lsam, "raw_attn") and lsam.raw_attn is not None:
-                return lsam.raw_attn[0, 0].detach().cpu().numpy(), "raw_attn"
-            return None, None
-
-        # Prefer stage-4 last block, then fallback to stage-3 last block, then hook output
         last_block = model.backbone.layer4[-1]
-        attn_map, attn_source = _extract_map_from_block(last_block)
-        if attn_map is None:
-            prev_block = model.backbone.layer3[-1]
-            attn_map, attn_source = _extract_map_from_block(prev_block)
-        if attn_map is None:
-            attn_map = lsam_out[0, 0].detach().cpu().numpy()
-            attn_source = "hook_lsam_out"
+        if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn") and last_block.clam.lsam.raw_attn is not None:
+            attn_map = last_block.clam.lsam.raw_attn[0, 0].detach().cpu().numpy()
+            attn_source = "raw_attn"
+            attn_min = float(np.min(attn_map))
+            attn_max = float(np.max(attn_map))
+            attn_std = float(np.std(attn_map))
+            st.markdown(
+                f"<div class='demo-label'>LSAM stats — source: {attn_source} | min: {attn_min:.4f} | max: {attn_max:.4f} | std: {attn_std:.4f}</div>",
+                unsafe_allow_html=True,
+            )
 
-        attn_min = float(np.min(attn_map))
-        attn_max = float(np.max(attn_map))
-        attn_std = float(np.std(attn_map))
-        st.markdown(
-            f"<div class='demo-label'>LSAM stats — source: {attn_source} | min: {attn_min:.4f} | max: {attn_max:.4f} | std: {attn_std:.4f}</div>",
-            unsafe_allow_html=True,
-        )
+            if attn_std < 1e-4 or (attn_max - attn_min) < 1e-4:
+                attn_map = attn_map - attn_map.mean()
+                attn_map = np.abs(attn_map)
 
-        # If map is too flat, amplify contrast before normalization
-        if attn_std < 1e-4 or (attn_max - attn_min) < 1e-4:
-            attn_map = attn_map - attn_map.mean()
-            attn_map = np.abs(attn_map)
-
-        attn_map = _norm01(attn_map)
-        attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.55)
+            attn_map = _norm01(attn_map)
+            attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.55)
 
     base = _to_uint8(img_pil)
     gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
