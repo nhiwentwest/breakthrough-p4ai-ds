@@ -273,13 +273,6 @@ CNN_SCRATCH_LABEL_MAP_FILE_ID = "1ZHZ7bjFl2pp1ZWpmdlHdBfQRrly4oYRX"
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 
 
-def _pick_existing(paths):
-    for p in paths:
-        if p.exists():
-            return p
-    return None
-
-
 def ensure_checkpoint_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -328,14 +321,8 @@ def ensure_label_mapping_from_drive(model_choice: str):
 
 @st.cache_resource(show_spinner=True)
 def load_model_and_labels(model_choice: str):
-    ckpt_path = _pick_existing(CHECKPOINT_CANDIDATES[model_choice])
-    map_path = _pick_existing(MAPPING_CANDIDATES[model_choice])
-
-    if ckpt_path is None:
-        ckpt_path = ensure_checkpoint_from_drive(model_choice)
-
-    if map_path is None:
-        map_path = ensure_label_mapping_from_drive(model_choice)
+    ckpt_path = ensure_checkpoint_from_drive(model_choice)
+    map_path = ensure_label_mapping_from_drive(model_choice)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(ckpt_path, map_location=device)
