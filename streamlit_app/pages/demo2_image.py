@@ -267,8 +267,8 @@ MAPPING_CANDIDATES = {
 HYBRID_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
 HYBRID_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
 
-CNN_SCRATCH_CHECKPOINT_FILE_ID = "14U3qDWxUVOuIGPq4SdXSXASi33ev1AdM"
-CNN_SCRATCH_LABEL_MAP_FILE_ID = "1ZHZ7bjFl2pp1ZWpmdlHdBfQRrly4oYRX"
+CNN_SCRATCH_CHECKPOINT_FILE_ID = "1iWnsgWSqUB1V1t0XU_JtqjiM5Ci_zOPS"
+CNN_SCRATCH_LABEL_MAP_FILE_ID = "1xHvJZpV58CG7sBxnTslP2872sA4rLUuz"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = True
@@ -281,15 +281,15 @@ def ensure_checkpoint_from_drive(model_choice: str):
     if model_choice == "Hybrid CNN–ViT":
         target_ckpt = target_dir / "best_hybrid_cnn_vit.pt"
         file_id = HYBRID_CHECKPOINT_FILE_ID
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, str(target_ckpt), quiet=False)
     else:
         target_ckpt = target_dir / "best_cnn_scratch.pt"
         file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
-
-    if FORCE_DRIVE_REFRESH and target_ckpt.exists():
-        target_ckpt.unlink()
-
-    url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, str(target_ckpt), quiet=False)
+        if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+            target_ckpt.unlink()
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, str(target_ckpt), quiet=False)
 
     if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
         raise FileNotFoundError("Downloaded checkpoint is missing or empty.")
@@ -304,15 +304,17 @@ def ensure_label_mapping_from_drive(model_choice: str):
     if model_choice == "Hybrid CNN–ViT":
         target_map = target_dir / "label_mapping_hybrid.json"
         file_id = HYBRID_LABEL_MAP_FILE_ID
+        if FORCE_DRIVE_REFRESH and target_map.exists():
+            target_map.unlink()
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, str(target_map), quiet=False)
     else:
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
-
-    if FORCE_DRIVE_REFRESH and target_map.exists():
-        target_map.unlink()
-
-    url = f"https://drive.google.com/uc?id={file_id}"
-    gdown.download(url, str(target_map), quiet=False)
+        if FORCE_DRIVE_REFRESH and target_map.exists():
+            target_map.unlink()
+        url = f"https://drive.google.com/uc?id={file_id}"
+        gdown.download(url, str(target_map), quiet=False)
 
     if not target_map.exists() or target_map.stat().st_size == 0:
         raise FileNotFoundError("Downloaded label_mapping.json is missing or empty.")
