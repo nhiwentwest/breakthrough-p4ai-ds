@@ -46,6 +46,8 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 .editor-bar {{ display:flex; align-items:center; gap:.35rem; margin-bottom:.55rem; }}
 .dot {{ width:.55rem; height:.55rem; border-radius:999px; display:inline-block; }}
 .dot-r {{ background:#e57373; }} .dot-y {{ background:#ffca28; }} .dot-g {{ background:#66bb6a; }}
+.demo-label {{ color:#111111 !important; font-weight:700; background:#f3eadb; border:1px solid #d7c7b2; padding:.35rem .55rem; border-radius:8px; display:inline-block; margin-top:.35rem; }}
+.demo-label-light {{ color:#f7f3eb !important; font-weight:700; background:#2b2b2b; border:1px solid #555; padding:.35rem .55rem; border-radius:8px; display:inline-block; margin-top:.35rem; }}
 @media (max-width: 900px) {{ .kpi-grid {{ grid-template-columns: 1fr; }} }}
 </style>
 """,
@@ -223,10 +225,10 @@ class CNNScratch(nn.Module):
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 CHECKPOINT_CANDIDATES = {
-    "Hybrid CNN–ViT": [
-        PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
-        PROJECT_ROOT / "outputs_hybrid" / "best_hybrid_cnn_vit.pt",
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_hybrid_cnn_vit.pt",
+    "MBLANet": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_mblanet" / "best_mblanet.pt",
+        PROJECT_ROOT / "outputs_mblanet" / "best_mblanet.pt",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_mblanet.pt",
     ],
     "CNN Scratch": [
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
@@ -236,10 +238,10 @@ CHECKPOINT_CANDIDATES = {
 }
 
 MAPPING_CANDIDATES = {
-    "Hybrid CNN–ViT": [
-        PROJECT_ROOT / "assign2-ml" / "outputs_hybrid" / "label_mapping.json",
-        PROJECT_ROOT / "outputs_hybrid" / "label_mapping.json",
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_hybrid.json",
+    "MBLANet": [
+        PROJECT_ROOT / "assign2-ml" / "outputs_mblanet" / "label_mapping.json",
+        PROJECT_ROOT / "outputs_mblanet" / "label_mapping.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_mblanet.json",
     ],
     "CNN Scratch": [
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
@@ -249,11 +251,11 @@ MAPPING_CANDIDATES = {
 }
 
 # Google Drive assets
-HYBRID_CHECKPOINT_FILE_ID = "1V5rcx3EsIAUK5-TNr98pIMfkXnTiOkcu"
-HYBRID_LABEL_MAP_FILE_ID = "13tGhOSCdiQi2MTwEqR4TPCnvZav1n2EE"
+MBLANET_CHECKPOINT_FILE_ID = "1vFg4Dz3Ak6cSMNpWtcR7XE5BoPs_i2XE"
+MBLANET_LABEL_MAP_FILE_ID = None
 
-CNN_SCRATCH_CHECKPOINT_FILE_ID = "1iWnsgWSqUB1V1t0XU_JtqjiM5Ci_zOPS"
-CNN_SCRATCH_LABEL_MAP_FILE_ID = "1xHvJZpV58CG7sBxnTslP2872sA4rLUuz"
+CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
+CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = True
@@ -263,9 +265,11 @@ def ensure_checkpoint_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    if model_choice == "Hybrid CNN–ViT":
-        target_ckpt = target_dir / "best_hybrid_cnn_vit.pt"
-        file_id = HYBRID_CHECKPOINT_FILE_ID
+    if model_choice == "MBLANet":
+        target_ckpt = target_dir / "best_mblanet.pt"
+        file_id = MBLANET_CHECKPOINT_FILE_ID
+        if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+            target_ckpt.unlink()
         url = f"https://drive.google.com/uc?id={file_id}"
         gdown.download(url, str(target_ckpt), quiet=False)
     else:
@@ -286,9 +290,12 @@ def ensure_label_mapping_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    if model_choice == "Hybrid CNN–ViT":
-        target_map = target_dir / "label_mapping_hybrid.json"
-        file_id = HYBRID_LABEL_MAP_FILE_ID
+    if model_choice == "MBLANet":
+        target_map = target_dir / "label_mapping_mblanet.json"
+        file_id = MBLANET_LABEL_MAP_FILE_ID
+        if file_id is None:
+            # Prefer checkpoint-embedded mapping for MBLANet.
+            return target_map
         if FORCE_DRIVE_REFRESH and target_map.exists():
             target_map.unlink()
         url = f"https://drive.google.com/uc?id={file_id}"
@@ -331,7 +338,7 @@ def load_model_and_labels(model_choice: str):
             "Please include 'label2id' and 'id2label' in checkpoint OR provide label_mapping.json."
         )
 
-    if model_choice == "Hybrid CNN–ViT":
+    if model_choice == "MBLANet":
         model = HybridCNNViT(
             num_classes=len(id2label),
             embed_dim=cfg.get("embed_dim", 256),
@@ -660,7 +667,7 @@ with left:
                     true_name = id2label[int(true_label)]
                 else:
                     true_name = str(true_label)
-                st.caption(f"Ground truth label: {true_name}")
+                st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
     else:
         spec = st.text_input("Sample key", value="test[0]", help="Format: split[index], e.g., test[7]")
         if st.button("Load named sample", use_container_width=True):
@@ -683,7 +690,7 @@ with left:
                     true_name = id2label[int(true_label)]
                 else:
                     true_name = str(true_label)
-                st.caption(f"Ground truth label: {true_name}")
+                st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -702,9 +709,9 @@ with right:
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
-            st.write(f"Predicted label: **{top_label}**")
+            st.markdown(f"<div class='demo-label'>Predicted label: {top_label}</div>", unsafe_allow_html=True)
             st.progress(float(top_prob))
-            st.write(f"Confidence: **{top_prob:.2%}**")
+            st.markdown(f"<div class='demo-label'>Confidence: {top_prob:.2%}</div>", unsafe_allow_html=True)
 
             st.markdown("---")
             st.markdown("**Top-5 predictions**")
