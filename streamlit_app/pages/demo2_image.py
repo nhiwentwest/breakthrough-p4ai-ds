@@ -161,17 +161,19 @@ def ensure_checkpoint_from_drive(model_choice: str):
     if model_choice == "MBLANet":
         target_ckpt = target_dir / "best_mblanet.pt"
         file_id = MBLANET_CHECKPOINT_FILE_ID
-        if FORCE_DRIVE_REFRESH and target_ckpt.exists():
-            target_ckpt.unlink()
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, str(target_ckpt), quiet=False)
+        if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+                target_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_ckpt), quiet=False)
     else:
         target_ckpt = target_dir / "best_cnn_scratch.pt"
         file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
-        if FORCE_DRIVE_REFRESH and target_ckpt.exists():
-            target_ckpt.unlink()
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, str(target_ckpt), quiet=False)
+        if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+                target_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_ckpt), quiet=False)
 
     if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
         raise FileNotFoundError("Downloaded checkpoint is missing or empty.")
@@ -189,17 +191,19 @@ def ensure_label_mapping_from_drive(model_choice: str):
         if file_id is None:
             # Prefer checkpoint-embedded mapping for MBLANet.
             return target_map
-        if FORCE_DRIVE_REFRESH and target_map.exists():
-            target_map.unlink()
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, str(target_map), quiet=False)
+        if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_map.exists():
+                target_map.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_map), quiet=False)
     else:
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
-        if FORCE_DRIVE_REFRESH and target_map.exists():
-            target_map.unlink()
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, str(target_map), quiet=False)
+        if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_map.exists():
+                target_map.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_map), quiet=False)
 
     if not target_map.exists() or target_map.stat().st_size == 0:
         raise FileNotFoundError("Downloaded label_mapping.json is missing or empty.")
@@ -443,7 +447,13 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        h3 = None
+        
+        # New: Capture LSAM spatial attention map directly from module output
+        lsam_module = model.backbone.layer4[-1].clam.lsam
+        def lsam_hook(m, i, o):
+            cache["lsam_map"] = o.detach()
+        h3 = lsam_module.register_forward_hook(lsam_hook)
+
         logits = model(x)
     else:
         target_layer = model.model.layer4[-1].conv2
@@ -478,68 +488,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
     # Attention map (only for MBLANet)
     attn_overlay = None
-    if model_choice == "MBLANet":
-        lsam = model.backbone.layer4[-1].clam.lsam
-        raw_attn = getattr(lsam, "raw_attn", None)
-        att_map_fallback = getattr(lsam, "att_map", None)
-        input_stats = getattr(lsam, "input_stats", None)
-
-        has_raw_attn = raw_attn is not None
-        has_att_map = att_map_fallback is not None
-        st.markdown(
-            f"<div class='demo-label'>LSAM raw_attn available: <b>{'YES' if has_raw_attn else 'NO'}</b> · att_map available: <b>{'YES' if has_att_map else 'NO'}</b></div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f"<div class='demo-label'>LSAM input_stats: <b>{input_stats if input_stats is not None else 'None'}</b></div>",
-            unsafe_allow_html=True,
-        )
-
-        def _prep_attn_map(arr):
-            arr = arr.detach().cpu().numpy() if torch.is_tensor(arr) else np.asarray(arr)
-            arr = arr[0, 0] if arr.ndim == 4 else arr.squeeze()
-            arr = np.asarray(arr, dtype=np.float32)
-            arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
-            if arr.ndim != 2:
-                arr = np.squeeze(arr)
-            if arr.ndim != 2:
-                return None
-            arr = arr - float(arr.min())
-            denom = float(arr.max())
-            if denom > 1e-8:
-                arr = arr / denom
-            else:
-                arr = np.zeros_like(arr, dtype=np.float32)
-            return arr
-
-        chosen = None
-        raw_map = _prep_attn_map(raw_attn) if has_raw_attn else None
-        if raw_map is not None:
-            chosen = raw_map
-            attn_shape = tuple(raw_attn.shape) if torch.is_tensor(raw_attn) else tuple(np.asarray(raw_attn).shape)
-            attn_min = float(np.min(raw_map))
-            attn_max = float(np.max(raw_map))
-            attn_std = float(np.std(raw_map))
-            st.markdown(
-                f"<div class='demo-label'>LSAM stats — shape: {attn_shape} | min: {attn_min:.4f} | max: {attn_max:.4f} | std: {attn_std:.4f}</div>",
-                unsafe_allow_html=True,
-            )
-            if attn_std < 1e-4:
-                st.warning("raw_attn có nhưng map quá phẳng, đang fallback sang att_map nếu có.")
-
-        if (chosen is None or float(np.std(chosen)) < 1e-4) and att_map_fallback is not None:
-            chosen = _prep_attn_map(att_map_fallback)
-            if chosen is not None:
-                st.info("Đang dùng att_map fallback để render overlay.")
-
-        if chosen is not None:
-            attn_img = Image.fromarray((chosen * 255).astype(np.uint8)).resize(
-                (img_pil.width, img_pil.height), Image.Resampling.BILINEAR
-            )
-            attn_map = np.asarray(attn_img, dtype=np.float32) / 255.0
-            attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.60)
-        else:
-            st.warning("Không thể tạo attention overlay từ raw_attn/att_map.")
+    if model_choice == "MBLANet" and "lsam_map" in cache:
+        attn_tensor = cache["lsam_map"] # format (B, 1, H, W)
+        attn_np = attn_tensor.cpu().numpy()[0, 0]
+        attn_np = _norm01(attn_np)
+        attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_np, alpha=0.60)
 
     rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
     return rows, saliency_overlay, gradcam_overlay, attn_overlay
