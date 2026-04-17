@@ -8,6 +8,7 @@ from pathlib import Path
 import gdown
 import numpy as np
 import streamlit as st
+import tensorflow as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -120,6 +121,9 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
+    "Pretrained CNN Frozen": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.keras",
+    ],
 }
 
 MAPPING_CANDIDATES = {
@@ -132,6 +136,9 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
+    ],
+    "Pretrained CNN Frozen": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
     ],
 }
 
@@ -150,6 +157,9 @@ MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
+PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "18Eqn9m6yHesIfPjxTonmsAeIRkID5Srp"
+PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = None
+
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = False
 
@@ -166,7 +176,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    else:
+    elif model_choice == "CNN Scratch":
         target_ckpt = target_dir / "best_cnn_scratch.pt"
         file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -174,6 +184,16 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
+    elif model_choice == "Pretrained CNN Frozen":
+        target_ckpt = target_dir / "best_resnet50_model.keras"
+        file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
+        if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+                target_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_ckpt), quiet=False)
+    else:
+        raise ValueError(f"Unknown model choice: {model_choice}")
 
     if not target_ckpt.exists() or target_ckpt.stat().st_size == 0:
         raise FileNotFoundError("Downloaded checkpoint is missing or empty.")
@@ -189,14 +209,13 @@ def ensure_label_mapping_from_drive(model_choice: str):
         target_map = target_dir / "label_mapping_mblanet.json"
         file_id = MBLANET_LABEL_MAP_FILE_ID
         if file_id is None:
-            # Prefer checkpoint-embedded mapping for MBLANet.
             return target_map
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_map.exists():
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    else:
+    elif model_choice == "CNN Scratch":
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -204,6 +223,19 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
+    elif model_choice == "Pretrained CNN Frozen":
+        target_map = target_dir / "best_resnet50_model_labels.json"
+        if not target_map.exists() or target_map.stat().st_size == 0:
+            # Try to reuse the same RSITMD label mapping used by the other image models.
+            fallback = target_dir / "label_mapping_mblanet.json"
+            if fallback.exists() and fallback.stat().st_size > 0:
+                return fallback
+            fallback = target_dir / "label_mapping_cnn_scratch.json"
+            if fallback.exists() and fallback.stat().st_size > 0:
+                return fallback
+            return target_map
+    else:
+        raise ValueError(f"Unknown model choice: {model_choice}")
 
     if not target_map.exists() or target_map.stat().st_size == 0:
         raise FileNotFoundError("Downloaded label_mapping.json is missing or empty.")
@@ -215,6 +247,26 @@ def ensure_label_mapping_from_drive(model_choice: str):
 def load_model_and_labels(model_choice: str):
     ckpt_path = ensure_checkpoint_from_drive(model_choice)
     map_path = ensure_label_mapping_from_drive(model_choice)
+
+    if model_choice == "Pretrained CNN Frozen":
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        tf_model = tf.keras.models.load_model(ckpt_path)
+
+        label2id, id2label = None, None
+        if map_path is not None and map_path.exists() and map_path.stat().st_size > 0:
+            try:
+                with open(map_path, "r", encoding="utf-8") as f:
+                    mp = json.load(f)
+                label2id = mp.get("label2id", {})
+                id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
+            except Exception:
+                label2id, id2label = None, None
+
+        if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
+            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+            label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
+
+        return tf_model, id2label, device, str(ckpt_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -230,7 +282,6 @@ def load_model_and_labels(model_choice: str):
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
     if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
-        # Fallback to RSITMD standard classes if mapping is missing or only contains indices
         id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
         label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
 
@@ -272,6 +323,13 @@ def preprocess_image(img: Image.Image):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     return tfm(img.convert("RGB")).unsqueeze(0)
+
+
+def preprocess_image_tf(img: Image.Image):
+    arr = np.array(img.convert("RGB"), dtype=np.float32)
+    arr = tf.image.resize(arr, (224, 224)).numpy()
+    arr = tf.keras.applications.resnet50.preprocess_input(arr)
+    return np.expand_dims(arr, axis=0)
 
 
 def find_dataset_dict_root(base_dir: str):
@@ -432,6 +490,25 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
 
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
+    if model_choice == "Pretrained CNN Frozen":
+        x_np = preprocess_image_tf(img_pil)
+        with tf.GradientTape() as tape:
+            x_tf = tf.convert_to_tensor(x_np)
+            tape.watch(x_tf)
+            preds = model(x_tf, training=False)
+            pred_idx = int(tf.argmax(preds[0]).numpy())
+            class_score = preds[:, pred_idx]
+        grads = tape.gradient(class_score, x_tf)
+        sal = tf.reduce_max(tf.abs(grads), axis=-1)[0].numpy()
+        saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), _norm01(sal), alpha=0.50)
+        gradcam_overlay = saliency_overlay
+        attn_overlay = None
+        probs = preds[0].numpy()
+        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
+        top_vals = probs[top_idx]
+        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
+        return rows, saliency_overlay, gradcam_overlay, attn_overlay
+
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
 
     # hooks for saliency + Grad-CAM
@@ -447,8 +524,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        
-        # New: Capture LSAM spatial attention map directly from module output
+
         lsam_module = model.backbone.layer4[-1].clam.lsam
         def lsam_hook(m, i, o):
             cache["lsam_map"] = o.detach()
@@ -472,13 +548,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     h1.remove(); h2.remove()
     if h3: h3.remove()
 
-    # Saliency map
     grad_input = x.grad.detach()[0]
     sal = grad_input.abs().max(dim=0).values.cpu().numpy()
     sal = _norm01(sal)
     saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), sal, alpha=0.50)
 
-    # Grad-CAM
     act = cache["act"][0]
     grad = cache["grad"][0]
     w = grad.mean(dim=(1, 2), keepdim=True)
@@ -486,10 +560,9 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     cam = _norm01(cam)
     gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
 
-    # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet" and "lsam_map" in cache:
-        attn_tensor = cache["lsam_map"] # format (B, 1, H, W)
+        attn_tensor = cache["lsam_map"]
         attn_np = attn_tensor.cpu().numpy()[0, 0]
         attn_np = _norm01(attn_np)
         attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_np, alpha=0.60)
@@ -525,7 +598,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen"], index=0)
 
 
     model = None
