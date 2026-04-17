@@ -575,6 +575,9 @@ with mode_col2:
     else:
         st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
+if full_page_mode:
+    st.info("Full page mode is enabled, but this page still uses the step renderer. Refresh after the next update to see the one-page layout.")
+
 with st.expander("🎛️ Chart controls", expanded=False):
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
@@ -633,446 +636,459 @@ def render_bento_table(title, icon, df, **kwargs):
     )
     st.dataframe(df, **kwargs)
 
-if step == 0:
-    st.metric("Total images", f"{D['n_total']:,}")
-    st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
-    audit = pd.DataFrame([
-        ["Duplicate filenames", 0],
-        ["Missing image files (sampled check)", 0],
-        ["Empty captions", 0],
-        ["Captions per image", 5],
-    ], columns=["Check", "Value"])
-    render_bento_table(
-        title="Dataset audit",
-        icon="🧾",
-        df=audit,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Check": st.column_config.TextColumn("Data Quality Check 🔍"),
-            "Value": st.column_config.NumberColumn("Result", format="%d")
-        }
-    )
+def render_step(step_idx):
+    if step_idx == 0:
+        st.metric("Total images", f"{D['n_total']:,}")
+        st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
+        audit = pd.DataFrame([
+            ["Duplicate filenames", 0],
+            ["Missing image files (sampled check)", 0],
+            ["Empty captions", 0],
+            ["Captions per image", 5],
+        ], columns=["Check", "Value"])
+        render_bento_table(
+            title="Dataset audit",
+            icon="🧾",
+            df=audit,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Check": st.column_config.TextColumn("Data Quality Check 🔍"),
+                "Value": st.column_config.NumberColumn("Result", format="%d")
+            }
+        )
 
-elif step == 1:
-    wn = st.slider("Top words", 10, 40, 15, key="top_words_n")
-    bn = st.slider("Top bigrams", 8, 30, 12, key="top_bigrams_n")
-    top_w = D["word_freq"].most_common(wn)
-    words, counts = zip(*top_w)
-    fig360, ax = make_fig()
-    colors_words = sns.color_palette("rocket", len(words))
-    ax.barh(words[::-1], counts[::-1], color=colors_words)
-    ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
-    ax.set_xlabel("Frequency")
-    render_chart(fig360)
+    elif step_idx == 1:
+        wn = st.slider("Top words", 10, 40, 15, key="top_words_n")
+        bn = st.slider("Top bigrams", 8, 30, 12, key="top_bigrams_n")
+        top_w = D["word_freq"].most_common(wn)
+        words, counts = zip(*top_w)
+        fig360, ax = make_fig()
+        colors_words = sns.color_palette("rocket", len(words))
+        ax.barh(words[::-1], counts[::-1], color=colors_words)
+        ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
+        ax.set_xlabel("Frequency")
+        render_chart(fig360)
 
-    top_b = D["bigram_freq"].most_common(bn)
-    bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
-    fig365, ax2 = make_fig()
-    colors_bigrams = sns.color_palette("mako", len(bl))
-    ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
-    ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
-    ax2.set_xlabel("Frequency")
-    render_chart(fig365)
+        top_b = D["bigram_freq"].most_common(bn)
+        bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
+        fig365, ax2 = make_fig()
+        colors_bigrams = sns.color_palette("mako", len(bl))
+        ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
+        ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
+        ax2.set_xlabel("Frequency")
+        render_chart(fig365)
 
-elif step == 2:
-    c0, c1, c2, c3 = st.columns(4)
-    with c0:
-        split_img = st.radio("Split", ["train", "test"], horizontal=True, key="img_split")
-    with c1:
-        top_n_cat = st.slider("Top categories", 5, 33, 20, 1, key="img_top_n")
-    with c2:
-        x_metric = st.selectbox("X metric", ["brightness", "texture", "blur"], index=0, key="img_x_metric")
-    with c3:
-        y_metric = st.selectbox("Y metric", ["texture", "brightness", "blur"], index=0, key="img_y_metric")
+    elif step_idx == 2:
+        c0, c1, c2, c3 = st.columns(4)
+        with c0:
+            split_img = st.radio("Split", ["train", "test"], horizontal=True, key="img_split")
+        with c1:
+            top_n_cat = st.slider("Top categories", 5, 33, 20, 1, key="img_top_n")
+        with c2:
+            x_metric = st.selectbox("X metric", ["brightness", "texture", "blur"], index=0, key="img_x_metric")
+        with c3:
+            y_metric = st.selectbox("Y metric", ["texture", "brightness", "blur"], index=0, key="img_y_metric")
 
-    imgs_split = D["train_imgs"] if split_img == "train" else D["test_imgs"]
-    cat_counts = Counter(parse_category(img["filename"]) for img in imgs_split)
-    ctop = cat_counts.most_common(top_n_cat)
+        imgs_split = D["train_imgs"] if split_img == "train" else D["test_imgs"]
+        cat_counts = Counter(parse_category(img["filename"]) for img in imgs_split)
+        ctop = cat_counts.most_common(top_n_cat)
 
-    if ctop:
-        cl, cv = zip(*ctop)
-        fig371, ax = make_fig()
-        colors_cat = sns.color_palette("crest", len(cl))
-        ax.barh(cl[::-1], cv[::-1], color=colors_cat)
-        ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
-        ax.set_xlabel("Count")
-        render_chart(fig371)
+        if ctop:
+            cl, cv = zip(*ctop)
+            fig371, ax = make_fig()
+            colors_cat = sns.color_palette("crest", len(cl))
+            ax.barh(cl[::-1], cv[::-1], color=colors_cat)
+            ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
+            ax.set_xlabel("Count")
+            render_chart(fig371)
 
-    px_df = get_or_compute(
-        f"image_pixel_stats::{split_img}",
-        lambda: image_pixel_stats(imgs_split),
-        spinner_text=f"Computing pixel stats ({split_img})..."
-    )
+        px_df = get_or_compute(
+            f"image_pixel_stats::{split_img}",
+            lambda: image_pixel_stats(imgs_split),
+            spinner_text=f"Computing pixel stats ({split_img})..."
+        )
 
-    if not px_df.empty and x_metric != y_metric:
-        fig375, ax2 = make_fig(w_mult=1.0, h_mult=0.85)
-        ax2.scatter(px_df[x_metric], px_df[y_metric], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
-        ax2.set_xlabel(x_metric.replace("_", " ").title())
-        ax2.set_ylabel(y_metric.replace("_", " ").title())
-        ax2.set_title(f"{x_metric.title()} vs {y_metric.title()} ({split_img})", color=TEXT, pad=10)
-        render_chart(fig375)
-    elif x_metric == y_metric:
-        st.info("Please choose different X and Y metrics for the scatter plot.")
+        if not px_df.empty and x_metric != y_metric:
+            fig375, ax2 = make_fig(w_mult=1.0, h_mult=0.85)
+            ax2.scatter(px_df[x_metric], px_df[y_metric], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
+            ax2.set_xlabel(x_metric.replace("_", " ").title())
+            ax2.set_ylabel(y_metric.replace("_", " ").title())
+            ax2.set_title(f"{x_metric.title()} vs {y_metric.title()} ({split_img})", color=TEXT, pad=10)
+            render_chart(fig375)
+        elif x_metric == y_metric:
+            st.info("Please choose different X and Y metrics for the scatter plot.")
 
-elif step == 3:
-    split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
-    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-    vars_split = D["variabilities"] if split == "train" else [float(np.std([len(s["tokens"]) for s in img["sentences"]])) for img in D["test_imgs"]]
+    elif step_idx == 3:
+        split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
+        imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+        vars_split = D["variabilities"] if split == "train" else [float(np.std([len(s["tokens"]) for s in img["sentences"]])) for img in D["test_imgs"]]
 
-    bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
-    fig386, ax = make_fig(w_mult=1.0, h_mult=0.85)
-    ax.hist(vars_split, bins=bins_n, color="#8b5cf6", edgecolor="white", alpha=0.9)
-    if len(vars_split) > 0:
-        ax.axvline(np.mean(vars_split), color=ACC, linestyle="--", linewidth=2, label=f"Mean={np.mean(vars_split):.2f}")
-        ax.legend(frameon=False)
-    ax.set_title(f"Caption variability within image ({split})", color=TEXT, pad=10)
-    ax.set_xlabel("Std dev of caption length")
-    ax.set_ylabel("Frequency")
-    render_chart(fig386)
-
-    st.markdown("### Sample pairs")
-    cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
-    c1, c2 = st.columns(2)
-    with c1:
-        pick_cat = st.selectbox("Category", cats, index=0, key="sample_cat")
-    candidates = imgs_split if pick_cat == "All" else [i for i in imgs_split if parse_category(i["filename"]) == pick_cat]
-    max_show = max(1, len(candidates))
-    with c2:
-        nshow = st.slider("Samples to show", 1, max_show, min(3, max_show), key="sample_n")
-
-    show_list = candidates[:nshow]
-    for img in show_list:
-        st.write(f"**{img['filename']}** ({parse_category(img['filename'])})")
-        p = IMG_DIR / img["filename"]
-        if p.exists():
-            try:
-                with Image.open(p) as im:
-                    st.image(im.convert("RGB"), width=280)
-            except Exception:
-                pass
-        for i, s in enumerate(img["sentences"]):
-            st.write(f"- [{i+1}] {s['raw']}")
-
-elif step == 4:
-    if not SKLEARN_AVAILABLE:
-        st.error("scikit-learn unavailable; cannot compute matrix.")
-    else:
-        split = st.radio("Split", ["train", "test"], horizontal=True, key="sim_split")
-        sim = category_similarity(D["train_imgs"] if split == "train" else D["test_imgs"])
-        n = st.slider("Matrix categories", 10, min(33, len(sim)), min(20, len(sim)))
-        top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
-        view = sim.loc[top, top]
-        fig423, ax = make_fig(w_mult=1.0, h_mult=1.2)
-        im = ax.imshow(view.values, cmap="YlOrRd", vmin=0, vmax=1, aspect='auto')
-        ax.set_xticks(range(len(view.columns)))
-        ax.set_yticks(range(len(view.index)))
-        ax.set_xticklabels(view.columns, rotation=90, fontsize=max(4.5, 6.2 * font_scale))
-        ax.set_yticklabels(view.index, fontsize=max(4.5, 6.2 * font_scale))
-        ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
-        cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
-        render_chart(fig423)
-
-elif step == 5:
-    split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
-    st.caption("Semantic metric: Char-wb TF-IDF (3–5) + image-level noise probe")
-
-    sem = get_or_compute(
-        f"semantic_consistency::{split}::char_wb_3_5",
-        lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
-        spinner_text=f"Computing semantic consistency ({split}, char_wb_3_5)..."
-    )
-    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-    px_df_split = get_or_compute(
-        f"image_pixel_stats::{split}",
-        lambda: image_pixel_stats(imgs_split),
-        spinner_text=f"Computing pixel stats ({split})..."
-    )
-    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
-    cdf_split = get_or_compute(
-        f"contradiction_map::{split}",
-        lambda: contradiction_map(imgs_split, dom_map_split),
-        spinner_text=f"Computing contradiction map ({split})..."
-    )
-    noise_df = get_or_compute(
-        f"image_noise_probe::{split}::three_layer_v2",
-        lambda: image_noise_probe(imgs_split, cdf_split, tuple(sorted(dom_map_split.items()))),
-        spinner_text=f"Computing three-layer image noise probe ({split})..."
-    )
-
-    if sem.empty:
-        st.error("scikit-learn unavailable; cannot compute semantic consistency.")
-    else:
-        bsem = st.slider("Semantic bins", 15, 60, 30, key="sem_bins")
-        fig440, ax = make_fig(w_mult=1.0, h_mult=0.85)
-        ax.hist(sem["score"].dropna(), bins=bsem, color="#10b981", edgecolor="white", alpha=0.9)
-        ax.axvline(sem["score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={sem['score'].mean():.3f}")
-        ax.legend(frameon=False)
-        ax.set_title(f"Intra-image semantic consistency ({split})", color=TEXT, pad=10)
-        ax.set_xlabel("Cosine similarity")
+        bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
+        fig386, ax = make_fig(w_mult=1.0, h_mult=0.85)
+        ax.hist(vars_split, bins=bins_n, color="#8b5cf6", edgecolor="white", alpha=0.9)
+        if len(vars_split) > 0:
+            ax.axvline(np.mean(vars_split), color=ACC, linestyle="--", linewidth=2, label=f"Mean={np.mean(vars_split):.2f}")
+            ax.legend(frameon=False)
+        ax.set_title(f"Caption variability within image ({split})", color=TEXT, pad=10)
+        ax.set_xlabel("Std dev of caption length")
         ax.set_ylabel("Frequency")
-        render_chart(fig440)
+        render_chart(fig386)
 
-        q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
-        n_low = max(1, int(len(sem) * q / 100))
-        low_df = sem.sort_values("score", ascending=True).head(n_low)
-        low_view = low_df[["filename", "category", "score"]].copy()
-        render_bento_table(
-            title="Lowest semantic consistency",
-            icon="🧠",
-            df=low_view,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "filename": st.column_config.TextColumn("File 📁"),
-                "category": st.column_config.TextColumn("Category 🏷️"),
-                "score": st.column_config.ProgressColumn("Consistency Score", min_value=0.0, max_value=1.0, format="%.3f")
-            }
-        )
-
-    st.markdown("### Noise pattern detection (image-level)")
-    if noise_df.empty:
-        st.info("Noise probe unavailable for current split.")
-    else:
-        c1, c2, c3 = st.columns(3)
+        st.markdown("### Sample pairs")
+        cats = ["All"] + sorted({parse_category(i["filename"]) for i in imgs_split})
+        c1, c2 = st.columns(2)
         with c1:
-            noise_bins = st.slider("Noise bins", 10, 45, 22, key="noise_bins")
+            pick_cat = st.selectbox("Category", cats, index=0, key="sample_cat")
+        candidates = imgs_split if pick_cat == "All" else [i for i in imgs_split if parse_category(i["filename"]) == pick_cat]
+        max_show = max(1, len(candidates))
         with c2:
-            low_pair_th = st.slider("Low pairwise similarity threshold", 0.20, 0.95, 0.55, 0.01, key="noise_pair_th")
-        with c3:
-            high_noise_th = st.slider("High noise score threshold", 0.10, 0.95, 0.45, 0.01, key="noise_score_th")
+            nshow = st.slider("Samples to show", 1, max_show, min(3, max_show), key="sample_n")
 
-        fig_noise, axn = make_fig(w_mult=1.0, h_mult=0.85)
-        axn.hist(noise_df["noise_score"].dropna(), bins=noise_bins, color="#ef4444", edgecolor="white", alpha=0.88)
-        axn.axvline(noise_df["noise_score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={noise_df['noise_score'].mean():.3f}")
-        axn.axvline(high_noise_th, color="#1f2937", linestyle=":", linewidth=2, label=f"Threshold={high_noise_th:.2f}")
-        axn.legend(frameon=False)
-        axn.set_title(f"Caption noise-score distribution ({split})", color=TEXT, pad=10)
-        axn.set_xlabel("Noise score")
-        axn.set_ylabel("Frequency")
-        render_chart(fig_noise)
+        show_list = candidates[:nshow]
+        for img in show_list:
+            st.write(f"**{img['filename']}** ({parse_category(img['filename'])})")
+            p = IMG_DIR / img["filename"]
+            if p.exists():
+                try:
+                    with Image.open(p) as im:
+                        st.image(im.convert("RGB"), width=280)
+                except Exception:
+                    pass
+            for i, s in enumerate(img["sentences"]):
+                st.write(f"- [{i+1}] {s['raw']}")
 
-        noisy_candidates = noise_df[(noise_df["noise_score"] >= high_noise_th) | (noise_df["mean_pairwise"] <= low_pair_th)].copy()
-        noisy_candidates = noisy_candidates.sort_values(["noise_score", "mean_pairwise"], ascending=[False, True])
-
-        render_bento_table(
-            title="Potential noisy samples",
-            icon="🧪",
-            df=noisy_candidates[[
-                "filename", "category", "noise_score", "layer_a_score", "layer_b_score", "layer_c_score",
-                "img_color_mismatch_rate", "img_object_mismatch_rate", "prior_color_mismatch_rate", "prior_object_mismatch_rate",
-                "mean_pairwise", "outlier_count", "center_min"
-            ]].head(80),
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "filename": st.column_config.TextColumn("File 📁"),
-                "category": st.column_config.TextColumn("Category 🏷️"),
-                "noise_score": st.column_config.ProgressColumn("Noise Score", min_value=0.0, max_value=1.0, format="%.3f"),
-                "layer_a_score": st.column_config.ProgressColumn("A: Semantic", min_value=0.0, max_value=1.0, format="%.3f"),
-                "layer_b_score": st.column_config.ProgressColumn("B: Contradiction", min_value=0.0, max_value=1.0, format="%.3f"),
-                "layer_c_score": st.column_config.ProgressColumn("C: Uncertainty", min_value=0.0, max_value=1.0, format="%.3f"),
-                "img_color_mismatch_rate": st.column_config.NumberColumn("Img Color Mis", format="%.2f"),
-                "img_object_mismatch_rate": st.column_config.NumberColumn("Img Object Mis", format="%.2f"),
-                "prior_color_mismatch_rate": st.column_config.NumberColumn("Prior Color", format="%.2f"),
-                "prior_object_mismatch_rate": st.column_config.NumberColumn("Prior Object", format="%.2f"),
-                "mean_pairwise": st.column_config.ProgressColumn("Mean Pairwise Sim", min_value=0.0, max_value=1.0, format="%.3f"),
-                "outlier_count": st.column_config.NumberColumn("Caption Outliers", format="%d"),
-                "center_min": st.column_config.NumberColumn("Worst-to-Center Sim", format="%.3f"),
-            }
-        )
-
-        inspect_pool = noisy_candidates["filename"].tolist() if len(noisy_candidates) else noise_df.sort_values("noise_score", ascending=False)["filename"].head(30).tolist()
-        st.markdown("#### Inspect image + 5 captions (noise evidence)")
-        selected_noise_file = st.selectbox("Choose a sample to inspect", options=inspect_pool, key="noise_inspect_file")
-
-        selected_noise_row = noise_df[noise_df["filename"] == selected_noise_file].head(1)
-        selected_noise_img = next((img for img in imgs_split if img["filename"] == selected_noise_file), None)
-
-        if selected_noise_img is not None:
-            p = IMG_DIR / selected_noise_img["filename"]
-            cimg, ccap = st.columns([1, 1.25])
-            with cimg:
-                if p.exists():
-                    try:
-                        with Image.open(p) as im:
-                            st.image(im.convert("RGB"), width=280)
-                    except Exception:
-                        st.warning("Could not render image preview.")
-                else:
-                    st.warning("Image file not found on disk.")
-            with ccap:
-                st.write(f"**File:** `{selected_noise_img['filename']}`")
-                st.write(f"**Category:** `{parse_category(selected_noise_img['filename'])}`")
-                if not selected_noise_row.empty:
-                    row = selected_noise_row.iloc[0]
-                    st.write(f"**Noise score:** `{float(row['noise_score']):.3f}`")
-                    st.write(f"**Mean pairwise similarity:** `{float(row['mean_pairwise']):.3f}`")
-                    st.write(f"**Caption outliers:** `{int(row['outlier_count'])}`")
-                    st.write(f"**Worst-to-center similarity:** `{float(row['center_min']):.3f}`")
-                for i, s in enumerate(selected_noise_img.get("sentences", [])[:5]):
-                    st.write(f"- [{i+1}] {s.get('raw', '')}")
-
-elif step == 6:
-    split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
-    imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
-
-    px_df_split = get_or_compute(
-        f"image_pixel_stats::{split}",
-        lambda: image_pixel_stats(imgs_split),
-        spinner_text=f"Computing pixel stats ({split})..."
-    )
-    dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
-
-    cdf = get_or_compute(
-        f"contradiction_map::{split}",
-        lambda: contradiction_map(imgs_split, dom_map_split),
-        spinner_text=f"Computing contradiction map ({split})..."
-    )
-
-    if cdf.empty:
-        st.warning("No contradiction data available.")
-    else:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="contr_top_n")
-        with c2:
-            color_w = st.slider("Color mismatch weight", 0.0, 1.0, 0.6, 0.05, key="contr_color_w")
-        with c3:
-            object_w = 1.0 - color_w
-            st.metric("Object mismatch weight", f"{object_w:.2f}")
-
-        cdf_view = cdf.copy()
-        cdf_view["combined"] = color_w*cdf_view["color_mismatch_rate"] + object_w*cdf_view["object_mismatch_rate"]
-        top = cdf_view.sort_values("combined", ascending=False).head(top_n)
-        heat = top.set_index("category")[["color_mismatch_rate","object_mismatch_rate"]]
-        fig471, ax = make_fig(w_mult=1.0, h_mult=1.0)
-        im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
-        ax.set_xticks(range(len(heat.columns)))
-        ax.set_yticks(range(len(heat.index)))
-        ax.set_xticklabels(heat.columns, fontsize=max(4.5, 6.6 * font_scale))
-        ax.set_yticklabels(heat.index, fontsize=max(4.5, 6.0 * font_scale))
-        for i in range(heat.shape[0]):
-            for j in range(heat.shape[1]):
-                ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(4.0, 5.6 * font_scale), color='white' if heat.values[i, j] > 0.5 else 'black')
-        ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
-        cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
-        render_chart(fig471)
-
-        render_bento_table(
-            title="Top contradiction categories",
-            icon="⚠️",
-            df=top[["category", "color_mismatch_rate", "object_mismatch_rate", "color_claims", "object_claims", "combined"]],
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "category": st.column_config.TextColumn("Category 🏷️"),
-                "color_mismatch_rate": st.column_config.ProgressColumn("Color Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
-                "object_mismatch_rate": st.column_config.ProgressColumn("Object Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
-                "color_claims": st.column_config.NumberColumn("Color Claims", format="%d"),
-                "object_claims": st.column_config.NumberColumn("Object Claims", format="%d"),
-                "combined": st.column_config.NumberColumn("Combined Score", format="%.2f")
-            }
-        )
-
-        st.markdown("#### Category-level evidence explorer")
-        top_cats = top["category"].tolist()
-        csel1, csel2 = st.columns(2)
-        with csel1:
-            selected_cats = st.multiselect(
-                "Choose category to preview",
-                options=top_cats,
-                default=top_cats[:min(3, len(top_cats))],
-                key="contr_selected_categories"
-            )
-        with csel2:
-            evidence_mode = st.radio(
-                "Evidence mode",
-                ["Image-based (color mismatch)", "Text-based (object mismatch)", "Noisy captions (semantic drift)"],
-                horizontal=True,
-                key="contr_evidence_mode"
-            )
-
-        if evidence_mode == "Image-based (color mismatch)":
-            per_cat = st.slider("Images per category", 3, 18, 6, 3, key="contr_images_per_cat")
+    elif step_idx == 4:
+        if not SKLEARN_AVAILABLE:
+            st.error("scikit-learn unavailable; cannot compute matrix.")
         else:
-            per_cat = st.slider("Samples per category (with 5 captions)", 1, 6, 2, 1, key="contr_text_per_cat")
+            split = st.radio("Split", ["train", "test"], horizontal=True, key="sim_split")
+            sim = category_similarity(D["train_imgs"] if split == "train" else D["test_imgs"])
+            n = st.slider("Matrix categories", 10, min(33, len(sim)), min(20, len(sim)))
+            top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
+            view = sim.loc[top, top]
+            fig423, ax = make_fig(w_mult=1.0, h_mult=1.2)
+            im = ax.imshow(view.values, cmap="YlOrRd", vmin=0, vmax=1, aspect='auto')
+            ax.set_xticks(range(len(view.columns)))
+            ax.set_yticks(range(len(view.index)))
+            ax.set_xticklabels(view.columns, rotation=90, fontsize=max(4.5, 6.2 * font_scale))
+            ax.set_yticklabels(view.index, fontsize=max(4.5, 6.2 * font_scale))
+            ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
+            cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
+            render_chart(fig423)
 
-        noise_df_step6 = get_or_compute(
+    elif step_idx == 5:
+        split = st.radio("Split", ["train", "test"], horizontal=True, key="sem_split")
+        st.caption("Semantic metric: Char-wb TF-IDF (3–5) + image-level noise probe")
+
+        sem = get_or_compute(
+            f"semantic_consistency::{split}::char_wb_3_5",
+            lambda: semantic_consistency(D["train_imgs"] if split == "train" else D["test_imgs"]),
+            spinner_text=f"Computing semantic consistency ({split}, char_wb_3_5)..."
+        )
+        imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+        px_df_split = get_or_compute(
+            f"image_pixel_stats::{split}",
+            lambda: image_pixel_stats(imgs_split),
+            spinner_text=f"Computing pixel stats ({split})..."
+        )
+        dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
+        cdf_split = get_or_compute(
+            f"contradiction_map::{split}",
+            lambda: contradiction_map(imgs_split, dom_map_split),
+            spinner_text=f"Computing contradiction map ({split})..."
+        )
+        noise_df = get_or_compute(
             f"image_noise_probe::{split}::three_layer_v2",
-            lambda: image_noise_probe(imgs_split, cdf, tuple(sorted(dom_map_split.items()))),
-            spinner_text=f"Computing image-level noise probe ({split})..."
+            lambda: image_noise_probe(imgs_split, cdf_split, tuple(sorted(dom_map_split.items()))),
+            spinner_text=f"Computing three-layer image noise probe ({split})..."
         )
 
-        show_cats = selected_cats if selected_cats else top_cats[:1]
-        for cat in show_cats:
-            cat_imgs = [img for img in imgs_split if parse_category(img["filename"]) == cat]
-            if not cat_imgs:
-                continue
-            st.markdown(f"**{cat}**")
+        if sem.empty:
+            st.error("scikit-learn unavailable; cannot compute semantic consistency.")
+        else:
+            bsem = st.slider("Semantic bins", 15, 60, 30, key="sem_bins")
+            fig440, ax = make_fig(w_mult=1.0, h_mult=0.85)
+            ax.hist(sem["score"].dropna(), bins=bsem, color="#10b981", edgecolor="white", alpha=0.9)
+            ax.axvline(sem["score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={sem['score'].mean():.3f}")
+            ax.legend(frameon=False)
+            ax.set_title(f"Intra-image semantic consistency ({split})", color=TEXT, pad=10)
+            ax.set_xlabel("Cosine similarity")
+            ax.set_ylabel("Frequency")
+            render_chart(fig440)
+
+            q = st.slider("Show lowest consistency (%)", 1, 30, 10, key="sem_q")
+            n_low = max(1, int(len(sem) * q / 100))
+            low_df = sem.sort_values("score", ascending=True).head(n_low)
+            low_view = low_df[["filename", "category", "score"]].copy()
+            render_bento_table(
+                title="Lowest semantic consistency",
+                icon="🧠",
+                df=low_view,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "filename": st.column_config.TextColumn("File 📁"),
+                    "category": st.column_config.TextColumn("Category 🏷️"),
+                    "score": st.column_config.ProgressColumn("Consistency Score", min_value=0.0, max_value=1.0, format="%.3f")
+                }
+            )
+
+        st.markdown("### Noise pattern detection (image-level)")
+        if noise_df.empty:
+            st.info("Noise probe unavailable for current split.")
+        else:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                noise_bins = st.slider("Noise bins", 10, 45, 22, key="noise_bins")
+            with c2:
+                low_pair_th = st.slider("Low pairwise similarity threshold", 0.20, 0.95, 0.55, 0.01, key="noise_pair_th")
+            with c3:
+                high_noise_th = st.slider("High noise score threshold", 0.10, 0.95, 0.45, 0.01, key="noise_score_th")
+
+            fig_noise, axn = make_fig(w_mult=1.0, h_mult=0.85)
+            axn.hist(noise_df["noise_score"].dropna(), bins=noise_bins, color="#ef4444", edgecolor="white", alpha=0.88)
+            axn.axvline(noise_df["noise_score"].mean(), color=ACC, linestyle="--", linewidth=2, label=f"Mean={noise_df['noise_score'].mean():.3f}")
+            axn.axvline(high_noise_th, color="#1f2937", linestyle=":", linewidth=2, label=f"Threshold={high_noise_th:.2f}")
+            axn.legend(frameon=False)
+            axn.set_title(f"Caption noise-score distribution ({split})", color=TEXT, pad=10)
+            axn.set_xlabel("Noise score")
+            axn.set_ylabel("Frequency")
+            render_chart(fig_noise)
+
+            noisy_candidates = noise_df[(noise_df["noise_score"] >= high_noise_th) | (noise_df["mean_pairwise"] <= low_pair_th)].copy()
+            noisy_candidates = noisy_candidates.sort_values(["noise_score", "mean_pairwise"], ascending=[False, True])
+
+            render_bento_table(
+                title="Potential noisy samples",
+                icon="🧪",
+                df=noisy_candidates[[
+                    "filename", "category", "noise_score", "layer_a_score", "layer_b_score", "layer_c_score",
+                    "img_color_mismatch_rate", "img_object_mismatch_rate", "prior_color_mismatch_rate", "prior_object_mismatch_rate",
+                    "mean_pairwise", "outlier_count", "center_min"
+                ]].head(80),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "filename": st.column_config.TextColumn("File 📁"),
+                    "category": st.column_config.TextColumn("Category 🏷️"),
+                    "noise_score": st.column_config.ProgressColumn("Noise Score", min_value=0.0, max_value=1.0, format="%.3f"),
+                    "layer_a_score": st.column_config.ProgressColumn("A: Semantic", min_value=0.0, max_value=1.0, format="%.3f"),
+                    "layer_b_score": st.column_config.ProgressColumn("B: Contradiction", min_value=0.0, max_value=1.0, format="%.3f"),
+                    "layer_c_score": st.column_config.ProgressColumn("C: Uncertainty", min_value=0.0, max_value=1.0, format="%.3f"),
+                    "img_color_mismatch_rate": st.column_config.NumberColumn("Img Color Mis", format="%.2f"),
+                    "img_object_mismatch_rate": st.column_config.NumberColumn("Img Object Mis", format="%.2f"),
+                    "prior_color_mismatch_rate": st.column_config.NumberColumn("Prior Color", format="%.2f"),
+                    "prior_object_mismatch_rate": st.column_config.NumberColumn("Prior Object", format="%.2f"),
+                    "mean_pairwise": st.column_config.ProgressColumn("Mean Pairwise Sim", min_value=0.0, max_value=1.0, format="%.3f"),
+                    "outlier_count": st.column_config.NumberColumn("Caption Outliers", format="%d"),
+                    "center_min": st.column_config.NumberColumn("Worst-to-Center Sim", format="%.3f"),
+                }
+            )
+
+            inspect_pool = noisy_candidates["filename"].tolist() if len(noisy_candidates) else noise_df.sort_values("noise_score", ascending=False)["filename"].head(30).tolist()
+            st.markdown("#### Inspect image + 5 captions (noise evidence)")
+            selected_noise_file = st.selectbox("Choose a sample to inspect", options=inspect_pool, key="noise_inspect_file")
+
+            selected_noise_row = noise_df[noise_df["filename"] == selected_noise_file].head(1)
+            selected_noise_img = next((img for img in imgs_split if img["filename"] == selected_noise_file), None)
+
+            if selected_noise_img is not None:
+                p = IMG_DIR / selected_noise_img["filename"]
+                cimg, ccap = st.columns([1, 1.25])
+                with cimg:
+                    if p.exists():
+                        try:
+                            with Image.open(p) as im:
+                                st.image(im.convert("RGB"), width=280)
+                        except Exception:
+                            st.warning("Could not render image preview.")
+                    else:
+                        st.warning("Image file not found on disk.")
+                with ccap:
+                    st.write(f"**File:** `{selected_noise_img['filename']}`")
+                    st.write(f"**Category:** `{parse_category(selected_noise_img['filename'])}`")
+                    if not selected_noise_row.empty:
+                        row = selected_noise_row.iloc[0]
+                        st.write(f"**Noise score:** `{float(row['noise_score']):.3f}`")
+                        st.write(f"**Mean pairwise similarity:** `{float(row['mean_pairwise']):.3f}`")
+                        st.write(f"**Caption outliers:** `{int(row['outlier_count'])}`")
+                        st.write(f"**Worst-to-center similarity:** `{float(row['center_min']):.3f}`")
+                    for i, s in enumerate(selected_noise_img.get("sentences", [])[:5]):
+                        st.write(f"- [{i+1}] {s.get('raw', '')}")
+
+    elif step_idx == 6:
+        split = st.radio("Split", ["train", "test"], horizontal=True, key="contr_split")
+        imgs_split = D["train_imgs"] if split == "train" else D["test_imgs"]
+
+        px_df_split = get_or_compute(
+            f"image_pixel_stats::{split}",
+            lambda: image_pixel_stats(imgs_split),
+            spinner_text=f"Computing pixel stats ({split})..."
+        )
+        dom_map_split = {r["category"]: r["dom"] for _, r in px_df_split.iterrows()}
+
+        cdf = get_or_compute(
+            f"contradiction_map::{split}",
+            lambda: contradiction_map(imgs_split, dom_map_split),
+            spinner_text=f"Computing contradiction map ({split})..."
+        )
+
+        if cdf.empty:
+            st.warning("No contradiction data available.")
+        else:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                top_n = st.slider("Top categories", 10, min(33, len(cdf)), min(20, len(cdf)), key="contr_top_n")
+            with c2:
+                color_w = st.slider("Color mismatch weight", 0.0, 1.0, 0.6, 0.05, key="contr_color_w")
+            with c3:
+                object_w = 1.0 - color_w
+                st.metric("Object mismatch weight", f"{object_w:.2f}")
+
+            cdf_view = cdf.copy()
+            cdf_view["combined"] = color_w*cdf_view["color_mismatch_rate"] + object_w*cdf_view["object_mismatch_rate"]
+            top = cdf_view.sort_values("combined", ascending=False).head(top_n)
+            heat = top.set_index("category")[["color_mismatch_rate","object_mismatch_rate"]]
+            fig471, ax = make_fig(w_mult=1.0, h_mult=1.0)
+            im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
+            ax.set_xticks(range(len(heat.columns)))
+            ax.set_yticks(range(len(heat.index)))
+            ax.set_xticklabels(heat.columns, fontsize=max(4.5, 6.6 * font_scale))
+            ax.set_yticklabels(heat.index, fontsize=max(4.5, 6.0 * font_scale))
+            for i in range(heat.shape[0]):
+                for j in range(heat.shape[1]):
+                    ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(4.0, 5.6 * font_scale), color='white' if heat.values[i, j] > 0.5 else 'black')
+            ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
+            cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
+            render_chart(fig471)
+
+            render_bento_table(
+                title="Top contradiction categories",
+                icon="⚠️",
+                df=top[["category", "color_mismatch_rate", "object_mismatch_rate", "color_claims", "object_claims", "combined"]],
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "category": st.column_config.TextColumn("Category 🏷️"),
+                    "color_mismatch_rate": st.column_config.ProgressColumn("Color Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
+                    "object_mismatch_rate": st.column_config.ProgressColumn("Object Mismatch", min_value=0.0, max_value=1.0, format="%.2f"),
+                    "color_claims": st.column_config.NumberColumn("Color Claims", format="%d"),
+                    "object_claims": st.column_config.NumberColumn("Object Claims", format="%d"),
+                    "combined": st.column_config.NumberColumn("Combined Score", format="%.2f")
+                }
+            )
+
+            st.markdown("#### Category-level evidence explorer")
+            top_cats = top["category"].tolist()
+            csel1, csel2 = st.columns(2)
+            with csel1:
+                selected_cats = st.multiselect(
+                    "Choose category to preview",
+                    options=top_cats,
+                    default=top_cats[:min(3, len(top_cats))],
+                    key="contr_selected_categories"
+                )
+            with csel2:
+                evidence_mode = st.radio(
+                    "Evidence mode",
+                    ["Image-based (color mismatch)", "Text-based (object mismatch)", "Noisy captions (semantic drift)"],
+                    horizontal=True,
+                    key="contr_evidence_mode"
+                )
 
             if evidence_mode == "Image-based (color mismatch)":
-                cols = st.columns(3)
-                shown = 0
-                for img in cat_imgs[:per_cat]:
-                    p = IMG_DIR / img["filename"]
-                    if not p.exists():
-                        continue
-                    try:
-                        with Image.open(p) as im:
-                            with cols[shown % 3]:
-                                st.image(im.convert("RGB"), use_container_width=True)
-                                st.caption(img["filename"])
-                        shown += 1
-                    except Exception:
-                        continue
-                if shown == 0:
-                    st.info("No image previews available for this category.")
-            elif evidence_mode == "Text-based (object mismatch)":
-                for img in cat_imgs[:per_cat]:
-                    st.write(f"**{img['filename']}**")
-                    for i, s in enumerate(img.get("sentences", [])[:5]):
-                        st.write(f"- [{i+1}] {s.get('raw', '')}")
+                per_cat = st.slider("Images per category", 3, 18, 6, 3, key="contr_images_per_cat")
             else:
-                if noise_df_step6.empty:
-                    st.info("Noise probe unavailable for this split.")
-                else:
-                    cat_noise = noise_df_step6[noise_df_step6["category"] == cat].sort_values("noise_score", ascending=False).head(per_cat)
-                    if cat_noise.empty:
-                        st.info("No noisy-caption candidates found for this category.")
-                    for _, row in cat_noise.iterrows():
-                        st.write(f"**{row['filename']}** · noise={row['noise_score']:.3f} · pairwise={row['mean_pairwise']:.3f} · outliers={int(row['outlier_count'])}")
-                        img_obj = next((x for x in cat_imgs if x["filename"] == row["filename"]), None)
-                        if img_obj is None:
+                per_cat = st.slider("Samples per category (with 5 captions)", 1, 6, 2, 1, key="contr_text_per_cat")
+
+            noise_df_step6 = get_or_compute(
+                f"image_noise_probe::{split}::three_layer_v2",
+                lambda: image_noise_probe(imgs_split, cdf, tuple(sorted(dom_map_split.items()))),
+                spinner_text=f"Computing image-level noise probe ({split})..."
+            )
+
+            show_cats = selected_cats if selected_cats else top_cats[:1]
+            for cat in show_cats:
+                cat_imgs = [img for img in imgs_split if parse_category(img["filename"]) == cat]
+                if not cat_imgs:
+                    continue
+                st.markdown(f"**{cat}**")
+
+                if evidence_mode == "Image-based (color mismatch)":
+                    cols = st.columns(3)
+                    shown = 0
+                    for img in cat_imgs[:per_cat]:
+                        p = IMG_DIR / img["filename"]
+                        if not p.exists():
                             continue
-                        for i, s in enumerate(img_obj.get("sentences", [])[:5]):
+                        try:
+                            with Image.open(p) as im:
+                                with cols[shown % 3]:
+                                    st.image(im.convert("RGB"), use_container_width=True)
+                                    st.caption(img["filename"])
+                            shown += 1
+                        except Exception:
+                            continue
+                    if shown == 0:
+                        st.info("No image previews available for this category.")
+                elif evidence_mode == "Text-based (object mismatch)":
+                    for img in cat_imgs[:per_cat]:
+                        st.write(f"**{img['filename']}**")
+                        for i, s in enumerate(img.get("sentences", [])[:5]):
                             st.write(f"- [{i+1}] {s.get('raw', '')}")
+                else:
+                    if noise_df_step6.empty:
+                        st.info("Noise probe unavailable for this split.")
+                    else:
+                        cat_noise = noise_df_step6[noise_df_step6["category"] == cat].sort_values("noise_score", ascending=False).head(per_cat)
+                        if cat_noise.empty:
+                            st.info("No noisy-caption candidates found for this category.")
+                        for _, row in cat_noise.iterrows():
+                            st.write(f"**{row['filename']}** · noise={row['noise_score']:.3f} · pairwise={row['mean_pairwise']:.3f} · outliers={int(row['outlier_count'])}")
+                            img_obj = next((x for x in cat_imgs if x["filename"] == row["filename"]), None)
+                            if img_obj is None:
+                                continue
+                            for i, s in enumerate(img_obj.get("sentences", [])[:5]):
+                                st.write(f"- [{i+1}] {s.get('raw', '')}")
 
+                st.markdown("---")
+
+if full_page_mode:
+    if st.button("↺ Start Over"):
+        st.session_state.step = 0
+        st.session_state.D = None
+        st.session_state.mm_step_cache = {}
+        st.rerun()
+    for idx in range(TOTAL_STEPS):
+        st.markdown(f"### {idx+1}. {STEP_LABELS.get(idx, 'Unknown Step')}")
+        render_step(idx)
+        if idx < TOTAL_STEPS - 1:
             st.markdown("---")
+else:
+    col1, col2 = st.columns(2)
+    with col1:
+        if step == 0:
+            if st.button("↺ Start Over"):
+                st.session_state.step = 0
+                st.session_state.D = None
+                st.session_state.mm_step_cache = {}
+                st.rerun()
+        else:
+            if st.button("← Previous"):
+                st.session_state.step = max(0, step-1)
+                st.rerun()
 
-col1, col2 = st.columns(2)
-with col1:
-    if step == 0:
-        if st.button("↺ Start Over"):
-            st.session_state.step = 0
-            st.session_state.D = None
-            st.session_state.mm_step_cache = {}
-            st.rerun()
-    else:
-        if st.button("← Previous"):
-            st.session_state.step = max(0, step-1)
-            st.rerun()
-
-with col2:
-    if step == TOTAL_STEPS - 1:
-        if st.button("↺ Start Over"):
-            st.session_state.step = 0
-            st.session_state.D = None
-            st.session_state.mm_step_cache = {}
-            st.rerun()
-    else:
-        if st.button("Next →"):
-            st.session_state.step = min(TOTAL_STEPS-1, step+1)
-            st.rerun()
+    with col2:
+        if step == TOTAL_STEPS - 1:
+            if st.button("↺ Start Over"):
+                st.session_state.step = 0
+                st.session_state.D = None
+                st.session_state.mm_step_cache = {}
+                st.rerun()
+        else:
+            if st.button("Next →"):
+                st.session_state.step = min(TOTAL_STEPS-1, step+1)
+                st.rerun()
