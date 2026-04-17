@@ -552,6 +552,15 @@ with left:
             f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b></div>",
             unsafe_allow_html=True,
         )
+        try:
+            sd_keys = list(model.state_dict().keys())[:8]
+            lsam = model.backbone.layer4[-1].clam.lsam if model_choice == "MBLANet" else None
+            st.markdown(
+                f"<div class='demo-label'>ckpt_path: <b>{ckpt_used}</b><br>sample_keys: <b>{', '.join(sd_keys)}</b><br>has_raw_attn_attr: <b>{hasattr(lsam, 'raw_attn') if lsam is not None else 'N/A'}</b></div>",
+                unsafe_allow_html=True,
+            )
+        except Exception as _dbg_e:
+            st.warning(f"Debug info unavailable: {_dbg_e}")
         model_ready = True
     except Exception as e:
         st.error(f"Model loading failed: {e}")
