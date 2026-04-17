@@ -248,6 +248,8 @@ def load_model_and_labels(model_choice: str):
     map_path = ensure_label_mapping_from_drive(model_choice)
 
     if model_choice == "Pretrained CNN Frozen":
+        import tensorflow as tf
+
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         tf_model = tf.keras.models.load_model(ckpt_path)
 
