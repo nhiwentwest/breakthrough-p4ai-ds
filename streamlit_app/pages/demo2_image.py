@@ -428,7 +428,7 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
 
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
-    x = preprocess_image(img_pil).to(device)
+    x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
 
     # hooks for saliency + Grad-CAM
     cache = {}
@@ -578,33 +578,16 @@ with left:
     model = None
     id2label = None
     device = None
-
+    model_ready = True
+    st.info("Model checkpoint will be loaded only when you press Predict.")
     try:
-        with st.spinner(f"Loading {model_choice} checkpoint..."):
-            model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
-        st.success(f"Loaded checkpoint: `{ckpt_used}`")
-        debug_lsam = None
-        if model_choice == "MBLANet":
-            try:
-                debug_lsam = model.backbone.layer4[-1].clam.lsam
-            except Exception:
-                debug_lsam = None
+        ckpt_preview = ensure_checkpoint_from_drive(model_choice)
         st.markdown(
-            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b> · LSAM type: <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b></div>",
+            f"<div class='small-note'>Checkpoint ready: <b>{ckpt_preview}</b></div>",
             unsafe_allow_html=True,
         )
-        try:
-            sd_keys = list(model.state_dict().keys())[:8]
-            st.markdown(
-                f"<div class='demo-label'>ckpt_path: <b>{ckpt_used}</b><br>sample_keys: <b>{', '.join(sd_keys)}</b></div>",
-                unsafe_allow_html=True,
-            )
-        except Exception as _dbg_e:
-            st.warning(f"Debug info unavailable: {_dbg_e}")
-        model_ready = True
     except Exception as e:
-        st.error(f"Model loading failed: {e}")
-        st.info("Please ensure Drive checkpoint + label mapping are accessible.")
+        st.error(f"Checkpoint unavailable: {e}")
         model_ready = False
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
@@ -678,6 +661,9 @@ with right:
         elif image is None:
             st.warning("Please upload an image first.")
         else:
+            if model is None or id2label is None or device is None:
+                with st.spinner(f"Loading {model_choice} checkpoint for prediction..."):
+                    model, id2label, device, _ckpt_used = load_model_and_labels(model_choice)
             topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
 
