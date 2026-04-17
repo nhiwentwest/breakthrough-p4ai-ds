@@ -241,12 +241,8 @@ def load_model_and_labels(model_choice: str):
             dropout=cfg.get("dropout", 0.3),
         ).to(device)
 
-
     state_dict = ckpt["model_state_dict"]
-    # Check if there's a prefix like 'backbone.' or 'model.' and remove if needed, 
-    # but based on mblanet.py it should match the MBLANet class structure exactly.
-
-    load_msg = model.load_state_dict(state_dict, strict=False)
+    load_msg = model.load_state_dict(state_dict, strict=True)
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
     if len(load_msg.missing_keys) > 0:
@@ -471,8 +467,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet":
-        last_block = model.backbone.layer4[-1]
-        raw_attn = getattr(last_block.clam.lsam, "raw_attn", None) if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam") else None
+        raw_attn = getattr(model.backbone.layer4[-1].clam.lsam, "raw_attn", None)
 
         has_raw_attn = raw_attn is not None
         st.markdown(
@@ -548,8 +543,14 @@ with left:
         with st.spinner(f"Loading {model_choice} checkpoint..."):
             model, id2label, device, ckpt_used = load_model_and_labels(model_choice)
         st.success(f"Loaded checkpoint: `{ckpt_used}`")
+        debug_lsam = None
+        if model_choice == "MBLANet":
+            try:
+                debug_lsam = model.backbone.layer4[-1].clam.lsam
+            except Exception:
+                debug_lsam = None
         st.markdown(
-            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b></div>",
+            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b> · LSAM type: <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b> · has raw_attn: <b>{hasattr(debug_lsam, 'raw_attn') if debug_lsam is not None else False}</b></div>",
             unsafe_allow_html=True,
         )
         try:
