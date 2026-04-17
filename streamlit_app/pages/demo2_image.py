@@ -511,9 +511,9 @@ st.markdown(
 st.markdown(
     """
     <div class='kpi-grid'>
-      <div class='kpi-card'><div class='kpi-lbl'>Task</div><div class='kpi-val'>Rice Disease Classification</div></div>
-      <div class='kpi-card'><div class='kpi-lbl'>Input Size</div><div class='kpi-val'>224 × 224</div></div>
-      <div class='kpi-card'><div class='kpi-lbl'>Explainability</div><div class='kpi-val'>Grad-CAM + Attention</div></div>
+      <div class='kpi-card'><div class='kpi-lbl'>Task</div><div class='kpi-val'>Rice Disease Detection</div></div>
+      <div class='kpi-card'><div class='kpi-lbl'>Input Size</div><div class='kpi-val'>224 × 224 px</div></div>
+      <div class='kpi-card'><div class='kpi-lbl'>Explainability</div><div class='kpi-val'>Saliency · Grad-CAM · Attention</div></div>
     </div>
     """,
     unsafe_allow_html=True,
