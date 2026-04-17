@@ -588,21 +588,14 @@ with left:
                 debug_lsam = model.backbone.layer4[-1].clam.lsam
             except Exception:
                 debug_lsam = None
-        debug_keys = list(debug_lsam.__dict__.keys()) if debug_lsam is not None else []
         st.markdown(
-            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b> · LSAM type: <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b> · has raw_attn: <b>{hasattr(debug_lsam, 'raw_attn') if debug_lsam is not None else False}</b></div>",
+            f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b> · LSAM type: <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b></div>",
             unsafe_allow_html=True,
         )
-        st.markdown(
-            f"<div class='demo-label'>type(model.backbone.layer4[-1].clam.lsam): <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b><br>model.backbone.layer4[-1].clam.lsam.__dict__.keys(): <b>{', '.join(debug_keys) if debug_keys else 'N/A'}</b><br>raw_attn is None?: <b>{getattr(debug_lsam, 'raw_attn', None) is None if debug_lsam is not None else 'N/A'}</b><br>att_map is None?: <b>{getattr(debug_lsam, 'att_map', None) is None if debug_lsam is not None else 'N/A'}</b></div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div class='demo-label'>Reloaded model source and validated LSAM raw_attn attribute.</div>", unsafe_allow_html=True)
         try:
             sd_keys = list(model.state_dict().keys())[:8]
-            lsam = model.backbone.layer4[-1].clam.lsam if model_choice == "MBLANet" else None
             st.markdown(
-                f"<div class='demo-label'>ckpt_path: <b>{ckpt_used}</b><br>sample_keys: <b>{', '.join(sd_keys)}</b><br>has_raw_attn_attr: <b>{hasattr(lsam, 'raw_attn') if lsam is not None else 'N/A'}</b></div>",
+                f"<div class='demo-label'>ckpt_path: <b>{ckpt_used}</b><br>sample_keys: <b>{', '.join(sd_keys)}</b></div>",
                 unsafe_allow_html=True,
             )
         except Exception as _dbg_e:

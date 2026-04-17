@@ -168,19 +168,8 @@ class LSAM(nn.Module):
         self.local_avg = nn.AvgPool2d(kernel_size=self.eps, stride=self.eps)
         self.dilated = nn.Conv2d(2, 1, kernel_size=3, dilation=2, padding=2, bias=False)
         self.sigmoid = nn.Sigmoid()
-        self.raw_attn = None
-        self.att_map = None
-        self.input_stats = None
 
     def forward(self, x):
-        x_det = x.detach()
-        self.input_stats = {
-            "shape": tuple(x_det.shape),
-            "min": float(x_det.min().item()),
-            "max": float(x_det.max().item()),
-            "std": float(x_det.std().item()),
-            "mean": float(x_det.mean().item()),
-        }
         h, w = x.shape[-2:]
         k = max(2, min(self.eps, h // 2, w // 2, h, w))
         local_max = torch.nn.functional.max_pool2d(x, kernel_size=k, stride=k)
@@ -190,10 +179,7 @@ class LSAM(nn.Module):
         fused = torch.cat([max_desc, avg_desc], dim=1)
         fused = self.dilated(fused)
         fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
-        self.raw_attn = fused.detach()
-        att = self.sigmoid(fused)
-        self.att_map = att.detach()
-        return att
+        return self.sigmoid(fused)
 
 class CLAM(nn.Module):
     def __init__(self, channels):
@@ -348,83 +334,55 @@ def denormalize_image(x):
     return (y * 255.0).byte().permute(1, 2, 0).cpu().numpy()
 
 def generate_visualizations(model, test_loader, device, output_dir, max_samples=12, epoch=None):
-    os.makedirs(output_dir, exist_ok=True)
-    jsonl_path = os.path.join(output_dir, "debug_stats.jsonl")
+    # Debug-time inspection only; keep in-memory and avoid writing PNGs that the demo never reads.
     model.eval()
     done = 0
+    for x, y in test_loader:
+        x = x.to(device, non_blocking=True)
+        y = y.to(device, non_blocking=True)
+        for i in range(x.size(0)):
+            if done >= max_samples:
+                return
+            xi = x[i:i+1].clone().detach().requires_grad_(True)
 
-    def _stats_from_tensor(t):
-        t = t.detach()
-        return {
-            "shape": list(t.shape),
-            "min": float(t.min().item()),
-            "max": float(t.max().item()),
-            "mean": float(t.mean().item()),
-            "std": float(t.std().item()),
-        }
+            model.zero_grad(set_to_none=True)
+            logits = model(xi)
+            pred_idx = int(torch.argmax(logits, dim=1).item())
+            logits[0, pred_idx].backward(retain_graph=True)
 
-    with open(jsonl_path, "a", encoding="utf-8") as jf:
-        for x, y in test_loader:
-            x = x.to(device, non_blocking=True)
-            y = y.to(device, non_blocking=True)
-            for i in range(x.size(0)):
-                if done >= max_samples:
-                    return
-                xi = x[i:i+1].clone().detach().requires_grad_(True)
+            # Saliency map for quick inspection.
+            grad = xi.grad.detach()[0]
+            sal = grad.abs().max(dim=0).values.cpu().numpy()
+            sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
 
-                model.zero_grad(set_to_none=True)
-                logits = model(xi)
-                pred_idx = int(torch.argmax(logits, dim=1).item())
-                logits[0, pred_idx].backward(retain_graph=True)
+            # Multi-block raw attention inspection: layer3, layer4.
+            for layer_name in ["layer3", "layer4"]:
+                layer = getattr(model.backbone, layer_name)
+                last_block = layer[-1]
+                if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam"):
+                    _ = model(xi)
+                    attn = last_block.clam.lsam.raw_attn
+                    if attn is not None:
+                        attn_np = attn.detach().cpu().numpy() if torch.is_tensor(attn) else np.asarray(attn)
+                        attn_map = attn_np[0, 0] if attn_np.ndim == 4 else attn_np.squeeze()
+                        _ = (attn_map - attn_map.min()) / (attn_map.max() - attn_map.min() + 1e-8)
 
-                grad = xi.grad.detach()[0]
-                sal = grad.abs().max(dim=0).values.cpu().numpy()
-                sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
+            # Grad-CAM from layer4.
+            activations, gradients = {}, {}
+            def fwd_hook(_m, _inp, out): activations["x"] = out
+            def bwd_hook(_m, _gin, gout): gradients["x"] = gout[0]
+            h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
+            h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
+            _ = model(xi)
+            h1.remove(); h2.remove()
+            if "x" in activations and "x" in gradients:
+                act = activations["x"][0]
+                grd = gradients["x"][0]
+                w = grd.mean(dim=(1, 2), keepdim=True)
+                cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
+                cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
 
-                attention_records = []
-                for layer_name in ["layer3", "layer4"]:
-                    layer = getattr(model.backbone, layer_name)
-                    last_block = layer[-1]
-                    if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam"):
-                        _ = model(xi)
-                        lsam = last_block.clam.lsam
-                        attention_records.append({
-                            "layer": layer_name,
-                            "input_stats": getattr(lsam, "input_stats", None),
-                            "raw_attn_stats": _stats_from_tensor(lsam.raw_attn) if getattr(lsam, "raw_attn", None) is not None else None,
-                            "att_map_stats": _stats_from_tensor(lsam.att_map) if getattr(lsam, "att_map", None) is not None else None,
-                        })
-
-                activations, gradients = {}, {}
-                def fwd_hook(_m, _inp, out): activations["x"] = out
-                def bwd_hook(_m, _gin, gout): gradients["x"] = gout[0]
-                h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
-                h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
-                _ = model(xi)
-                h1.remove(); h2.remove()
-                if "x" in activations and "x" in gradients:
-                    act = activations["x"][0]
-                    grd = gradients["x"][0]
-                    w = grd.mean(dim=(1, 2), keepdim=True)
-                    cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
-                    cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
-
-                record = {
-                    "epoch": epoch,
-                    "sample_index": int(done),
-                    "pred_idx": int(pred_idx),
-                    "saliency_stats": {
-                        "shape": list(sal.shape),
-                        "min": float(np.min(sal)),
-                        "max": float(np.max(sal)),
-                        "mean": float(np.mean(sal)),
-                        "std": float(np.std(sal)),
-                    },
-                    "attention": attention_records,
-                }
-                jf.write(json.dumps(record, ensure_ascii=False) + "\n")
-                jf.flush()
-                done += 1
+            done += 1
 
 
 # =========================
