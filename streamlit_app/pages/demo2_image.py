@@ -207,6 +207,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
     return target_map
 
 
+@st.cache_resource(show_spinner=True)
 def load_model_and_labels(model_choice: str):
     ckpt_path = ensure_checkpoint_from_drive(model_choice)
     map_path = ensure_label_mapping_from_drive(model_choice)
@@ -581,8 +582,13 @@ with left:
                 debug_lsam = model.backbone.layer4[-1].clam.lsam
             except Exception:
                 debug_lsam = None
+        debug_keys = list(debug_lsam.__dict__.keys()) if debug_lsam is not None else []
         st.markdown(
             f"<div class='small-note'>Model: <b>{model_choice}</b> · Device: <b>{device}</b> · Classes: <b>{len(id2label)}</b> · LSAM type: <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b> · has raw_attn: <b>{hasattr(debug_lsam, 'raw_attn') if debug_lsam is not None else False}</b></div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<div class='demo-label'>type(model.backbone.layer4[-1].clam.lsam): <b>{type(debug_lsam).__name__ if debug_lsam is not None else 'N/A'}</b><br>model.backbone.layer4[-1].clam.lsam.__dict__.keys(): <b>{', '.join(debug_keys) if debug_keys else 'N/A'}</b><br>raw_attn is None?: <b>{getattr(debug_lsam, 'raw_attn', None) is None if debug_lsam is not None else 'N/A'}</b><br>att_map is None?: <b>{getattr(debug_lsam, 'att_map', None) is None if debug_lsam is not None else 'N/A'}</b></div>",
             unsafe_allow_html=True,
         )
         st.markdown("<div class='demo-label'>Reloaded model source and validated LSAM raw_attn attribute.</div>", unsafe_allow_html=True)
