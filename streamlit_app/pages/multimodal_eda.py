@@ -127,6 +127,8 @@ if "step" not in st.session_state:
     st.session_state.step = 0
 if "D" not in st.session_state:
     st.session_state.D = None
+if "full_page_mode" not in st.session_state:
+    st.session_state.full_page_mode = False
 
 
 def tokenize(text, remove_stopwords=False):
@@ -563,8 +565,15 @@ if "n_total" not in D:
     D["n_total"] = D["n_train"] + D["n_test"]
 
 st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
-step = st.session_state.step
-st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
+mode_col1, mode_col2 = st.columns([0.26, 0.74])
+with mode_col1:
+    full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="full_page_mode")
+with mode_col2:
+    step = st.session_state.step
+    if full_page_mode:
+        st.caption("Full page mode: showing all sections on one page")
+    else:
+        st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
 
 with st.expander("🎛️ Chart controls", expanded=False):
     c1, c2, c3, c4, c5, c6 = st.columns(6)
