@@ -234,6 +234,14 @@ def load_model_and_labels(model_choice: str):
             num_classes=len(id2label),
             pretrained=False,
         ).to(device)
+        for module in model.modules():
+            if module.__class__.__name__ == "LSAM":
+                if not hasattr(module, "raw_attn"):
+                    module.raw_attn = None
+                if not hasattr(module, "att_map"):
+                    module.att_map = None
+                if not hasattr(module, "input_stats"):
+                    module.input_stats = None
     else:
         model = CNNScratch(
             num_classes=len(id2label),
