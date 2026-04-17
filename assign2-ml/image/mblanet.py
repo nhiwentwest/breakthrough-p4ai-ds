@@ -29,7 +29,7 @@ class CFG:
     image_size: int = 224
     num_classes: int = 21
 
-    epochs: int = 15
+    epochs: int = 100
     batch_size: int = 64
     num_workers: int = 4
     lr: float = 0.01
@@ -168,10 +168,21 @@ class LSAM(nn.Module):
         self.local_avg = nn.AvgPool2d(kernel_size=self.eps, stride=self.eps)
         self.dilated = nn.Conv2d(2, 1, kernel_size=3, dilation=2, padding=2, bias=False)
         self.sigmoid = nn.Sigmoid()
+        self.raw_attn = None
+        self.att_map = None
+        self.input_stats = None
 
     def forward(self, x):
+        x_det = x.detach()
+        self.input_stats = {
+            "shape": tuple(x_det.shape),
+            "min": float(x_det.min().item()),
+            "max": float(x_det.max().item()),
+            "std": float(x_det.std().item()),
+            "mean": float(x_det.mean().item()),
+        }
         h, w = x.shape[-2:]
-        k = min(self.eps, h, w)
+        k = max(2, min(self.eps, h // 2, w // 2, h, w))
         local_max = torch.nn.functional.max_pool2d(x, kernel_size=k, stride=k)
         local_avg = torch.nn.functional.avg_pool2d(x, kernel_size=k, stride=k)
         max_desc = torch.max(local_max, dim=1, keepdim=True).values
@@ -179,7 +190,10 @@ class LSAM(nn.Module):
         fused = torch.cat([max_desc, avg_desc], dim=1)
         fused = self.dilated(fused)
         fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
-        return self.sigmoid(fused)
+        self.raw_attn = fused.detach()
+        att = self.sigmoid(fused)
+        self.att_map = att.detach()
+        return att
 
 class CLAM(nn.Module):
     def __init__(self, channels):
@@ -333,91 +347,84 @@ def denormalize_image(x):
     y = y.clamp(0, 1)
     return (y * 255.0).byte().permute(1, 2, 0).cpu().numpy()
 
-def save_overlay(base_img_uint8, heatmap, save_path, alpha=0.45):
-    cmap = plt.get_cmap("jet")
-    color = (cmap(heatmap)[..., :3] * 255.0).astype(np.uint8)
-    overlay = (alpha * color + (1 - alpha) * base_img_uint8).astype(np.uint8)
-    fig = plt.figure(figsize=(6, 6))
-    plt.imshow(overlay)
-    plt.axis("off")
-    plt.tight_layout()
-    fig.savefig(save_path, dpi=180, bbox_inches="tight", pad_inches=0)
-    plt.close(fig)
-
-def generate_visualizations(model, test_loader, device, output_dir, max_samples=12):
-    viz_dir = os.path.join(output_dir, "viz")
-    os.makedirs(viz_dir, exist_ok=True)
+def generate_visualizations(model, test_loader, device, output_dir, max_samples=12, epoch=None):
+    os.makedirs(output_dir, exist_ok=True)
+    jsonl_path = os.path.join(output_dir, "debug_stats.jsonl")
     model.eval()
     done = 0
-    for x, y in test_loader:
-        x = x.to(device, non_blocking=True)
-        y = y.to(device, non_blocking=True)
-        for i in range(x.size(0)):
-            if done >= max_samples: return
-            xi = x[i:i+1].clone().detach().requires_grad_(True)
-            
-            # Saliency map
-            model.zero_grad(set_to_none=True)
-            logits_sal = model(xi)
-            pred_idx = int(torch.argmax(logits_sal, dim=1).item())
-            score = logits_sal[0, pred_idx]
-            score.backward(retain_graph=True)
-            
-            grad = xi.grad.detach()[0]
-            sal = grad.abs().max(dim=0).values.cpu().numpy()
-            sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
 
-            # Grad-CAM on layer4 and LSAM Attention Map
-            activations, gradients = {}, {}
-            lsam_map = {}
-            def fwd_hook(m, inp, out): activations["x"] = out
-            def bwd_hook(m, gin, gout): gradients["x"] = gout[0]
-            def lsam_hook(m, inp, out): lsam_map["s_attn"] = out.detach()
-            
-            h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
-            h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
-            
-            # Hook the LSAM module in the very last block of layer4
-            last_block = model.backbone.layer4[-1]
-            if hasattr(last_block, "clam"):
-                h3 = last_block.clam.lsam.register_forward_hook(lsam_hook)
-            else:
-                h3 = None
-            
-            model.zero_grad(set_to_none=True)
-            logits_gc = model(xi)
-            score_gc = logits_gc[0, pred_idx]
-            score_gc.backward()
-            
-            h1.remove()
-            h2.remove()
-            if h3 is not None: h3.remove()
-            
-            if "x" in activations and "x" in gradients:
-                act = activations["x"][0]
-                grd = gradients["x"][0]
-                w = grd.mean(dim=(1, 2), keepdim=True)
-                cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
-                cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
-            else:
-                cam = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
+    def _stats_from_tensor(t):
+        t = t.detach()
+        return {
+            "shape": list(t.shape),
+            "min": float(t.min().item()),
+            "max": float(t.max().item()),
+            "mean": float(t.mean().item()),
+            "std": float(t.std().item()),
+        }
 
-            if "s_attn" in lsam_map:
-                attn_map = lsam_map["s_attn"][0, 0].cpu().numpy()
-                attn_map = (attn_map - attn_map.min()) / (attn_map.max() - attn_map.min() + 1e-8)
-            else:
-                attn_map = np.zeros((xi.shape[-2], xi.shape[-1]), dtype=np.float32)
+    with open(jsonl_path, "a", encoding="utf-8") as jf:
+        for x, y in test_loader:
+            x = x.to(device, non_blocking=True)
+            y = y.to(device, non_blocking=True)
+            for i in range(x.size(0)):
+                if done >= max_samples:
+                    return
+                xi = x[i:i+1].clone().detach().requires_grad_(True)
 
-            base = denormalize_image(xi[0].detach())
-            H, W = base.shape[:2]
-            sal_r = np.array(Image.fromarray((sal*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
-            cam_r = np.array(Image.fromarray((cam*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
-            attn_r = np.array(Image.fromarray((attn_map*255).astype(np.uint8)).resize((W,H), resample=Image.BILINEAR), dtype=np.float32) / 255.0
+                model.zero_grad(set_to_none=True)
+                logits = model(xi)
+                pred_idx = int(torch.argmax(logits, dim=1).item())
+                logits[0, pred_idx].backward(retain_graph=True)
 
-            save_overlay(base, cam_r, os.path.join(viz_dir, f"sample_{done:03d}_gradcam_pred{pred_idx}.png"))
-            save_overlay(base, sal_r, os.path.join(viz_dir, f"sample_{done:03d}_saliency_pred{pred_idx}.png"))
-            save_overlay(base, attn_r, os.path.join(viz_dir, f"sample_{done:03d}_attention_pred{pred_idx}.png"))
-            done += 1
+                grad = xi.grad.detach()[0]
+                sal = grad.abs().max(dim=0).values.cpu().numpy()
+                sal = (sal - sal.min()) / (sal.max() - sal.min() + 1e-8)
+
+                attention_records = []
+                for layer_name in ["layer3", "layer4"]:
+                    layer = getattr(model.backbone, layer_name)
+                    last_block = layer[-1]
+                    if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam"):
+                        _ = model(xi)
+                        lsam = last_block.clam.lsam
+                        attention_records.append({
+                            "layer": layer_name,
+                            "input_stats": getattr(lsam, "input_stats", None),
+                            "raw_attn_stats": _stats_from_tensor(lsam.raw_attn) if getattr(lsam, "raw_attn", None) is not None else None,
+                            "att_map_stats": _stats_from_tensor(lsam.att_map) if getattr(lsam, "att_map", None) is not None else None,
+                        })
+
+                activations, gradients = {}, {}
+                def fwd_hook(_m, _inp, out): activations["x"] = out
+                def bwd_hook(_m, _gin, gout): gradients["x"] = gout[0]
+                h1 = model.backbone.layer4.register_forward_hook(fwd_hook)
+                h2 = model.backbone.layer4.register_full_backward_hook(bwd_hook)
+                _ = model(xi)
+                h1.remove(); h2.remove()
+                if "x" in activations and "x" in gradients:
+                    act = activations["x"][0]
+                    grd = gradients["x"][0]
+                    w = grd.mean(dim=(1, 2), keepdim=True)
+                    cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
+                    cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+
+                record = {
+                    "epoch": epoch,
+                    "sample_index": int(done),
+                    "pred_idx": int(pred_idx),
+                    "saliency_stats": {
+                        "shape": list(sal.shape),
+                        "min": float(np.min(sal)),
+                        "max": float(np.max(sal)),
+                        "mean": float(np.mean(sal)),
+                        "std": float(np.std(sal)),
+                    },
+                    "attention": attention_records,
+                }
+                jf.write(json.dumps(record, ensure_ascii=False) + "\n")
+                jf.flush()
+                done += 1
 
 
 # =========================
@@ -530,7 +537,7 @@ def run_training(cfg: CFG):
         zero_division=0,
     )
     
-    generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples)
+    generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples, epoch=epoch)
 
     # Plot Learning Curves
     if history:
@@ -566,7 +573,7 @@ def run_training(cfg: CFG):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
-    p.add_argument("--epochs", type=int, default=30)
+    p.add_argument("--epochs", type=int, default=100)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=0.01)
     args, _ = p.parse_known_args()
