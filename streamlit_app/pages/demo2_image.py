@@ -207,7 +207,6 @@ def ensure_label_mapping_from_drive(model_choice: str):
     return target_map
 
 
-@st.cache_resource(show_spinner=True)
 def load_model_and_labels(model_choice: str):
     ckpt_path = ensure_checkpoint_from_drive(model_choice)
     map_path = ensure_label_mapping_from_drive(model_choice)
