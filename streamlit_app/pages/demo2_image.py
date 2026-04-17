@@ -144,7 +144,7 @@ RSITMD_CLASSES = [
 ]
 
 # Google Drive assets
-MBLANET_CHECKPOINT_FILE_ID = "1kRaO-Rdh3_gpWzDyu__hxuJY2JNCGwCg"
+MBLANET_CHECKPOINT_FILE_ID = "1yUzaTDJowBY3sH0Pqp8nN3wI65K94kLz"
 MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
@@ -436,10 +436,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         cache["grad"] = go[0]
 
     if model_choice == "MBLANet":
-        target_layer = model.backbone.layer3
+        target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        h3 = model.backbone.layer3[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
+        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
         logits = model(x)
         last_attn = None
     else:
@@ -474,7 +474,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         raw_attn = cache.get("lsam_out", None)
         if raw_attn is None:
             # fallback to model instance state if hook path is unavailable
-            last_block = model.backbone.layer4[-1]
+            last_block = model.backbone.layer2[-1]
             if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn"):
                 raw_attn = last_block.clam.lsam.raw_attn
 
