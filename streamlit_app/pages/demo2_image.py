@@ -609,9 +609,7 @@ with right:
     st.markdown("<div class='section'>Prediction & Explainability</div>", unsafe_allow_html=True)
 
     if pred_btn:
-        if not model_ready or model is None or id2label is None or device is None:
-            st.error("Model is not ready. Please fix model loading first.")
-        elif image is None:
+        if image is None:
             st.warning("Please upload an image first.")
         else:
             if model is None or id2label is None or device is None:
