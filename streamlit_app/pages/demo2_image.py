@@ -484,28 +484,51 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
             unsafe_allow_html=True,
         )
 
-        if has_raw_attn:
-            raw_np = raw_attn.detach().cpu().numpy() if torch.is_tensor(raw_attn) else np.asarray(raw_attn)
-            attn_shape = tuple(raw_np.shape)
-            attn_map = raw_np[0, 0] if raw_np.ndim == 4 else raw_np.squeeze()
-            attn_min = float(np.min(attn_map))
-            attn_max = float(np.max(attn_map))
-            attn_std = float(np.std(attn_map))
+        def _prep_attn_map(arr):
+            arr = arr.detach().cpu().numpy() if torch.is_tensor(arr) else np.asarray(arr)
+            arr = arr[0, 0] if arr.ndim == 4 else arr.squeeze()
+            arr = np.asarray(arr, dtype=np.float32)
+            arr = np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
+            if arr.ndim != 2:
+                arr = np.squeeze(arr)
+            if arr.ndim != 2:
+                return None
+            arr = arr - float(arr.min())
+            denom = float(arr.max())
+            if denom > 1e-8:
+                arr = arr / denom
+            else:
+                arr = np.zeros_like(arr, dtype=np.float32)
+            return arr
 
+        chosen = None
+        raw_map = _prep_attn_map(raw_attn) if has_raw_attn else None
+        if raw_map is not None:
+            chosen = raw_map
+            attn_shape = tuple(raw_attn.shape) if torch.is_tensor(raw_attn) else tuple(np.asarray(raw_attn).shape)
+            attn_min = float(np.min(raw_map))
+            attn_max = float(np.max(raw_map))
+            attn_std = float(np.std(raw_map))
             st.markdown(
                 f"<div class='demo-label'>LSAM stats — shape: {attn_shape} | min: {attn_min:.4f} | max: {attn_max:.4f} | std: {attn_std:.4f}</div>",
                 unsafe_allow_html=True,
             )
+            if attn_std < 1e-4:
+                st.warning("raw_attn có nhưng map quá phẳng, đang fallback sang att_map nếu có.")
 
-            if attn_std < 1e-4 or (attn_max - attn_min) < 1e-4:
-                st.warning("raw_attn có nhưng map quá phẳng, nên overlay có thể không hiện rõ.")
-                attn_map = np.abs(attn_map - attn_map.mean())
+        if (chosen is None or float(np.std(chosen)) < 1e-4) and att_map_fallback is not None:
+            chosen = _prep_attn_map(att_map_fallback)
+            if chosen is not None:
+                st.info("Đang dùng att_map fallback để render overlay.")
 
-            attn_map = _norm01(attn_map)
-            attn_map = np.array(Image.fromarray((attn_map * 255).astype(np.uint8)).resize((img_pil.width, img_pil.height), Image.Resampling.BILINEAR), dtype=np.float32) / 255.0
-            attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.55)
+        if chosen is not None:
+            attn_img = Image.fromarray((chosen * 255).astype(np.uint8)).resize(
+                (img_pil.width, img_pil.height), Image.Resampling.BILINEAR
+            )
+            attn_map = np.asarray(attn_img, dtype=np.float32) / 255.0
+            attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_map, alpha=0.60)
         else:
-            st.warning("Không lấy được raw_attn từ LSAM nên không thể hiển thị attention map.")
+            st.warning("Không thể tạo attention overlay từ raw_attn/att_map.")
 
     base = _to_uint8(img_pil)
     gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
