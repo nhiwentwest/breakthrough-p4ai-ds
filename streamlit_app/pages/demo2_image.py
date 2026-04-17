@@ -8,7 +8,6 @@ from pathlib import Path
 import gdown
 import numpy as np
 import streamlit as st
-import tensorflow as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
