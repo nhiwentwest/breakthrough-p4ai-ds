@@ -478,10 +478,16 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         lsam = model.backbone.layer4[-1].clam.lsam
         raw_attn = getattr(lsam, "raw_attn", None)
         att_map_fallback = getattr(lsam, "att_map", None)
+        input_stats = getattr(lsam, "input_stats", None)
 
         has_raw_attn = raw_attn is not None
+        has_att_map = att_map_fallback is not None
         st.markdown(
-            f"<div class='demo-label'>LSAM raw_attn available: <b>{'YES' if has_raw_attn else 'NO'}</b></div>",
+            f"<div class='demo-label'>LSAM raw_attn available: <b>{'YES' if has_raw_attn else 'NO'}</b> · att_map available: <b>{'YES' if has_att_map else 'NO'}</b></div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<div class='demo-label'>LSAM input_stats: <b>{input_stats if input_stats is not None else 'None'}</b></div>",
             unsafe_allow_html=True,
         )
 
