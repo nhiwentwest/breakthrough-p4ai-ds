@@ -439,7 +439,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
-        h3 = model.backbone.layer4[-1].clam.lsam.register_forward_hook(lambda _m, _i, o: cache.setdefault("lsam_out", o.detach()))
+        h3 = None
         logits = model(x)
         last_attn = None
     else:
@@ -471,12 +471,8 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet":
-        raw_attn = cache.get("lsam_out", None)
-        if raw_attn is None:
-            # fallback to model instance state if hook path is unavailable
-            last_block = model.backbone.layer2[-1]
-            if hasattr(last_block, "clam") and hasattr(last_block.clam.lsam, "raw_attn"):
-                raw_attn = last_block.clam.lsam.raw_attn
+        last_block = model.backbone.layer4[-1]
+        raw_attn = getattr(last_block.clam.lsam, "raw_attn", None) if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam") else None
 
         has_raw_attn = raw_attn is not None
         st.markdown(
