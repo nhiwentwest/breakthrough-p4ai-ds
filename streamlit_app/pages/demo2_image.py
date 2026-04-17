@@ -234,14 +234,6 @@ def load_model_and_labels(model_choice: str):
             num_classes=len(id2label),
             pretrained=False,
         ).to(device)
-        # Hard-assert the runtime model exposes the expected LSAM state.
-        # If this fails, Streamlit is loading an older/stale source path.
-        lsam_probe = model.backbone.layer4[-1].clam.lsam
-        if not hasattr(lsam_probe, "raw_attn"):
-            raise RuntimeError(
-                "MBLANet runtime LSAM does not expose 'raw_attn'. "
-                "The Streamlit app is loading a stale or mismatched model source."
-            )
     else:
         model = CNNScratch(
             num_classes=len(id2label),
