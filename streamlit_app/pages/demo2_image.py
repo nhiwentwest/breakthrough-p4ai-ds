@@ -430,7 +430,7 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     x = preprocess_image(img_pil).to(device)
 
-    # hooks for Grad-CAM
+    # hooks for saliency + Grad-CAM
     cache = {}
 
     def fwd_hook(_m, _i, o):
@@ -445,15 +445,12 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         h3 = None
         logits = model(x)
-        last_attn = None
     else:
-        # last conv feature before head for scratch CNN (ResNet18 backbone)
         target_layer = model.model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         h3 = None
         logits = model(x)
-        last_attn = None
 
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
@@ -465,12 +462,19 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     h1.remove(); h2.remove()
     if h3: h3.remove()
 
+    # Saliency map
+    grad_input = x.grad.detach()[0]
+    sal = grad_input.abs().max(dim=0).values.cpu().numpy()
+    sal = _norm01(sal)
+    saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), sal, alpha=0.50)
+
     # Grad-CAM
-    act = cache["act"][0]        # (C,H,W)
-    grad = cache["grad"][0]      # (C,H,W)
+    act = cache["act"][0]
+    grad = cache["grad"][0]
     w = grad.mean(dim=(1, 2), keepdim=True)
     cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
     cam = _norm01(cam)
+    gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
 
     # Attention map (only for MBLANet)
     attn_overlay = None
@@ -537,11 +541,8 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         else:
             st.warning("Không thể tạo attention overlay từ raw_attn/att_map.")
 
-    base = _to_uint8(img_pil)
-    gradcam_overlay = _apply_heatmap_overlay(base, cam, alpha=0.45)
-    
     rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
-    return rows, gradcam_overlay, attn_overlay
+    return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
 
 
@@ -677,7 +678,7 @@ with right:
         elif image is None:
             st.warning("Please upload an image first.")
         else:
-            topk, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
+            topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
@@ -693,13 +694,19 @@ with right:
             st.markdown("---")
             st.markdown("**Visual Explanations**")
             if attention_overlay is not None:
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                with c2:
+                    st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+                with c3:
+                    st.image(attention_overlay, caption="Attention map", use_container_width=True)
+            else:
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+                    st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
                 with c2:
-                    st.image(attention_overlay, caption="Attention map (Transformer focus)", use_container_width=True)
-            else:
-                st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
+                    st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
     else:
         st.info("Upload image and click Predict.")
 
