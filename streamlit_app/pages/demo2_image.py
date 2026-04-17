@@ -474,7 +474,9 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     # Attention map (only for MBLANet)
     attn_overlay = None
     if model_choice == "MBLANet":
-        raw_attn = getattr(model.backbone.layer4[-1].clam.lsam, "raw_attn", None)
+        lsam = model.backbone.layer4[-1].clam.lsam
+        raw_attn = getattr(lsam, "raw_attn", None)
+        att_map_fallback = getattr(lsam, "att_map", None)
 
         has_raw_attn = raw_attn is not None
         st.markdown(
