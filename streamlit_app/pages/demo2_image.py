@@ -120,9 +120,6 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
-    "Pretrained CNN Frozen": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.keras",
-    ],
 }
 
 MAPPING_CANDIDATES = {
@@ -135,9 +132,6 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
-    ],
-    "Pretrained CNN Frozen": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
     ],
 }
 
@@ -155,9 +149,6 @@ MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
-
-PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "18Eqn9m6yHesIfPjxTonmsAeIRkID5Srp"
-PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = None
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = False
@@ -246,34 +237,6 @@ def ensure_label_mapping_from_drive(model_choice: str):
 def load_model_and_labels(model_choice: str):
     ckpt_path = ensure_checkpoint_from_drive(model_choice)
     map_path = ensure_label_mapping_from_drive(model_choice)
-
-    if model_choice == "Pretrained CNN Frozen":
-        try:
-            import tensorflow as tf
-        except ModuleNotFoundError as e:
-            raise RuntimeError(
-                "TensorFlow is not installed in this runtime, so the Keras checkpoint cannot be loaded. "
-                "Use this model locally or add a TensorFlow-compatible environment."
-            ) from e
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        tf_model = tf.keras.models.load_model(ckpt_path)
-
-        label2id, id2label = None, None
-        if map_path is not None and map_path.exists() and map_path.stat().st_size > 0:
-            try:
-                with open(map_path, "r", encoding="utf-8") as f:
-                    mp = json.load(f)
-                label2id = mp.get("label2id", {})
-                id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
-            except Exception:
-                label2id, id2label = None, None
-
-        if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
-            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
-            label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
-
-        return tf_model, id2label, device, str(ckpt_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -605,7 +568,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch"], index=0)
 
 
     model = None
