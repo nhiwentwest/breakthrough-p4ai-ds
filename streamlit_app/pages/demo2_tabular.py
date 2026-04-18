@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import gdown
 import joblib
 import numpy as np
 import streamlit as st
@@ -15,6 +16,13 @@ MUT = "#6B6560"
 BOR = "#D4C9B8"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHECKPOINT_DIR = PROJECT_ROOT / "streamlit_app" / "checkpoints"
+MODEL_DRIVE_IDS = {
+    "linear_regression.joblib": "1SiLVaci0rpQjPs3iO9dVjeIcNmrSKW3a",
+    "random_forest.joblib": "1eF-Kk7ZMBr67BnSNi1_pjVvkKpuz32hM",
+    "gradient_boosting.joblib": "1LAtn7OCcyjXnZJOugWPeTJCNtc-ABEml",
+    "scaler.joblib": "1dxAAIgxlVnOYB8ZK2I1eYd-8nnZUwcqX",
+    "feature_columns.json": "1ah34c8PDl4_P9v5UTg5tdIfWbTamdBRY",
+}
 
 st.markdown(f"""
 <style>
@@ -63,8 +71,16 @@ MODEL_ASSETS = {
 
 def _resolve_asset(filename: str) -> Path:
     candidate = CHECKPOINT_DIR / filename
-    if candidate.exists():
+    if candidate.exists() and candidate.stat().st_size > 0:
         return candidate
+    file_id = MODEL_DRIVE_IDS.get(filename)
+    if file_id is None:
+        raise FileNotFoundError(f"No Drive file ID configured for {filename}")
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, str(candidate), quiet=False)
+    if not candidate.exists() or candidate.stat().st_size == 0:
+        raise FileNotFoundError(f"Failed to download {filename} from Drive")
     return candidate
 
 
