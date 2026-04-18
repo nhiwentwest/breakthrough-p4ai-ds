@@ -68,6 +68,15 @@ MODEL_ASSETS = {
     },
 }
 
+RAW_INPUT_ORDER = [
+    "age",
+    "bmi",
+    "children",
+    "sex",
+    "smoker",
+    "region",
+]
+
 
 def _resolve_asset(filename: str) -> Path:
     candidate = CHECKPOINT_DIR / filename
@@ -99,15 +108,27 @@ def load_tabular_model(model_name: str):
     return model, scaler, feature_columns, str(model_path)
 
 
-def build_feature_row(gdp, social, life, freedom, generosity, corruption):
-    return {
-        "GDP per capita": gdp,
-        "Social support": social,
-        "Healthy life expectancy": life,
-        "Freedom to make life choices": freedom,
-        "Generosity": generosity,
-        "Perceptions of corruption": corruption,
+def build_feature_row(age, bmi, children, sex, smoker, region):
+    region_map = {
+        "northwest": "region_northwest",
+        "southeast": "region_southeast",
+        "southwest": "region_southwest",
+        "northeast": None,
     }
+    row = {
+        "age": age,
+        "bmi": bmi,
+        "children": children,
+        "sex_male": 1 if sex == "male" else 0,
+        "smoker_yes": 1 if smoker == "yes" else 0,
+        "region_northwest": 0,
+        "region_southeast": 0,
+        "region_southwest": 0,
+    }
+    region_key = region_map.get(region)
+    if region_key is not None:
+        row[region_key] = 1
+    return row
 
 
 left, right = st.columns([1.2, 1])
@@ -127,13 +148,13 @@ with left:
     st.markdown("<div class='section'>Input Features</div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
-        gdp = st.number_input("GDP per capita", min_value=0.0, max_value=2.5, value=1.0, step=0.01)
-        social = st.number_input("Social support", min_value=0.0, max_value=2.0, value=1.0, step=0.01)
-        life = st.number_input("Healthy life expectancy", min_value=0.0, max_value=1.5, value=0.7, step=0.01)
+        age = st.number_input("Age", min_value=0, max_value=120, value=30, step=1)
+        bmi = st.number_input("BMI", min_value=0.0, max_value=70.0, value=25.0, step=0.1)
+        children = st.number_input("Children", min_value=0, max_value=10, value=0, step=1)
     with c2:
-        freedom = st.number_input("Freedom to make life choices", min_value=0.0, max_value=1.5, value=0.5, step=0.01)
-        generosity = st.number_input("Generosity", min_value=-0.5, max_value=1.0, value=0.1, step=0.01)
-        corruption = st.number_input("Perceptions of corruption", min_value=0.0, max_value=1.2, value=0.3, step=0.01)
+        sex = st.selectbox("Sex", ["male", "female"])
+        smoker = st.selectbox("Smoker", ["yes", "no"])
+        region = st.selectbox("Region", ["northeast", "northwest", "southeast", "southwest"])
 
     pred_btn = st.button("Predict", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
@@ -144,7 +165,7 @@ with right:
 
     if pred_btn:
         model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
-        feature_row = build_feature_row(gdp, social, life, freedom, generosity, corruption)
+        feature_row = build_feature_row(age, bmi, children, sex, smoker, region)
 
         missing_cols = [c for c in feature_columns if c not in feature_row]
         if missing_cols:
