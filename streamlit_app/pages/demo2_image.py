@@ -110,20 +110,10 @@ def build_resnet50_backbone(pretrained: bool = True):
     return models.resnet50(weights=weights)
 
 
-def build_resnet50_classifier(num_classes: int, pretrained: bool = True, head: str = "linear"):
+def build_resnet50_classifier(num_classes: int, pretrained: bool = True):
     model = build_resnet50_backbone(pretrained=pretrained)
     in_features = model.fc.in_features
-    if head == "linear":
-        model.fc = nn.Linear(in_features, num_classes)
-    elif head == "sequential":
-        model.fc = nn.Sequential(
-            nn.Dropout(0.3),
-            nn.Linear(in_features, num_classes),
-        )
-    elif head == "identity":
-        model.fc = nn.Identity()
-    else:
-        raise ValueError(f"Unknown head: {head}")
+    model.fc = nn.Linear(in_features, num_classes)
     return model
 
 
@@ -370,7 +360,6 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             pretrained=True,
-            head="identity",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
@@ -391,7 +380,8 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints may be wrapped with "module." from DataParallel.
     # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
     # their checkpoints may also include a top-level `model.` prefix that must
-    # be preserved.
+    # be preserved. Frozen ResNet50 checkpoint is a plain state_dict with
+    # keys like conv1.weight, layer1.0..., and fc.weight/bias.
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
