@@ -167,7 +167,6 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
     ],
     "SVM + ResNet50": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_label_mapping.json",
     ],
 }
@@ -191,6 +190,7 @@ PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1nN65cObQTRRIxcvKKE0trrOFCKU-yzhc"
 PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID = "122cFUQk_9GGcygpWcR-kg2vnNAobjJjN"
 PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID = "1nN65cObQTRRIxcvKKE0trrOFCKU-yzhc"
 SVM_JOBLIB_FILE_ID = "1IdUgQx5KeCUehWOtBIfeFPhjBXwd_AsY"
+SVM_LABEL_MAP_FILE_ID = "1eDPZVnalAKwpkLbjN8v_nw83vXdkDoRH"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = False
@@ -289,7 +289,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
             gdown.download(url, str(target_map), quiet=False)
     elif model_choice == "SVM + ResNet50":
         target_map = target_dir / "resnet50_label_mapping.json"
-        file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
+        file_id = SVM_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_map.exists():
                 target_map.unlink()
