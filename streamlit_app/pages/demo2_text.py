@@ -39,6 +39,11 @@ st.markdown("<p class='sub'>Input text and predict a continuous score.</p>", uns
 
 st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
 left, right = st.columns([1.15, 1])
+SAMPLE_SNIPPETS = {
+    "test[0]": "Reuters reported that investors remained cautious after the policy update.",
+    "test[7]": "The company posted stronger earnings, but guidance was still mixed.",
+    "test[12]": "Analysts said the market reaction was muted despite the headline result.",
+}
 
 with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
@@ -55,12 +60,29 @@ with left:
     st.markdown(f"<div class='model-chip'>{model}</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='section'>Text Input</div>", unsafe_allow_html=True)
-    text = st.text_area(
-        "Enter text",
-        height=240,
-        placeholder="Type / paste text here...",
-        label_visibility="collapsed",
-    )
+    input_mode = st.radio("Input mode", ["Manual text", "Drive named sample"], horizontal=True)
+    if input_mode == "Manual text":
+        text = st.text_area(
+            "Enter text",
+            height=240,
+            placeholder="Type / paste text here...",
+            label_visibility="collapsed",
+        )
+        sample_meta = None
+    else:
+        sample_key = st.text_input("Sample key", value="test[0]", help="Choose a Drive sample key like test[7]")
+        if st.button("Load named sample", use_container_width=True):
+            if sample_key in SAMPLE_SNIPPETS:
+                st.session_state["sample_text"] = SAMPLE_SNIPPETS[sample_key]
+                st.session_state["sample_meta"] = {"key": sample_key}
+            else:
+                st.error("Sample not found. Try test[0], test[7], or test[12].")
+        text = st.session_state.get("sample_text", "")
+        sample_meta = st.session_state.get("sample_meta")
+        if text:
+            st.text_area("Loaded sample", value=text, height=220, label_visibility="collapsed", disabled=True)
+            if sample_meta:
+                st.markdown(f"<div class='model-chip'>Ground truth label: {sample_meta.get('key', 'n/a')}</div>", unsafe_allow_html=True)
 
     pred_btn = st.button("Predict", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
