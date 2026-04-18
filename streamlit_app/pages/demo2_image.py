@@ -746,15 +746,15 @@ with left:
     device = None
     model_ready = True
     st.info("Model checkpoint will be loaded only when you press Predict.")
-    try:
-        ckpt_preview = ensure_checkpoint_from_drive(model_choice)
+    ckpt_candidates = CHECKPOINT_CANDIDATES.get(model_choice, [])
+    existing_ckpt = next((p for p in ckpt_candidates if p.exists() and p.stat().st_size > 0), None)
+    if existing_ckpt is not None:
         st.markdown(
-            f"<div class='small-note'>Checkpoint ready: <b>{ckpt_preview}</b></div>",
+            f"<div class='small-note'>Checkpoint ready: <b>{existing_ckpt}</b></div>",
             unsafe_allow_html=True,
         )
-    except Exception as e:
-        st.error(f"Checkpoint unavailable: {e}")
-        model_ready = False
+    else:
+        st.warning("Checkpoint not found locally yet; it will be fetched when you press Predict.")
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
@@ -828,7 +828,8 @@ with right:
             if model is None or id2label is None or device is None:
                 with st.spinner(f"Loading {model_choice} checkpoint for prediction..."):
                     model, id2label, device, _ckpt_used = load_model_and_labels(model_choice)
-            topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
+            with st.spinner("Running inference..."):
+                topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
