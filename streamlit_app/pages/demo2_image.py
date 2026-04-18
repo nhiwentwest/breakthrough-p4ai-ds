@@ -368,11 +368,15 @@ def load_model_and_labels(model_choice: str):
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
     elif model_choice == "Pretrained CNN Frozen":
-        model = FrozenResNet50(
-            num_classes=len(id2label),
-            dropout=cfg.get("dropout", 0.3),
-            pretrained=True,
-        ).to(device)
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        for param in model.parameters():
+            param.requires_grad = False
+        in_features = model.fc.in_features
+        model.fc = nn.Sequential(
+            nn.Dropout(cfg.get("dropout", 0.3)),
+            nn.Linear(in_features, len(id2label)),
+        )
+        model = model.to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = PretrainedResNet50(
             num_classes=len(id2label),
@@ -399,9 +403,9 @@ def load_model_and_labels(model_choice: str):
 
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
-    except RuntimeError:
-        load_msg = model.load_state_dict(state_dict, strict=False)
-        st.warning("Checkpoint keys did not match exactly; loaded with strict=False.")
+    except RuntimeError as e:
+        st.error(f"Checkpoint does not match the frozen ResNet50 architecture: {e}")
+        raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
     if len(load_msg.missing_keys) > 0:
