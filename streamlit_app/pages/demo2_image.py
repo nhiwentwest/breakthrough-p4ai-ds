@@ -360,7 +360,6 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             pretrained=True,
-            head="sequential",
         ).to(device)
     else:
         model = CNNScratch(
