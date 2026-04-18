@@ -337,8 +337,9 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     if id2label is None or not id2label:
         raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
-    if any(not isinstance(v, str) for v in id2label.values()):
-        raise ValueError(f"Invalid id2label values in mapping file: {map_path}")
+    if model_choice in ("MBLANet", "Pretrained CNN Fine-tuned"):
+        if any(not isinstance(v, str) for v in id2label.values()):
+            raise ValueError(f"Invalid id2label values in mapping file: {map_path}")
 
     if model_choice == "MBLANet":
         model = MBLANet(
