@@ -393,10 +393,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        if model_choice == "Frozen ResNet50":
-            st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
-        else:
-            st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
+        st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
@@ -630,7 +627,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         gradcam_overlay = None
         return rows, saliency_overlay, gradcam_overlay, None
 
-    if model_choice == "Pretrained CNN Frozen":
+    if model_choice == "Frozen ResNet50":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
         cache = {}
