@@ -4,7 +4,10 @@ from pathlib import Path
 import gdown
 import joblib
 import numpy as np
+import pandas as pd
 import streamlit as st
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Demo 2 · Tabular Regression", page_icon="📊", layout="wide")
 
@@ -22,6 +25,7 @@ MODEL_DRIVE_IDS = {
     "gradient_boosting.joblib": "1LAtn7OCcyjXnZJOugWPeTJCNtc-ABEml",
     "scaler.joblib": "1dxAAIgxlVnOYB8ZK2I1eYd-8nnZUwcqX",
     "feature_columns.json": "1ah34c8PDl4_P9v5UTg5tdIfWbTamdBRY",
+    "insurance.csv": "16hHeuqWKFhrdk-PtyfVVOqDV1y77v9MS",
 }
 
 st.markdown(f"""
@@ -108,6 +112,30 @@ def load_tabular_model(model_name: str):
     return model, scaler, feature_columns, str(model_path)
 
 
+@st.cache_data(show_spinner=True)
+def load_insurance_dataset():
+    dataset_path = _resolve_asset("insurance.csv")
+    return pd.read_csv(dataset_path)
+
+
+def prepare_insurance_data(df: pd.DataFrame):
+    df_encoded = pd.get_dummies(df, columns=["sex", "smoker", "region"], drop_first=True)
+    X = df_encoded.drop(columns=["charges"])
+    y = df_encoded["charges"]
+    return train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+def evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test):
+    X_test_scaled = scaler.transform(X_test)
+    preds = model.predict(X_test_scaled)
+    return {
+        "MSE": float(mean_squared_error(y_test, preds)),
+        "MAE": float(mean_absolute_error(y_test, preds)),
+        "RMSE": float(mean_squared_error(y_test, preds, squared=False)),
+        "R2": float(r2_score(y_test, preds)),
+    }
+
+
 def build_feature_row(age, bmi, children, sex, smoker, region):
     region_map = {
         "northwest": "region_northwest",
@@ -163,6 +191,9 @@ with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
 
+    df = load_insurance_dataset()
+    X_train, X_test, y_train, y_test = prepare_insurance_data(df)
+
     if pred_btn:
         model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
         feature_row = build_feature_row(age, bmi, children, sex, smoker, region)
@@ -176,8 +207,18 @@ with right:
             pred = model.predict(scaled)
             pred_value = float(np.ravel(pred)[0])
 
+            metrics_rows = []
+            for name in ["Linear Regression", "Random Forest Regressor", "Gradient Boosting Regressor"]:
+                m, s, cols, _ = load_tabular_model(name)
+                score = evaluate_model_on_insurance(m, s, cols, X_test, y_test)
+                metrics_rows.append({"Model": name, **score})
+
+            metrics_df = pd.DataFrame(metrics_rows)
+
             st.metric("Predicted target", f"{pred_value:.3f}")
             st.caption(f"Model used: {model_name}")
+            st.markdown("### Model comparison")
+            st.dataframe(metrics_df.style.format({"MSE": "{:.2f}", "MAE": "{:.2f}", "RMSE": "{:.2f}", "R2": "{:.4f}"}), use_container_width=True, hide_index=True)
             st.markdown("### Feature snapshot")
             st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
     else:
