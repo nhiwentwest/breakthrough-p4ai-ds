@@ -110,10 +110,18 @@ def build_resnet50_backbone(pretrained: bool = True):
     return models.resnet50(weights=weights)
 
 
-def build_resnet50_classifier(num_classes: int, pretrained: bool = True):
+def build_resnet50_classifier(num_classes: int, pretrained: bool = True, head: str = "linear"):
     model = build_resnet50_backbone(pretrained=pretrained)
     in_features = model.fc.in_features
-    model.fc = nn.Linear(in_features, num_classes)
+    if head == "linear":
+        model.fc = nn.Linear(in_features, num_classes)
+    elif head == "sequential":
+        model.fc = nn.Sequential(
+            nn.Dropout(0.3),
+            nn.Linear(in_features, num_classes),
+        )
+    else:
+        raise ValueError(f"Unknown head: {head}")
     return model
 
 
@@ -355,11 +363,13 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             pretrained=True,
+            head="linear",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             pretrained=True,
+            head="sequential",
         ).to(device)
     else:
         model = CNNScratch(
