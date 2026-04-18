@@ -319,14 +319,10 @@ if pred_btn and 'score' in locals():
         for feat, score_v, direction, raw_v in top_features:
             st.write(f"- {feat}: importance {score_v:.4f} | value {raw_v:.4f}")
         st.markdown("**Segment view**")
-        seg1, seg2, seg3 = st.columns(3)
-        with seg1:
-            st.metric("MAE by sex", f"male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
-        with seg2:
-            smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
-            smoker_no = float(abs_err_by_smoker.get("no", np.nan))
-            st.metric("MAE by smoker", f"yes {smoker_yes:.2f} / no {smoker_no:.2f}")
-        with seg3:
-            region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
-            st.metric("MAE by region", region_summary)
+        st.markdown(f"- **MAE by sex**: male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
+        smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
+        smoker_no = float(abs_err_by_smoker.get("no", np.nan))
+        st.markdown(f"- **MAE by smoker**: yes {smoker_yes:.2f} / no {smoker_no:.2f}")
+        region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
+        st.markdown(f"- **MAE by region**: {region_summary}")
     st.markdown("</div>", unsafe_allow_html=True)
