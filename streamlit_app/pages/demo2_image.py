@@ -144,7 +144,7 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pth",
     ],
-    "Classical ML: ResNet50 Features + SVM": [
+    "ResNet50 Features + SVM": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
     ],
 }
