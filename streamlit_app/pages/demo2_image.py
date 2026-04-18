@@ -107,26 +107,12 @@ class CNNScratch(nn.Module):
 
 def build_resnet50_classifier(
     num_classes: int,
-    dropout: float = 0.3,
     pretrained: bool = True,
-    freeze_backbone: bool = False,
-    head_style: str = "linear",
 ):
     weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
     model = models.resnet50(weights=weights)
-    if freeze_backbone:
-        for param in model.parameters():
-            param.requires_grad = False
     in_features = model.fc.in_features
-    if head_style == "sequential":
-        model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes),
-        )
-    elif head_style == "linear":
-        model.fc = nn.Linear(in_features, num_classes)
-    else:
-        raise ValueError(f"Unknown head_style: {head_style}")
+    model.fc = nn.Linear(in_features, num_classes)
     return model
 
 
@@ -366,18 +352,12 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     elif model_choice == "Pretrained CNN Frozen":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
-            dropout=cfg.get("dropout", 0.3),
             pretrained=True,
-            freeze_backbone=True,
-            head_style="linear",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
-            dropout=cfg.get("dropout", 0.3),
             pretrained=True,
-            freeze_backbone=False,
-            head_style="sequential",
         ).to(device)
     else:
         model = CNNScratch(
@@ -392,12 +372,11 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints may be wrapped with "module." from DataParallel.
     # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
     # their checkpoints may also include a top-level `model.` prefix that must
-    # be preserved. ResNet50 classifier checkpoints are expected to use the
-    # plain ResNet keys (conv1, bn1, layer1... fc.0/fc if present).
+    # be preserved.
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-    if model_choice in ("Pretrained CNN Frozen", "Pretrained CNN Fine-tuned"):
+    if model_choice == "Pretrained CNN Fine-tuned":
         if key_samples and all(k.startswith("model.") for k in key_samples):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
