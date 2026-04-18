@@ -217,7 +217,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Pretrained CNN Frozen":
         target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -225,7 +225,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Pretrained CNN Fine-tuned":
         target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
         file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -272,7 +272,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Pretrained CNN Frozen":
         target_map = target_dir / "best_resnet50_model_labels.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -280,7 +280,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Pretrained CNN Fine-tuned":
         target_map = target_dir / "best_resnet50_finetuned_labels.json"
         file_id = PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -335,13 +335,9 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         label2id = mp.get("label2id", {})
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if id2label is None:
-        raise ValueError(f"{model_choice} label mapping missing id2label")
-    if label2id is None:
-        raise ValueError(f"{model_choice} label mapping missing label2id")
-    if isinstance(next(iter(id2label.keys())), str):
-        id2label = {int(k): v for k, v in id2label.items()}
-    label2id = {str(k): int(v) for k, v in label2id.items()}
+    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
+        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
 
     if model_choice == "MBLANet":
         model = MBLANet(
@@ -380,19 +376,21 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     if not isinstance(state_dict, dict):
         raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
 
-    # Some checkpoints are saved with different wrappers.
-    # Handle the common cases explicitly so the scratch branch matches cnn_scratch.py.
+    # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
+    # Others may be wrapped with "module." from DataParallel.
     key_samples = list(state_dict.keys())
-    if key_samples and all(k.startswith("module.") for k in key_samples):
+    if key_samples and all(k.startswith("model.") for k in key_samples):
+        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
+    elif key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-
-    if model_choice == "CNN Scratch" and key_samples and not any(k.startswith("model.") for k in key_samples):
-        state_dict = {f"model.{k}": v for k, v in state_dict.items()}
 
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
+        if model_choice == "Pretrained CNN Frozen":
+            st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
+        else:
+            st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
@@ -625,7 +623,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
-    if model_choice == "Frozen ResNet50" or model_choice == "Fine-tuned ResNet50":
+    if model_choice == "Pretrained CNN Frozen":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
         cache = {}
@@ -636,52 +634,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         def bwd_hook(_m, _gi, go):
             cache["grad"] = go[0]
 
-        target_layer = model.model.layer4[-1].conv2
+        target_layer = model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
 
         logits = model(x)
-        probs = torch.softmax(logits, dim=1)[0]
-        top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
-        pred_idx = int(top_idx[0].item())
-
-        model.zero_grad(set_to_none=True)
-        logits[0, pred_idx].backward()
-
-        h1.remove(); h2.remove()
-
-        sal = x.grad.detach()[0].abs().max(dim=0).values.cpu().numpy()
-        sal = _norm01(sal)
-        saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), sal, alpha=0.50)
-
-        act = cache["act"][0]
-        grad = cache["grad"][0]
-        w = grad.mean(dim=(1, 2), keepdim=True)
-        cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
-        cam = _norm01(cam)
-        gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
-
-        attn_overlay = None
-        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
-        return rows, saliency_overlay, gradcam_overlay, attn_overlay
-
-    if model_choice == "CNN Scratch":
-        x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
-
-        cache = {}
-
-        def fwd_hook(_m, _i, o):
-            cache["act"] = o
-
-        def bwd_hook(_m, _gi, go):
-            cache["grad"] = go[0]
-
-        target_layer = model.model.layer4[-1].conv2
-        h1 = target_layer.register_forward_hook(fwd_hook)
-        h2 = target_layer.register_full_backward_hook(bwd_hook)
-        h3 = None
-        logits = model(x)
-
         probs = torch.softmax(logits, dim=1)[0]
         top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
         pred_idx = int(top_idx[0].item())
@@ -717,7 +674,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     def bwd_hook(_m, _gi, go):
         cache["grad"] = go[0]
 
-    if model_choice == "Attention CNN (MBLANet)":
+    if model_choice == "MBLANet":
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
@@ -729,7 +686,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
         logits = model(x)
     else:
-        raise ValueError(f"Unsupported model choice for visualization: {model_choice}")
+        target_layer = model.layer4[-1].conv2
+        h1 = target_layer.register_forward_hook(fwd_hook)
+        h2 = target_layer.register_full_backward_hook(bwd_hook)
+        h3 = None
+        logits = model(x)
 
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
