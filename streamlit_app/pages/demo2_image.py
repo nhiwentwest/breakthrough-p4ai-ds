@@ -292,7 +292,7 @@ def load_model_and_labels(model_choice: str):
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
-        if not id2label:
+        if not id2label or not all(isinstance(v, str) for v in id2label.values()):
             id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
         return svm, id2label, None, str(ckpt_path)
 
@@ -750,9 +750,6 @@ with right:
 
             if model_choice == "SVM + ResNet50":
                 st.markdown("---")
-                st.markdown("**Model assets**")
-                st.write("- ResNet50 feature extractor + SVM joblib")
-                st.write("- Label mapping loaded from the provided mapping file")
                 st.image(saliency_overlay, caption="Input image", use_container_width=True)
             else:
                 st.markdown("---")
