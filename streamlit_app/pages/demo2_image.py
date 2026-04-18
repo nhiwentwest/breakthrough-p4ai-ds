@@ -622,6 +622,19 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
     if model_choice == "Pretrained CNN Frozen":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
+
+        cache = {}
+
+        def fwd_hook(_m, _i, o):
+            cache["act"] = o
+
+        def bwd_hook(_m, _gi, go):
+            cache["grad"] = go[0]
+
+        target_layer = model.layer4[-1].conv2
+        h1 = target_layer.register_forward_hook(fwd_hook)
+        h2 = target_layer.register_full_backward_hook(bwd_hook)
+
         logits = model(x)
         probs = torch.softmax(logits, dim=1)[0]
         top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
@@ -629,9 +642,20 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
         model.zero_grad(set_to_none=True)
         logits[0, pred_idx].backward()
+
+        h1.remove(); h2.remove()
+
         sal = x.grad.detach()[0].abs().max(dim=0).values.cpu().numpy()
-        saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), _norm01(sal), alpha=0.50)
-        gradcam_overlay = saliency_overlay
+        sal = _norm01(sal)
+        saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), sal, alpha=0.50)
+
+        act = cache["act"][0]
+        grad = cache["grad"][0]
+        w = grad.mean(dim=(1, 2), keepdim=True)
+        cam = F.relu((w * act).sum(dim=0)).detach().cpu().numpy()
+        cam = _norm01(cam)
+        gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
+
         attn_overlay = None
         rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
