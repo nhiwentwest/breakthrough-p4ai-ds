@@ -306,9 +306,12 @@ def ensure_label_mapping_from_drive(model_choice: str):
 
 
 @st.cache_resource(show_spinner=True)
-def load_model_and_labels(model_choice: str):
-    ckpt_path = ensure_checkpoint_from_drive(model_choice)
-    map_path = ensure_label_mapping_from_drive(model_choice)
+def get_checkpoint_and_mapping(model_choice: str):
+    return str(ensure_checkpoint_from_drive(model_choice)), str(ensure_label_mapping_from_drive(model_choice))
+
+
+@st.cache_resource(show_spinner=True)
+def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if model_choice == "SVM + ResNet50":
@@ -838,7 +841,8 @@ with right:
         else:
             if model is None or id2label is None or device is None:
                 with st.spinner(f"Loading {model_choice} checkpoint for prediction..."):
-                    model, id2label, device, _ckpt_used = load_model_and_labels(model_choice)
+                    ckpt_path, map_path = get_checkpoint_and_mapping(model_choice)
+                    model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path, map_path)
             with st.spinner("Running inference..."):
                 topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
