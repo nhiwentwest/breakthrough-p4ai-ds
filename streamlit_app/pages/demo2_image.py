@@ -176,7 +176,9 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
     ],
     "SVM + ResNet50": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_label_mapping.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_mblanet.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
     ],
 }
 
@@ -326,9 +328,12 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         svm = joblib.load(ckpt_path)
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
-        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
-        if not id2label or not all(isinstance(v, str) for v in id2label.values()):
-            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        id2label_raw = mp.get("id2label", {})
+        id2label = {int(k): v for k, v in id2label_raw.items()}
+        if not id2label:
+            raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
+        if not all(isinstance(v, str) for v in id2label.values()):
+            raise ValueError(f"Invalid id2label values in mapping file: {map_path}")
         return svm, id2label, None, str(ckpt_path)
 
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -343,9 +348,10 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         label2id = mp.get("label2id", {})
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
-        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
-        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
+    if id2label is None or not id2label:
+        raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
+    if any(not isinstance(v, str) for v in id2label.values()):
+        raise ValueError(f"Invalid id2label values in mapping file: {map_path}")
 
     if model_choice == "MBLANet":
         model = MBLANet(
@@ -632,27 +638,12 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         probs = model.predict_proba(feats)[0]
         top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
         top_vals = probs[top_idx]
-        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
-        overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
-        return rows, overlay, overlay, None
-
-    if model_choice == "SVM + ResNet50":
-        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        base_model.fc = nn.Identity()
-        base_model.eval()
-
-        def extract_feats(img_tensor):
-            with torch.no_grad():
-                return base_model(img_tensor).cpu().numpy()
-
-        feats = extract_feats(preprocess_image(img_pil))
-        probs = model.predict_proba(feats)[0]
-        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
-        top_vals = probs[top_idx]
         rows = []
         for p, i in zip(top_vals, top_idx):
-            label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
-            rows.append((label, float(p)))
+            idx = int(i)
+            if idx not in id2label:
+                raise KeyError(f"SVM predicted class index {idx} not found in label mapping")
+            rows.append((id2label[idx], float(p)))
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
@@ -695,8 +686,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_overlay = None
         rows = []
         for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
-            label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
-            rows.append((label, float(p)))
+            idx = int(i)
+            if idx not in id2label:
+                raise KeyError(f"Frozen CNN predicted class index {idx} not found in label mapping")
+            rows.append((id2label[idx], float(p)))
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
