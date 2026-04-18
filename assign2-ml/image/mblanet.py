@@ -179,7 +179,14 @@ class LSAM(nn.Module):
         fused = torch.cat([max_desc, avg_desc], dim=1)
         fused = self.dilated(fused)
         fused = torch.nn.functional.interpolate(fused, size=x.shape[-2:], mode='nearest')
-        return self.sigmoid(fused)
+        attn = self.sigmoid(fused)
+        self.raw_attn = attn
+        self.att_map = attn
+        self.input_stats = {
+            "shape": tuple(x.shape),
+            "kernel_size": int(k),
+        }
+        return attn
 
 class CLAM(nn.Module):
     def __init__(self, channels):
@@ -361,7 +368,7 @@ def generate_visualizations(model, test_loader, device, output_dir, max_samples=
                 last_block = layer[-1]
                 if hasattr(last_block, "clam") and hasattr(last_block.clam, "lsam"):
                     _ = model(xi)
-                    attn = last_block.clam.lsam.raw_attn
+                    attn = getattr(last_block.clam.lsam, "raw_attn", None)
                     if attn is not None:
                         attn_np = attn.detach().cpu().numpy() if torch.is_tensor(attn) else np.asarray(attn)
                         attn_map = attn_np[0, 0] if attn_np.ndim == 4 else attn_np.squeeze()
