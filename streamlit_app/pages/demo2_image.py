@@ -327,7 +327,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             raise ValueError("SVM label mapping id2label is invalid")
         return svm, id2label, None, str(ckpt_path)
 
-    ckpt = torch.load(ckpt_path, map_location=device)
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
 
     cfg = ckpt.get("cfg", {})
     label2id = ckpt.get("label2id", None)
@@ -391,6 +391,8 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     try:
         if model_choice == "CNN (ResNet18)" and key_samples and not any(k.startswith("model.") for k in key_samples):
             state_dict = {f"model.{k}": v for k, v in state_dict.items()}
+        if model_choice == "Fine-tuned ResNet50" and key_samples and any(k.startswith("model.") for k in key_samples):
+            state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
         st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
