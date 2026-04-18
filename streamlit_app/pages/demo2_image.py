@@ -6,8 +6,10 @@ import importlib.util
 from pathlib import Path
 
 import gdown
+import joblib
 import numpy as np
 import streamlit as st
+import tensorflow as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -104,6 +106,40 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
+class PretrainedResNet50Frozen(tf.keras.Model):
+    def __init__(self, num_classes=33):
+        super().__init__()
+        self.base = tf.keras.applications.ResNet50(
+            include_top=False,
+            weights="imagenet",
+            input_shape=(224, 224, 3),
+        )
+        self.base.trainable = False
+        self.pool = tf.keras.layers.GlobalAveragePooling2D()
+        self.dropout = tf.keras.layers.Dropout(0.3)
+        self.classifier = tf.keras.layers.Dense(num_classes, activation="softmax")
+
+    def call(self, inputs, training=False):
+        x = tf.keras.applications.resnet50.preprocess_input(inputs)
+        x = self.base(x, training=False)
+        x = self.pool(x)
+        x = self.dropout(x, training=training)
+        return self.classifier(x)
+
+
+class ResNet50FeatureExtractor(nn.Module):
+    def __init__(self, model_path: str):
+        super().__init__()
+        self.model = tf.keras.models.load_model(model_path)
+
+    def extract(self, image_pil: Image.Image):
+        arr = np.array(image_pil.convert("RGB"), dtype=np.float32)
+        arr = tf.image.resize(arr, (224, 224))
+        arr = tf.keras.applications.resnet50.preprocess_input(arr)
+        feats = self.model.predict(np.expand_dims(arr, axis=0), verbose=0)
+        return feats
+
+
 # =========================
 # Paths + model loading
 # =========================
@@ -120,6 +156,13 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
+    "Pretrained CNN Frozen": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.keras",
+    ],
+    "SVM + ResNet50": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_feature_extractor.keras",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
+    ],
 }
 
 MAPPING_CANDIDATES = {
@@ -132,6 +175,13 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
+    ],
+    "Pretrained CNN Frozen": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
+    ],
+    "SVM + ResNet50": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_label_mapping.json",
     ],
 }
 
@@ -149,6 +199,9 @@ MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
+PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "1wCFd6T5b2D4XaBy6iJTvu-2sheeATUn7"
+PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1eDPZVnalAKwpkLbjN8v_nw83vXdkDoRH"
+SVM_JOBLIB_FILE_ID = "1IdUgQx5KeCUehWOtBIfeFPhjBXwd_AsY"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
 FORCE_DRIVE_REFRESH = False
@@ -177,6 +230,14 @@ def ensure_checkpoint_from_drive(model_choice: str):
     elif model_choice == "Pretrained CNN Frozen":
         target_ckpt = target_dir / "best_resnet50_model.keras"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
+        if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+                target_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_ckpt), quiet=False)
+    elif model_choice == "SVM + ResNet50":
+        target_ckpt = target_dir / "svm_model.joblib"
+        file_id = SVM_JOBLIB_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_ckpt.exists():
                 target_ckpt.unlink()
@@ -215,15 +276,20 @@ def ensure_label_mapping_from_drive(model_choice: str):
             gdown.download(url, str(target_map), quiet=False)
     elif model_choice == "Pretrained CNN Frozen":
         target_map = target_dir / "best_resnet50_model_labels.json"
-        if not target_map.exists() or target_map.stat().st_size == 0:
-            # Try to reuse the same RSITMD label mapping used by the other image models.
-            fallback = target_dir / "label_mapping_mblanet.json"
-            if fallback.exists() and fallback.stat().st_size > 0:
-                return fallback
-            fallback = target_dir / "label_mapping_cnn_scratch.json"
-            if fallback.exists() and fallback.stat().st_size > 0:
-                return fallback
-            return target_map
+        file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
+        if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_map.exists():
+                target_map.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_map), quiet=False)
+    elif model_choice == "SVM + ResNet50":
+        target_map = target_dir / "resnet50_label_mapping.json"
+        file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
+        if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_map.exists():
+                target_map.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_map), quiet=False)
     else:
         raise ValueError(f"Unknown model choice: {model_choice}")
 
@@ -239,6 +305,15 @@ def load_model_and_labels(model_choice: str):
     map_path = ensure_label_mapping_from_drive(model_choice)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if model_choice == "SVM + ResNet50":
+        svm = joblib.load(ckpt_path)
+        with open(map_path, "r", encoding="utf-8") as f:
+            mp = json.load(f)
+        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
+        if not id2label:
+            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        return svm, id2label, None, str(ckpt_path)
+
     ckpt = torch.load(ckpt_path, map_location=device)
 
     cfg = ckpt.get("cfg", {})
@@ -479,6 +554,32 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
+    if model_choice == "SVM + ResNet50":
+        feat_extractor_path = PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_feature_extractor.keras"
+        if feat_extractor_path.exists():
+            feature_model = tf.keras.models.load_model(feat_extractor_path)
+            arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
+            arr = tf.image.resize(arr, (224, 224))
+            arr = tf.keras.applications.resnet50.preprocess_input(arr)
+            feats = feature_model.predict(np.expand_dims(arr, axis=0), verbose=0)
+        else:
+            base_model = tf.keras.applications.ResNet50(
+                include_top=False,
+                weights="imagenet",
+                input_shape=(224, 224, 3),
+            )
+            arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
+            arr = tf.image.resize(arr, (224, 224))
+            arr = tf.keras.applications.resnet50.preprocess_input(arr)
+            feats = tf.keras.layers.GlobalAveragePooling2D()(base_model(np.expand_dims(arr, axis=0), training=False)).numpy()
+
+        probs = model.predict_proba(feats)[0]
+        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
+        top_vals = probs[top_idx]
+        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
+        overlay = _to_uint8(img_pil)
+        return rows, overlay, overlay, None
+
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
 
     # hooks for saliency + Grad-CAM
@@ -547,7 +648,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 # =========================
 st.markdown("<p class='hero'>Demo 2 · Image Classification</p>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='sub'>Editor-style inference console with bento layout · MBLANet and CNN Scratch.</p>",
+    "<p class='sub'>Editor-style inference console with bento layout · MBLANet, CNN Scratch, Pretrained CNN Frozen, and SVM + ResNet50.</p>",
     unsafe_allow_html=True,
 )
 
@@ -568,7 +669,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "SVM + ResNet50"], index=0)
 
 
     model = None
@@ -671,22 +772,29 @@ with right:
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
 
-            st.markdown("---")
-            st.markdown("**Visual Explanations**")
-            if attention_overlay is not None:
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                with c2:
-                    st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
-                with c3:
-                    st.image(attention_overlay, caption="Attention map", use_container_width=True)
+            if model_choice == "SVM + ResNet50":
+                st.markdown("---")
+                st.markdown("**Model assets**")
+                st.write("- ResNet50 feature extractor + SVM joblib")
+                st.write("- Label mapping loaded from the provided mapping file")
+                st.image(saliency_overlay, caption="Input image", use_container_width=True)
             else:
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                with c2:
-                    st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
+                st.markdown("---")
+                st.markdown("**Visual Explanations**")
+                if attention_overlay is not None:
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                    with c2:
+                        st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+                    with c3:
+                        st.image(attention_overlay, caption="Attention map", use_container_width=True)
+                else:
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                    with c2:
+                        st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
     else:
         st.info("Upload image and click Predict.")
 
