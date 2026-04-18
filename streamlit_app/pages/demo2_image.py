@@ -217,16 +217,16 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
-        target_ckpt = target_dir / "resnet50_extractor.pt"
+    elif model_choice == "Frozen ResNet50":
+        target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_ckpt.exists():
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Frozen ResNet50":
-        target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
+    elif model_choice == "Fine-tuned ResNet50":
+        target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_ckpt.exists():
