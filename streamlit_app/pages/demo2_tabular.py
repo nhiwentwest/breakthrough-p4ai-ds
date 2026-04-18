@@ -212,14 +212,18 @@ with right:
             for name in ["Linear Regression", "Random Forest Regressor", "Gradient Boosting Regressor"]:
                 m, s, cols, _ = load_tabular_model(name)
                 score = evaluate_model_on_insurance(m, s, cols, X_test, y_test)
-                metrics_rows.append({"Model": name, **score})
-
-            metrics_df = pd.DataFrame(metrics_rows)
+                metrics_rows.append((name, score))
 
             st.metric("Predicted target", f"{pred_value:.3f}")
             st.caption(f"Model used: {model_name}")
-            st.markdown("### Model comparison")
-            st.dataframe(metrics_df.style.format({"MSE": "{:.2f}", "MAE": "{:.2f}", "RMSE": "{:.2f}", "R2": "{:.4f}"}), use_container_width=True, hide_index=True)
+            st.markdown("### Per-model metrics")
+            for name, score in metrics_rows:
+                st.markdown(f"**{name}**")
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("MSE", f"{score['MSE']:.2f}")
+                c2.metric("MAE", f"{score['MAE']:.2f}")
+                c3.metric("RMSE", f"{score['RMSE']:.2f}")
+                c4.metric("R²", f"{score['R2']:.4f}")
             st.markdown("### Feature snapshot")
             st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
     else:
