@@ -376,12 +376,11 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     if not isinstance(state_dict, dict):
         raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
 
-    # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
-    # Others may be wrapped with "module." from DataParallel.
+    # Some checkpoints may be wrapped with "module." from DataParallel.
+    # Keep the "model." prefix intact because CNNScratch/MBLANet store the
+    # actual backbone under `self.model`, so stripping it would break loading.
     key_samples = list(state_dict.keys())
-    if key_samples and all(k.startswith("model.") for k in key_samples):
-        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
-    elif key_samples and all(k.startswith("module.") for k in key_samples):
+    if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
 
     try:
@@ -389,8 +388,12 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     except RuntimeError as e:
         if model_choice == "Pretrained CNN Frozen":
             st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
-        else:
+        elif model_choice == "Pretrained CNN Fine-tuned":
             st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
+        elif model_choice == "CNN Scratch":
+            st.error(f"CNN Scratch checkpoint does not match ResNet18 scratch architecture: {e}")
+        else:
+            st.error(f"MBLANet checkpoint does not match expected architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
