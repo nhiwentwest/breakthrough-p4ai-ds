@@ -1,5 +1,9 @@
-import streamlit as st
+import json
+from pathlib import Path
+
+import joblib
 import numpy as np
+import streamlit as st
 
 st.set_page_config(page_title="Demo 2 · Tabular Regression", page_icon="📊", layout="wide")
 
@@ -9,6 +13,8 @@ TEXT = "#111111"
 ACC = "#B42318"
 MUT = "#6B6560"
 BOR = "#D4C9B8"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CHECKPOINT_DIR = PROJECT_ROOT / "streamlit_app" / "checkpoints"
 
 st.markdown(f"""
 <style>
@@ -22,22 +28,85 @@ body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-s
 .section {{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.6rem; }}
 .stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
+.small-note {{ color:{MUT}; font-size:0.82rem; }}
+.kpi-grid {{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.65rem; margin:.8rem 0 1rem; }}
+.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.65rem .8rem; }}
+.kpi-lbl {{ font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
+.kpi-val {{ font-weight:700; font-size:1rem; margin-top:.15rem; }}
 </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<p class='hero'>Demo 2 · Tabular Regression</p>", unsafe_allow_html=True)
-st.markdown("<p class='sub'>Editor-style demo for structured numerical prediction.</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub'>Load real tabular models from the provided checkpoint assets.</p>", unsafe_allow_html=True)
+
+MODEL_ASSETS = {
+    "Linear Regression": {
+        "model": "linear_regression.joblib",
+        "scaler": "scaler.joblib",
+        "feature_columns": "feature_columns.json",
+        "kind": "regression",
+    },
+    "Random Forest Regressor": {
+        "model": "random_forest.joblib",
+        "scaler": "scaler.joblib",
+        "feature_columns": "feature_columns.json",
+        "kind": "regression",
+    },
+    "Gradient Boosting Regressor": {
+        "model": "gradient_boosting.joblib",
+        "scaler": "scaler.joblib",
+        "feature_columns": "feature_columns.json",
+        "kind": "regression",
+    },
+}
+
+
+def _resolve_asset(filename: str) -> Path:
+    candidate = CHECKPOINT_DIR / filename
+    if candidate.exists():
+        return candidate
+    return candidate
+
+
+@st.cache_resource(show_spinner=True)
+def load_tabular_model(model_name: str):
+    assets = MODEL_ASSETS[model_name]
+    model_path = _resolve_asset(assets["model"])
+    scaler_path = _resolve_asset(assets["scaler"])
+    feature_path = _resolve_asset(assets["feature_columns"])
+
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+    with open(feature_path, "r", encoding="utf-8") as f:
+        feature_columns = json.load(f)
+
+    return model, scaler, feature_columns, str(model_path)
+
+
+def build_feature_row(gdp, social, life, freedom, generosity, corruption):
+    return {
+        "GDP per capita": gdp,
+        "Social support": social,
+        "Healthy life expectancy": life,
+        "Freedom to make life choices": freedom,
+        "Generosity": generosity,
+        "Perceptions of corruption": corruption,
+    }
+
 
 left, right = st.columns([1.2, 1])
 
 with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model Selection</div>", unsafe_allow_html=True)
-    model = st.selectbox("Choose regression model", [
-        "XGBoost Regressor",
-        "Random Forest Regressor",
-        "Linear Regression",
-    ])
+    model_name = st.selectbox(
+        "Choose model",
+        [
+            "Linear Regression",
+            "Random Forest Regressor",
+            "Gradient Boosting Regressor",
+        ],
+    )
 
     st.markdown("<div class='section'>Input Features</div>", unsafe_allow_html=True)
     c1, c2 = st.columns(2)
@@ -58,13 +127,22 @@ with right:
     st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
 
     if pred_btn:
-        score = (
-            2.3 + 1.15*gdp + 1.05*social + 0.95*life + 0.65*freedom + 0.25*generosity - 0.35*corruption
-        )
-        jitter = {"XGBoost Regressor": 0.05, "Random Forest Regressor": 0.02, "Linear Regression": -0.03}[model]
-        score = float(np.clip(score + jitter, 2.0, 8.5))
-        st.metric("Predicted target", f"{score:.3f}")
-        st.caption(f"Model used: {model}")
+        model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
+        feature_row = build_feature_row(gdp, social, life, freedom, generosity, corruption)
+
+        missing_cols = [c for c in feature_columns if c not in feature_row]
+        if missing_cols:
+            st.error(f"Missing required feature columns: {missing_cols}")
+        else:
+            ordered = np.array([[feature_row[c] for c in feature_columns]], dtype=np.float32)
+            scaled = scaler.transform(ordered)
+            pred = model.predict(scaled)
+            pred_value = float(np.ravel(pred)[0])
+
+            st.metric("Predicted target", f"{pred_value:.3f}")
+            st.caption(f"Model used: {model_name}")
+            st.markdown("### Feature snapshot")
+            st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
     else:
         st.info("Fill features and click Predict.")
 
