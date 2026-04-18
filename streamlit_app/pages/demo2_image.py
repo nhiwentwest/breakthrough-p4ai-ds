@@ -691,11 +691,14 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         h3 = lsam_module.register_forward_hook(lsam_hook)
 
         logits = model(x)
-    else:
+    elif model_choice in {"Frozen ResNet50", "Fine-tuned ResNet50"}:
         target_layer = model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         h3 = None
+        logits = model(x)
+    else:
+        h1 = h2 = h3 = None
         logits = model(x)
 
     probs = torch.softmax(logits, dim=1)[0]
