@@ -105,6 +105,23 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
+class FrozenResNet50(nn.Module):
+    def __init__(self, num_classes=21, dropout=0.3, pretrained=True):
+        super().__init__()
+        weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+        self.model = models.resnet50(weights=weights)
+        for param in self.model.parameters():
+            param.requires_grad = False
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(in_features, num_classes),
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
 class PretrainedResNet50(nn.Module):
     def __init__(self, num_classes=21, dropout=0.3, pretrained=True):
         super().__init__()
@@ -351,7 +368,7 @@ def load_model_and_labels(model_choice: str):
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
     elif model_choice == "Pretrained CNN Frozen":
-        model = PretrainedResNet50(
+        model = FrozenResNet50(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
