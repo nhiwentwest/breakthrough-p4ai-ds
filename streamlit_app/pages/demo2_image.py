@@ -678,7 +678,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     def bwd_hook(_m, _gi, go):
         cache["grad"] = go[0]
 
-    if model_choice == "MBLANet":
+    if model_choice == "Attention CNN (MBLANet)":
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
