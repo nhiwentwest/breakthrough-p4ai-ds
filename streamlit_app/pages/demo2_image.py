@@ -626,8 +626,9 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
         top_vals = probs[top_idx]
         rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
-        overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
-        return rows, overlay, overlay, None
+        saliency_overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
+        gradcam_overlay = None
+        return rows, saliency_overlay, gradcam_overlay, None
 
     if model_choice == "Pretrained CNN Frozen":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
