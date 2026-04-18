@@ -217,7 +217,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Fine-tuned ResNet50":
         target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -225,7 +225,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Frozen ResNet50":
         target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
         file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -314,7 +314,7 @@ def get_checkpoint_and_mapping(model_choice: str):
 def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if model_choice == "Classical ML: ResNet50 Features + SVM":
+    if model_choice == "ResNet50 Features + SVM":
         svm = joblib.load(ckpt_path)
         if not map_path or not os.path.exists(map_path):
             raise FileNotFoundError(f"SVM label mapping file not found: {map_path}")
@@ -345,7 +345,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         raise KeyError("Label mapping must contain a 'label2id' dict")
     label2id = {str(k): int(v) for k, v in label2id.items()}
 
-    if model_choice == "MBLANet":
+    if model_choice == "Attention CNN (MBLANet)":
         model = MBLANet(
             num_classes=len(id2label),
             pretrained=False,
