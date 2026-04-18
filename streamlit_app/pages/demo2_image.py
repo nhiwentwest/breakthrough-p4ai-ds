@@ -626,7 +626,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
-    if model_choice == "Pretrained CNN Frozen":
+    if model_choice in ("Pretrained CNN Frozen", "CNN Scratch"):
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
         cache = {}
@@ -637,7 +637,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         def bwd_hook(_m, _gi, go):
             cache["grad"] = go[0]
 
-        target_layer = model.layer4[-1].conv2
+        target_layer = model.layer4[-1].conv2 if model_choice == "Pretrained CNN Frozen" else model.model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
 
