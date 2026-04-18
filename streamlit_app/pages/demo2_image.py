@@ -335,9 +335,13 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         label2id = mp.get("label2id", {})
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
-        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
-        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
+    if id2label is None:
+        raise ValueError(f"{model_choice} label mapping missing id2label")
+    if label2id is None:
+        raise ValueError(f"{model_choice} label mapping missing label2id")
+    if isinstance(next(iter(id2label.keys())), str):
+        id2label = {int(k): v for k, v in id2label.items()}
+    label2id = {str(k): int(v) for k, v in label2id.items()}
 
     if model_choice == "MBLANet":
         model = MBLANet(
@@ -387,10 +391,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        if model_choice == "Pretrained CNN Frozen":
-            st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
-        else:
-            st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
+        st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
