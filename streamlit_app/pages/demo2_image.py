@@ -375,7 +375,8 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints may be wrapped with "module." from DataParallel.
     # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
     # their checkpoints may also include a top-level `model.` prefix that must
-    # be preserved.
+    # be preserved. Frozen ResNet50 checkpoint is a plain state_dict with keys
+    # like conv1.weight, layer1.0..., and fc.weight/bias.
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
@@ -384,10 +385,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
     try:
-        if model_choice == "Pretrained CNN Frozen":
-            load_msg = model.load_state_dict(state_dict, strict=False)
-        else:
-            load_msg = model.load_state_dict(state_dict, strict=True)
+        load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
         if model_choice == "Pretrained CNN Frozen":
             st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
