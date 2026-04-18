@@ -125,6 +125,10 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pth",
     ],
+    "Pretrained CNN Fine-tuned": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pt",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pth",
+    ],
     "SVM + ResNet50": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
     ],
@@ -143,6 +147,9 @@ MAPPING_CANDIDATES = {
     ],
     "Pretrained CNN Frozen": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
+    ],
+    "Pretrained CNN Fine-tuned": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
     ],
     "SVM + ResNet50": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
@@ -247,6 +254,14 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
+    elif model_choice == "Pretrained CNN Fine-tuned":
+        target_map = target_dir / "best_resnet50_finetuned_labels.json"
+        file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
+        if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_map.exists():
+                target_map.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_map), quiet=False)
     elif model_choice == "SVM + ResNet50":
         target_map = target_dir / "resnet50_label_mapping.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
@@ -308,6 +323,11 @@ def load_model_and_labels(model_choice: str):
                     module.att_map = None
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
+    elif model_choice == "Pretrained CNN Fine-tuned":
+        model = CNNScratch(
+            num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
+        ).to(device)
     else:
         model = CNNScratch(
             num_classes=len(id2label),
@@ -602,7 +622,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 # =========================
 st.markdown("<p class='hero'>Demo 2 · Image Classification</p>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='sub'>Editor-style inference console with bento layout · MBLANet, CNN Scratch, Pretrained CNN Frozen, and SVM + ResNet50.</p>",
+    "<p class='sub'>Editor-style inference console with bento layout · MBLANet, CNN Scratch, Pretrained CNN Fine-tuned, and SVM + ResNet50.</p>",
     unsafe_allow_html=True,
 )
 
@@ -623,7 +643,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "SVM + ResNet50"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
 
 
     model = None
