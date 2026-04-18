@@ -209,6 +209,14 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
+    elif model_choice == "Pretrained CNN Fine-tuned":
+        target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
+        file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
+        if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and target_ckpt.exists():
+                target_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={file_id}"
+            gdown.download(url, str(target_ckpt), quiet=False)
     elif model_choice == "SVM + ResNet50":
         target_ckpt = target_dir / "svm_model.joblib"
         file_id = SVM_JOBLIB_FILE_ID
@@ -326,10 +334,13 @@ def load_model_and_labels(model_choice: str):
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
     elif model_choice == "Pretrained CNN Fine-tuned":
-        model = CNNScratch(
-            num_classes=len(id2label),
-            dropout=cfg.get("dropout", 0.3),
-        ).to(device)
+        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        in_features = model.fc.in_features
+        model.fc = nn.Sequential(
+            nn.Dropout(cfg.get("dropout", 0.3)),
+            nn.Linear(in_features, len(id2label)),
+        )
+        model = model.to(device)
     else:
         model = CNNScratch(
             num_classes=len(id2label),
@@ -749,7 +760,6 @@ with right:
                 st.write(f"- {label}: {prob:.2%}")
 
             if model_choice == "SVM + ResNet50":
-                st.markdown("---")
                 st.image(saliency_overlay, caption="Input image", use_container_width=True)
             else:
                 st.markdown("---")
