@@ -367,7 +367,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=True,
-            head_style="linear",
+            head_style="sequential",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
@@ -375,7 +375,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=False,
-            head_style="sequential",
+            head_style="linear",
         ).to(device)
     else:
         model = CNNScratch(
@@ -390,11 +390,12 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints may be wrapped with "module." from DataParallel.
     # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
     # their checkpoints may also include a top-level `model.` prefix that must
-    # be preserved. ResNet50 classifier checkpoints, however, should not keep it.
+    # be preserved. ResNet50 classifier checkpoints are expected to use the
+    # plain ResNet keys (conv1, bn1, layer1... fc.0/fc if present).
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-    if model_choice == "Pretrained CNN Fine-tuned":
+    if model_choice in ("Pretrained CNN Frozen", "Pretrained CNN Fine-tuned"):
         if key_samples and all(k.startswith("model.") for k in key_samples):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
