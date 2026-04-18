@@ -207,122 +207,126 @@ with left:
     pred_btn = st.button("Predict", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-# full-width diagnostics container under the main inputs
-st.markdown("<div class='bento'>", unsafe_allow_html=True)
-st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
+with right:
+    st.markdown("<div class='bento'>", unsafe_allow_html=True)
+    st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
 
-df = load_insurance_dataset()
-X_train, X_test, y_train, y_test = prepare_insurance_data(df)
+    df = load_insurance_dataset()
+    X_train, X_test, y_train, y_test = prepare_insurance_data(df)
 
-if pred_btn:
-    model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
-    feature_row = build_feature_row(age, bmi, children, sex, smoker, region)
+    if pred_btn:
+        model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
+        feature_row = build_feature_row(age, bmi, children, sex, smoker, region)
 
-    missing_cols = [c for c in feature_columns if c not in feature_row]
-    if missing_cols:
-        st.error(f"Missing required feature columns: {missing_cols}")
+        missing_cols = [c for c in feature_columns if c not in feature_row]
+        if missing_cols:
+            st.error(f"Missing required feature columns: {missing_cols}")
+        else:
+            ordered = np.array([[feature_row[c] for c in feature_columns]], dtype=np.float32)
+            scaled = scaler.transform(ordered)
+            pred = model.predict(scaled)
+            pred_value = float(np.ravel(pred)[0])
+            score = evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test)
+            eval_df = score["eval_df"]
+            residual_std = float(eval_df["residual"].std())
+            outlier_mask = eval_df["residual"].abs() > (2 * residual_std if residual_std > 0 else np.inf)
+            outlier_count = int(outlier_mask.sum())
+            abs_err_by_smoker = eval_df.assign(smoker_group=np.where(eval_df.get("smoker_yes", 0) == 1, "yes", "no")).groupby("smoker_group")["residual"].apply(lambda s: s.abs().mean())
+            abs_err_by_region = {}
+            for region_col, region_label in [("region_northwest", "northwest"), ("region_southeast", "southeast"), ("region_southwest", "southwest")]:
+                if region_col in eval_df.columns:
+                    abs_err_by_region[region_label] = float(eval_df.loc[eval_df[region_col] == 1, "residual"].abs().mean())
+            abs_err_by_sex = {
+                "female": float(eval_df.loc[eval_df.get("sex_male", 0) == 0, "residual"].abs().mean()),
+                "male": float(eval_df.loc[eval_df.get("sex_male", 0) == 1, "residual"].abs().mean()),
+            }
+
+            st.markdown(f"<div class='model-chip'>{model_name} ready</div>", unsafe_allow_html=True)
+            st.metric("Predicted target", f"{pred_value:.3f}")
+            st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
+            for label, value, small in [
+                ("MSE", score['MSE'], False),
+                ("MAE", score['MAE'], False),
+                ("RMSE", score['RMSE'], False),
+                ("R²", score['R2'], True),
+            ]:
+                st.markdown(
+                    f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value{' small' if small else ''}'>{value:.4f}</div></div>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+
     else:
-        ordered = np.array([[feature_row[c] for c in feature_columns]], dtype=np.float32)
-        scaled = scaler.transform(ordered)
-        pred = model.predict(scaled)
-        pred_value = float(np.ravel(pred)[0])
-        score = evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test)
-        eval_df = score["eval_df"]
-        residual_std = float(eval_df["residual"].std())
-        outlier_mask = eval_df["residual"].abs() > (2 * residual_std if residual_std > 0 else np.inf)
-        outlier_count = int(outlier_mask.sum())
-        abs_err_by_smoker = eval_df.assign(smoker_group=np.where(eval_df.get("smoker_yes", 0) == 1, "yes", "no")).groupby("smoker_group")["residual"].apply(lambda s: s.abs().mean())
-        abs_err_by_region = {}
-        for region_col, region_label in [("region_northwest", "northwest"), ("region_southeast", "southeast"), ("region_southwest", "southwest")]:
-            if region_col in eval_df.columns:
-                abs_err_by_region[region_label] = float(eval_df.loc[eval_df[region_col] == 1, "residual"].abs().mean())
-        abs_err_by_sex = {
-            "female": float(eval_df.loc[eval_df.get("sex_male", 0) == 0, "residual"].abs().mean()),
-            "male": float(eval_df.loc[eval_df.get("sex_male", 0) == 1, "residual"].abs().mean()),
-        }
-
-        st.markdown(f"<div class='model-chip'>{model_name} ready</div>", unsafe_allow_html=True)
-        st.metric("Predicted target", f"{pred_value:.3f}")
-        st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
-        for label, value, small in [
-            ("MSE", score['MSE'], False),
-            ("MAE", score['MAE'], False),
-            ("RMSE", score['RMSE'], False),
-            ("R²", score['R2'], True),
-        ]:
-            st.markdown(
-                f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value{' small' if small else ''}'>{value:.4f}</div></div>",
-                unsafe_allow_html=True,
-            )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-        tab_fit, tab_errors, tab_why = st.tabs(["Model fit", "Errors", "Why this prediction"])
-
-        with tab_fit:
-            fig_fit, ax = plt.subplots(figsize=(8.5, 4.5))
-            ax.scatter(eval_df["actual"], eval_df["pred"], s=18, alpha=0.65, color="#b42318")
-            mn = float(min(eval_df["actual"].min(), eval_df["pred"].min()))
-            mx = float(max(eval_df["actual"].max(), eval_df["pred"].max()))
-            ax.plot([mn, mx], [mn, mx], linestyle="--", color="#111111")
-            ax.set_xlabel("Actual charges")
-            ax.set_ylabel("Predicted charges")
-            ax.set_title("Actual vs Predicted")
-            st.pyplot(fig_fit, use_container_width=True)
-
-        with tab_errors:
-            c_left, c_right = st.columns(2)
-            with c_left:
-                fig_res, ax_res = plt.subplots(figsize=(6.2, 4))
-                ax_res.scatter(eval_df["pred"], eval_df["residual"], s=18, alpha=0.65, color="#4f46e5")
-                ax_res.axhline(0, linestyle="--", color="#111111")
-                ax_res.set_xlabel("Predicted charges")
-                ax_res.set_ylabel("Residuals (pred - actual)")
-                ax_res.set_title("Residuals vs Predicted")
-                st.pyplot(fig_res, use_container_width=True)
-            with c_right:
-                fig_hist, ax_hist = plt.subplots(figsize=(6.2, 4))
-                ax_hist.hist(eval_df["residual"], bins=30, color="#d97706", alpha=0.85)
-                ax_hist.axvline(0, linestyle="--", color="#111111")
-                ax_hist.set_xlabel("Residual")
-                ax_hist.set_ylabel("Count")
-                ax_hist.set_title("Residual Histogram")
-                st.pyplot(fig_hist, use_container_width=True)
-            st.markdown(f"**Outliers**: {outlier_count} points with residual > 2σ")
-
-        with tab_why:
-            top_features = []
-            feature_values = ordered[0]
-            if hasattr(model, "coef_"):
-                coefs = np.ravel(getattr(model, "coef_"))
-                for feat, val, coef in zip(feature_columns, feature_values, coefs):
-                    top_features.append((feat, float(abs(coef) * abs(val)), float(coef), float(val)))
-                top_features.sort(key=lambda x: x[1], reverse=True)
-                top_features = top_features[:5]
-            elif hasattr(model, "feature_importances_"):
-                imps = np.ravel(getattr(model, "feature_importances_"))
-                for feat, val, imp in zip(feature_columns, feature_values, imps):
-                    top_features.append((feat, float(imp), float(imp), float(val)))
-                top_features.sort(key=lambda x: x[1], reverse=True)
-                top_features = top_features[:5]
-            else:
-                top_features = [(feat, float(abs(val)), float(val), float(val)) for feat, val in zip(feature_columns, feature_values)][:5]
-
-            st.markdown("**Top feature influences for this input**")
-            for feat, score_v, direction, raw_v in top_features:
-                st.write(f"- {feat}: importance {score_v:.4f} | value {raw_v:.4f}")
-            st.markdown("**Segment view**")
-            seg1, seg2, seg3 = st.columns(3)
-            with seg1:
-                st.metric("MAE by sex", f"male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
-            with seg2:
-                smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
-                smoker_no = float(abs_err_by_smoker.get("no", np.nan))
-                st.metric("MAE by smoker", f"yes {smoker_yes:.2f} / no {smoker_no:.2f}")
-            with seg3:
-                region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
-                st.metric("MAE by region", region_summary)
-else:
-    st.info("Fill features and click Predict.")
+        st.info("Fill features and click Predict.")
 
 st.markdown("</div>", unsafe_allow_html=True)
-st.markdown("</div>", unsafe_allow_html=True)
+
+# full-width diagnostics section below both panels
+if pred_btn and 'score' in locals():
+    st.markdown("<div class='bento' style='margin-top:1rem;'>", unsafe_allow_html=True)
+    tab_fit, tab_errors, tab_why = st.tabs(["Model fit", "Errors", "Why this prediction"])
+
+    with tab_fit:
+        fig_fit, ax = plt.subplots(figsize=(8.5, 4.5))
+        ax.scatter(eval_df["actual"], eval_df["pred"], s=18, alpha=0.65, color="#b42318")
+        mn = float(min(eval_df["actual"].min(), eval_df["pred"].min()))
+        mx = float(max(eval_df["actual"].max(), eval_df["pred"].max()))
+        ax.plot([mn, mx], [mn, mx], linestyle="--", color="#111111")
+        ax.set_xlabel("Actual charges")
+        ax.set_ylabel("Predicted charges")
+        ax.set_title("Actual vs Predicted")
+        st.pyplot(fig_fit, use_container_width=True)
+
+    with tab_errors:
+        c_left, c_right = st.columns(2)
+        with c_left:
+            fig_res, ax_res = plt.subplots(figsize=(6.2, 4))
+            ax_res.scatter(eval_df["pred"], eval_df["residual"], s=18, alpha=0.65, color="#4f46e5")
+            ax_res.axhline(0, linestyle="--", color="#111111")
+            ax_res.set_xlabel("Predicted charges")
+            ax_res.set_ylabel("Residuals (pred - actual)")
+            ax_res.set_title("Residuals vs Predicted")
+            st.pyplot(fig_res, use_container_width=True)
+        with c_right:
+            fig_hist, ax_hist = plt.subplots(figsize=(6.2, 4))
+            ax_hist.hist(eval_df["residual"], bins=30, color="#d97706", alpha=0.85)
+            ax_hist.axvline(0, linestyle="--", color="#111111")
+            ax_hist.set_xlabel("Residual")
+            ax_hist.set_ylabel("Count")
+            ax_hist.set_title("Residual Histogram")
+            st.pyplot(fig_hist, use_container_width=True)
+        st.markdown(f"**Outliers**: {outlier_count} points with residual > 2σ")
+
+    with tab_why:
+        top_features = []
+        feature_values = ordered[0]
+        if hasattr(model, "coef_"):
+            coefs = np.ravel(getattr(model, "coef_"))
+            for feat, val, coef in zip(feature_columns, feature_values, coefs):
+                top_features.append((feat, float(abs(coef) * abs(val)), float(coef), float(val)))
+            top_features.sort(key=lambda x: x[1], reverse=True)
+            top_features = top_features[:5]
+        elif hasattr(model, "feature_importances_"):
+            imps = np.ravel(getattr(model, "feature_importances_"))
+            for feat, val, imp in zip(feature_columns, feature_values, imps):
+                top_features.append((feat, float(imp), float(imp), float(val)))
+            top_features.sort(key=lambda x: x[1], reverse=True)
+            top_features = top_features[:5]
+        else:
+            top_features = [(feat, float(abs(val)), float(val), float(val)) for feat, val in zip(feature_columns, feature_values)][:5]
+
+        st.markdown("**Top feature influences for this input**")
+        for feat, score_v, direction, raw_v in top_features:
+            st.write(f"- {feat}: importance {score_v:.4f} | value {raw_v:.4f}")
+        st.markdown("**Segment view**")
+        seg1, seg2, seg3 = st.columns(3)
+        with seg1:
+            st.metric("MAE by sex", f"male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
+        with seg2:
+            smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
+            smoker_no = float(abs_err_by_smoker.get("no", np.nan))
+            st.metric("MAE by smoker", f"yes {smoker_yes:.2f} / no {smoker_no:.2f}")
+        with seg3:
+            region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
+            st.metric("MAE by region", region_summary)
+    st.markdown("</div>", unsafe_allow_html=True)
