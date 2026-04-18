@@ -217,7 +217,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Pretrained CNN Frozen":
+    elif model_choice == "Frozen ResNet50":
         target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -225,7 +225,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Pretrained CNN Fine-tuned":
+    elif model_choice == "Fine-tuned ResNet50":
         target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
         file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -272,7 +272,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Pretrained CNN Frozen":
+    elif model_choice == "Frozen ResNet50":
         target_map = target_dir / "best_resnet50_model_labels.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -280,7 +280,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Pretrained CNN Fine-tuned":
+    elif model_choice == "Fine-tuned ResNet50":
         target_map = target_dir / "best_resnet50_finetuned_labels.json"
         file_id = PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -380,13 +380,14 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     if not isinstance(state_dict, dict):
         raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
 
-    # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
-    # Others may be wrapped with "module." from DataParallel.
+    # Some checkpoints are saved with different wrappers.
+    # Handle the common cases explicitly so the scratch branch matches cnn_scratch.py.
     key_samples = list(state_dict.keys())
-    if key_samples and all(k.startswith("model.") for k in key_samples):
-        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
-    elif key_samples and all(k.startswith("module.") for k in key_samples):
+    if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+
+    if model_choice == "CNN Scratch" and key_samples and not any(k.startswith("model.") for k in key_samples):
+        state_dict = {f"model.{k}": v for k, v in state_dict.items()}
 
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
@@ -624,7 +625,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
-    if model_choice == "Pretrained CNN Frozen":
+    if model_choice == "Frozen ResNet50":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
         cache = {}
