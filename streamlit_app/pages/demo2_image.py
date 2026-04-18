@@ -105,6 +105,21 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
+class PretrainedResNet50(nn.Module):
+    def __init__(self, num_classes=21, dropout=0.3, pretrained=True):
+        super().__init__()
+        weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+        self.model = models.resnet50(weights=weights)
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(in_features, num_classes),
+        )
+
+    def forward(self, x):
+        return self.model(x)
+
+
 # =========================
 # Paths + model loading
 # =========================
@@ -334,13 +349,11 @@ def load_model_and_labels(model_choice: str):
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
     elif model_choice == "Pretrained CNN Fine-tuned":
-        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        in_features = model.fc.in_features
-        model.fc = nn.Sequential(
-            nn.Dropout(cfg.get("dropout", 0.3)),
-            nn.Linear(in_features, len(id2label)),
-        )
-        model = model.to(device)
+        model = PretrainedResNet50(
+            num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
+            pretrained=True,
+        ).to(device)
     else:
         model = CNNScratch(
             num_classes=len(id2label),
