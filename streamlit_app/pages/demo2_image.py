@@ -385,14 +385,12 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
     # Others may be wrapped with "module." from DataParallel.
     key_samples = list(state_dict.keys())
-    if model_choice == "CNN (ResNet18)" and key_samples and not any(k.startswith("model.") for k in key_samples):
-        state_dict = {f"model.{k}": v for k, v in state_dict.items()}
-    elif key_samples and all(k.startswith("model.") for k in key_samples):
-        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
-    elif key_samples and all(k.startswith("module.") for k in key_samples):
+    if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
 
     try:
+        if model_choice == "CNN (ResNet18)" and key_samples and not any(k.startswith("model.") for k in key_samples):
+            state_dict = {f"model.{k}": v for k, v in state_dict.items()}
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
         st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
