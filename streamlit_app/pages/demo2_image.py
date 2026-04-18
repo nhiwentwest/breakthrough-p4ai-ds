@@ -125,49 +125,49 @@ def build_resnet50_classifier(num_classes: int, dropout: float = 0.3, pretrained
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 CHECKPOINT_CANDIDATES = {
-    "Attention CNN (MBLANet)": [
+    "MBLANet": [
         PROJECT_ROOT / "assign2-ml" / "outputs_mblanet" / "best_mblanet.pt",
         PROJECT_ROOT / "outputs_mblanet" / "best_mblanet.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_mblanet.pt",
     ],
-    "CNN (ResNet18)": [
+    "CNN Scratch": [
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
         PROJECT_ROOT / "outputs_cnn_scratch" / "best_cnn_scratch.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
-    "Frozen ResNet50": [
+    "Pretrained CNN Frozen": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pth",
     ],
-    "Fine-tuned ResNet50": [
+    "Pretrained CNN Fine-tuned": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_model.pth",
     ],
-    "ResNet50 Features + SVM": [
+    "SVM + ResNet50": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
     ],
 }
 
 MAPPING_CANDIDATES = {
-    "Attention CNN (MBLANet)": [
+    "MBLANet": [
         PROJECT_ROOT / "assign2-ml" / "outputs_mblanet" / "label_mapping.json",
         PROJECT_ROOT / "outputs_mblanet" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_mblanet.json",
     ],
-    "CNN (ResNet18)": [
+    "CNN Scratch": [
         PROJECT_ROOT / "assign2-ml" / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "outputs_cnn_scratch" / "label_mapping.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
     ],
-    "Frozen ResNet50": [
+    "Pretrained CNN Frozen": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor_labels.json",
     ],
-    "Fine-tuned ResNet50": [
+    "Pretrained CNN Fine-tuned": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
     ],
-    "Classical ML: ResNet50 Features + SVM": [
+    "SVM + ResNet50": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_label_mapping.json",
     ],
 }
@@ -201,7 +201,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    if model_choice == "Attention CNN (MBLANet)":
+    if model_choice == "MBLANet":
         target_ckpt = target_dir / "best_mblanet.pt"
         file_id = MBLANET_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -209,7 +209,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "CNN (ResNet18)":
+    elif model_choice == "CNN Scratch":
         target_ckpt = target_dir / "best_cnn_scratch.pt"
         file_id = CNN_SCRATCH_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -217,7 +217,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Pretrained CNN Frozen":
         target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -225,7 +225,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Pretrained CNN Fine-tuned":
         target_ckpt = target_dir / "best_resnet50_finetuned_model.pt"
         file_id = PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -233,7 +233,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
-    elif model_choice == "Classical ML: ResNet50 Features + SVM":
+    elif model_choice == "SVM + ResNet50":
         target_ckpt = target_dir / "svm_model.joblib"
         file_id = SVM_JOBLIB_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -254,7 +254,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
     target_dir = PROJECT_ROOT / "streamlit_app" / "checkpoints"
     target_dir.mkdir(parents=True, exist_ok=True)
 
-    if model_choice == "Attention CNN (MBLANet)":
+    if model_choice == "MBLANet":
         target_map = target_dir / "label_mapping_mblanet.json"
         file_id = MBLANET_LABEL_MAP_FILE_ID
         if file_id is None:
@@ -264,7 +264,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "CNN (ResNet18)":
+    elif model_choice == "CNN Scratch":
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -272,7 +272,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Pretrained CNN Frozen":
         target_map = target_dir / "best_resnet50_model_labels.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -280,7 +280,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Pretrained CNN Fine-tuned":
         target_map = target_dir / "best_resnet50_finetuned_labels.json"
         file_id = PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -288,7 +288,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Classical ML: ResNet50 Features + SVM":
+    elif model_choice == "SVM + ResNet50":
         target_map = target_dir / "resnet50_label_mapping.json"
         file_id = SVM_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -314,38 +314,32 @@ def get_checkpoint_and_mapping(model_choice: str):
 def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    if model_choice == "ResNet50 Features + SVM":
+    if model_choice == "SVM + ResNet50":
         svm = joblib.load(ckpt_path)
-        if not map_path or not os.path.exists(map_path):
-            raise FileNotFoundError(f"SVM label mapping file not found: {map_path}")
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
-        if "id2label" not in mp or not isinstance(mp["id2label"], dict):
-            raise KeyError("SVM label mapping must contain an 'id2label' dict")
-        id2label = {int(k): v for k, v in mp["id2label"].items()}
+        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
         if not id2label or not all(isinstance(v, str) for v in id2label.values()):
-            raise ValueError("SVM label mapping id2label is invalid")
+            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
         return svm, id2label, None, str(ckpt_path)
 
-    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    ckpt = torch.load(ckpt_path, map_location=device)
 
     cfg = ckpt.get("cfg", {})
     label2id = ckpt.get("label2id", None)
     id2label = ckpt.get("id2label", None)
 
-    if not map_path or not os.path.exists(map_path):
-        raise FileNotFoundError(f"Label mapping file not found: {map_path}")
-    with open(map_path, "r", encoding="utf-8") as f:
-        mp = json.load(f)
-    if "id2label" not in mp or not isinstance(mp["id2label"], dict):
-        raise KeyError("Label mapping must contain an 'id2label' dict")
-    id2label = {int(k): v for k, v in mp["id2label"].items()}
-    label2id = mp.get("label2id", None)
-    if label2id is None or not isinstance(label2id, dict):
-        raise KeyError("Label mapping must contain a 'label2id' dict")
-    label2id = {str(k): int(v) for k, v in label2id.items()}
+    if (label2id is None or id2label is None) and map_path is not None:
+        with open(map_path, "r", encoding="utf-8") as f:
+            mp = json.load(f)
+        label2id = mp.get("label2id", {})
+        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if model_choice == "Attention CNN (MBLANet)":
+    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
+        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
+
+    if model_choice == "MBLANet":
         model = MBLANet(
             num_classes=len(id2label),
             pretrained=False,
@@ -358,14 +352,14 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
                     module.att_map = None
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
-    elif model_choice == "Frozen ResNet50":
+    elif model_choice == "Pretrained CNN Frozen":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=True,
         ).to(device)
-    elif model_choice == "Fine-tuned ResNet50":
+    elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
@@ -385,17 +379,18 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
     # Others may be wrapped with "module." from DataParallel.
     key_samples = list(state_dict.keys())
-    if key_samples and all(k.startswith("module.") for k in key_samples):
+    if key_samples and all(k.startswith("model.") for k in key_samples):
+        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
+    elif key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
 
     try:
-        if model_choice == "CNN (ResNet18)" and key_samples and not any(k.startswith("model.") for k in key_samples):
-            state_dict = {f"model.{k}": v for k, v in state_dict.items()}
-        if model_choice == "Fine-tuned ResNet50" and key_samples and any(k.startswith("model.") for k in key_samples):
-            state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        st.error(f"{model_choice} checkpoint does not match the expected architecture: {e}")
+        if model_choice == "Pretrained CNN Frozen":
+            st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
+        else:
+            st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
@@ -611,7 +606,7 @@ def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_p
 
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
-    if model_choice == "Classical ML: ResNet50 Features + SVM":
+    if model_choice == "SVM + ResNet50":
         base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
         base_model.fc = nn.Identity()
         base_model.eval()
@@ -625,11 +620,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
         top_vals = probs[top_idx]
         rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
-        saliency_overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
-        gradcam_overlay = None
-        return rows, saliency_overlay, gradcam_overlay, None
+        overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
+        return rows, overlay, overlay, None
 
-    if model_choice == "Frozen ResNet50":
+    if model_choice == "Pretrained CNN Frozen":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
         cache = {}
@@ -680,7 +674,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     def bwd_hook(_m, _gi, go):
         cache["grad"] = go[0]
 
-    if model_choice == "Attention CNN (MBLANet)":
+    if model_choice == "MBLANet":
         target_layer = model.backbone.layer4
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
@@ -691,14 +685,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         h3 = lsam_module.register_forward_hook(lsam_hook)
 
         logits = model(x)
-    elif model_choice in {"Frozen ResNet50", "Fine-tuned ResNet50"}:
+    else:
         target_layer = model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         h3 = None
-        logits = model(x)
-    else:
-        h1 = h2 = h3 = None
         logits = model(x)
 
     probs = torch.softmax(logits, dim=1)[0]
@@ -724,7 +715,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
 
     attn_overlay = None
-    if model_choice == "Attention CNN (MBLANet)" and "lsam_map" in cache:
+    if model_choice == "MBLANet" and "lsam_map" in cache:
         attn_tensor = cache["lsam_map"]
         attn_np = attn_tensor.cpu().numpy()[0, 0]
         attn_np = _norm01(attn_np)
@@ -740,7 +731,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 # =========================
 st.markdown("<p class='hero'>Demo 2 · Image Classification</p>", unsafe_allow_html=True)
 st.markdown(
-    "<p class='sub'>Editor-style inference console with bento layout · Attention CNN (MBLANet), CNN (ResNet18), Frozen ResNet50, Fine-tuned ResNet50, and Classical ML: ResNet50 Features + SVM.</p>",
+    "<p class='sub'>Editor-style inference console with bento layout · MBLANet, CNN Scratch, Pretrained CNN Fine-tuned, and SVM + ResNet50.</p>",
     unsafe_allow_html=True,
 )
 
@@ -761,7 +752,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["Attention CNN (MBLANet)", "CNN (ResNet18)", "Frozen ResNet50", "Fine-tuned ResNet50", "Classical ML: ResNet50 Features + SVM"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
 
 
     model = None
@@ -886,7 +877,7 @@ with right:
                     with c1:
                         st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
                     with c2:
-                        st.image(gradcam_overlay, caption="Grad-CAM (CNN from scratch)", use_container_width=True)
+                        st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
     else:
         st.info("Upload image and click Predict.")
 
