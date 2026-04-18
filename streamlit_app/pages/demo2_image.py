@@ -152,6 +152,7 @@ CHECKPOINT_CANDIDATES = {
     ],
     "SVM + ResNet50": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor.pt",
     ],
 }
 
@@ -248,6 +249,14 @@ def ensure_checkpoint_from_drive(model_choice: str):
                 target_ckpt.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
+        
+        # Also ensure extractor is downloaded
+        extractor_ckpt = target_dir / "resnet50_extractor.pt"
+        if not extractor_ckpt.exists() or extractor_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
+            if FORCE_DRIVE_REFRESH and extractor_ckpt.exists():
+                extractor_ckpt.unlink()
+            url = f"https://drive.google.com/uc?id={SVM_EXTRACTOR_FILE_ID}"
+            gdown.download(url, str(extractor_ckpt), quiet=False)
     else:
         raise ValueError(f"Unknown model choice: {model_choice}")
 
@@ -329,9 +338,28 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         id2label = {int(k): v for k, v in id2label_raw.items()}
         if not id2label:
             raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
-        if not all(isinstance(v, str) for v in id2label.values()):
-            raise ValueError(f"Invalid id2label values in mapping file: {map_path}")
-        return svm, id2label, None, str(ckpt_path)
+        
+        # Load specialized extractor for SVM
+        extractor_path = Path(ckpt_path).parent / "resnet50_extractor.pt"
+        extractor = build_resnet50_backbone(pretrained=False)
+        if extractor_path.exists():
+            st_dict = torch.load(extractor_path, map_location=device)
+            if isinstance(st_dict, dict) and "model_state_dict" in st_dict:
+                st_dict = st_dict["model_state_dict"]
+            
+            # Prefix stripping
+            keys = list(st_dict.keys())
+            if keys and all(k.startswith("module.") for k in keys):
+                st_dict = {k.replace("module.", "", 1): v for k, v in st_dict.items()}
+            if keys and all(k.startswith("model.") for k in keys):
+                st_dict = {k.replace("model.", "", 1): v for k, v in st_dict.items()}
+                
+            extractor.load_state_dict(st_dict, strict=False)
+        
+        extractor.fc = nn.Identity()
+        extractor.to(device).eval()
+
+        return {"svm": svm, "extractor": extractor}, id2label, device, str(ckpt_path)
 
     ckpt = torch.load(ckpt_path, map_location=device)
 
@@ -627,23 +655,22 @@ def _display_label(id2label, idx):
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
-        base_model = build_resnet50_backbone(pretrained=True)
-        base_model.fc = nn.Identity()
-        base_model.eval()
+        svm_model = model["svm"]
+        extractor = model["extractor"]
 
         def extract_feats(img_tensor):
             with torch.no_grad():
-                return base_model(img_tensor).cpu().numpy()
+                return extractor(img_tensor.to(device)).cpu().numpy()
 
         feats = extract_feats(preprocess_image(img_pil))
-        probs = model.predict_proba(feats)[0]
+        probs = svm_model.predict_proba(feats)[0]
         top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
         top_vals = probs[top_idx]
         rows = []
         for p, i in zip(top_vals, top_idx):
             idx = int(i)
             rows.append((_display_label(id2label, idx), float(p)))
-        overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
+        overlay = _occlusion_sensitivity_heatmap(extract_feats, svm_model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
     if model_choice in ("Pretrained CNN Frozen", "CNN Scratch"):
