@@ -618,6 +618,11 @@ def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_p
     return _apply_heatmap_overlay(arr, heat, alpha=0.55)
 
 
+def _display_label(id2label, idx):
+    label = id2label.get(int(idx), int(idx))
+    return label if isinstance(label, str) else RSITMD_CLASSES[int(idx)]
+
+
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
         base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
@@ -635,9 +640,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         rows = []
         for p, i in zip(top_vals, top_idx):
             idx = int(i)
-            if idx not in id2label:
-                raise KeyError(f"SVM predicted class index {idx} not found in label mapping")
-            rows.append((id2label[idx], float(p)))
+            rows.append((_display_label(id2label, idx), float(p)))
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
@@ -681,9 +684,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         rows = []
         for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
             idx = int(i)
-            if idx not in id2label:
-                raise KeyError(f"Frozen CNN predicted class index {idx} not found in label mapping")
-            rows.append((id2label[idx], float(p)))
+            rows.append((_display_label(id2label, idx), float(p)))
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
@@ -744,7 +745,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_np = _norm01(attn_np)
         attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_np, alpha=0.60)
 
-    rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+    rows = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
     return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
 
