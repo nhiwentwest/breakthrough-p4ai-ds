@@ -350,6 +350,12 @@ def load_model_and_labels(model_choice: str):
                     module.att_map = None
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
+    elif model_choice == "Pretrained CNN Frozen":
+        model = PretrainedResNet50(
+            num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
+            pretrained=True,
+        ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = PretrainedResNet50(
             num_classes=len(id2label),
@@ -374,7 +380,11 @@ def load_model_and_labels(model_choice: str):
     elif key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
 
-    load_msg = model.load_state_dict(state_dict, strict=True)
+    try:
+        load_msg = model.load_state_dict(state_dict, strict=True)
+    except RuntimeError:
+        load_msg = model.load_state_dict(state_dict, strict=False)
+        st.warning("Checkpoint keys did not match exactly; loaded with strict=False.")
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
     if len(load_msg.missing_keys) > 0:
