@@ -183,13 +183,13 @@ RSITMD_CLASSES = [
 MBLANET_CHECKPOINT_FILE_ID = "1JOHbgznyN358XsnUX4jGYAjQc_wsjKZI"
 MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
-CNN_SCRATCH_CHECKPOINT_FILE_ID = "1YqCQ_mWWJZp9yHHur1Pm_tVEnnERDzD0"
-CNN_SCRATCH_LABEL_MAP_FILE_ID = "1yp4Wf8-wooQoDO3M4L3OAMsXPiwiRCPG"
-PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "1yFW5oxqwUcrQiEFei7_FeJGxanLj3l2b"
-PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1-APpqmy6mofO90bfGPeqcNoZCfjLHNAU"
-PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID = "1vIgcLba9ylYT7wNUVeQ7FLRBauvioi8_"
-PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID = "1cOLEUL0kULFGM0b0YuJA35-Oc1ohBenV"
-SVM_JOBLIB_FILE_ID = "1-a1ekFntNXGm2TsZaS3wZ7zdYNMv2stn"
+CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
+CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
+PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "122cFUQk_9GGcygpWcR-kg2vnNAobjJjN"
+PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1nN65cObQTRRIxcvKKE0trrOFCKU-yzhc"
+PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID = "122cFUQk_9GGcygpWcR-kg2vnNAobjJjN"
+PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID = "1nN65cObQTRRIxcvKKE0trrOFCKU-yzhc"
+SVM_JOBLIB_FILE_ID = "1IdUgQx5KeCUehWOtBIfeFPhjBXwd_AsY"
 SVM_LABEL_MAP_FILE_ID = "1eDPZVnalAKwpkLbjN8v_nw83vXdkDoRH"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
@@ -360,7 +360,13 @@ def load_model_and_labels(model_choice: str):
             dropout=cfg.get("dropout", 0.3),
         ).to(device)
 
-    state_dict = ckpt["model_state_dict"]
+    state_dict = ckpt.get("model_state_dict", ckpt)
+    if not isinstance(state_dict, dict):
+        raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
+    if "model_state_dict" in ckpt and any(k.startswith("module.") for k in state_dict.keys()):
+        state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+    if "model_state_dict" not in ckpt and any(k.startswith("model.") for k in state_dict.keys()):
+        state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
     load_msg = model.load_state_dict(state_dict, strict=True)
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
