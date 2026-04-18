@@ -120,6 +120,8 @@ def build_resnet50_classifier(num_classes: int, pretrained: bool = True, head: s
             nn.Dropout(0.3),
             nn.Linear(in_features, num_classes),
         )
+    elif head == "identity":
+        model.fc = nn.Identity()
     else:
         raise ValueError(f"Unknown head: {head}")
     return model
@@ -362,7 +364,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             pretrained=True,
-            head="linear",
+            head="identity",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
