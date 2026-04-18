@@ -34,6 +34,8 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
 body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
+section[data-testid="stSidebar"] {{ display:none !important; }}
+div[data-testid="collapsedControl"] {{ display:none !important; }}
 .block-container {{ padding:1.35rem 1.4rem 1rem; max-width: 1240px; }}
 .hero {{ font-family:'Playfair Display',serif; font-size:2.35rem; font-weight:900; margin:0; letter-spacing:-0.02em; }}
 .sub {{ color:{MUT}; margin-top:.35rem; margin-bottom:1rem; font-size:1rem; }}
@@ -46,8 +48,8 @@ body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-s
 .metric-row {{ display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.7rem; margin-top:.85rem; }}
 .metric-card {{ background:rgba(255,255,255,.65); border:1px solid #dacdbd; border-radius:16px; padding:.8rem .9rem .75rem; box-shadow:0 4px 18px rgba(17,17,17,.05); }}
 .metric-label {{ font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:{MUT}; font-weight:700; }}
-.metric-value {{ font-family:'Playfair Display',serif; font-size:1.55rem; font-weight:900; line-height:1.05; margin-top:.35rem; color:{TEXT}; }}
-.metric-value.small {{ font-size:1.2rem; }}
+.metric-value {{ font-family:'Source Sans 3',sans-serif; font-size:1.45rem; font-weight:800; line-height:1.05; margin-top:.35rem; color:{TEXT}; letter-spacing:-0.02em; }}
+.metric-value.small {{ font-size:1.15rem; font-weight:800; }}
 .model-chip {{ display:inline-block; padding:.25rem .6rem; border-radius:999px; background:#f1e4d3; border:1px solid #ddceb8; color:#2c2a26; font-size:.82rem; font-weight:700; margin-bottom:.4rem; }}
 </style>
 """, unsafe_allow_html=True)
@@ -316,13 +318,20 @@ if pred_btn and 'score' in locals():
             top_features = [(feat, float(abs(val)), float(val), float(val)) for feat, val in zip(feature_columns, feature_values)][:5]
 
         st.markdown("**Top feature influences for this input**")
+        cards = []
         for feat, score_v, direction, raw_v in top_features:
-            st.write(f"- {feat}: importance {score_v:.4f} | value {raw_v:.4f}")
+            sign = "+" if direction >= 0 else "-"
+            cards.append((feat, score_v, f"{sign}{abs(direction):.4f}", raw_v))
+        for feat, score_v, direction_label, raw_v in cards:
+            st.markdown(
+                f"<div class='metric-card' style='margin-bottom:.55rem;'><div class='metric-label'>{feat}</div><div class='metric-value' style='font-size:1.05rem;'>{direction_label}</div><div class='small-note'>impact {score_v:.4f} · value {raw_v:.4f}</div></div>",
+                unsafe_allow_html=True,
+            )
         st.markdown("**Segment view**")
-        st.markdown(f"- **MAE by sex**: male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
+        st.markdown(f"<div class='metric-card' style='margin-bottom:.55rem;'><div class='metric-label'>MAE by sex</div><div class='metric-value' style='font-size:1.1rem;'>male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}</div></div>", unsafe_allow_html=True)
         smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
         smoker_no = float(abs_err_by_smoker.get("no", np.nan))
-        st.markdown(f"- **MAE by smoker**: yes {smoker_yes:.2f} / no {smoker_no:.2f}")
+        st.markdown(f"<div class='metric-card' style='margin-bottom:.55rem;'><div class='metric-label'>MAE by smoker</div><div class='metric-value' style='font-size:1.1rem;'>yes {smoker_yes:.2f} / no {smoker_no:.2f}</div></div>", unsafe_allow_html=True)
         region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
-        st.markdown(f"- **MAE by region**: {region_summary}")
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>MAE by region</div><div class='metric-value' style='font-size:1.1rem;'>{region_summary}</div></div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)

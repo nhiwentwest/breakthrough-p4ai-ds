@@ -15,6 +15,8 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
 body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
+section[data-testid="stSidebar"] {{ display:none !important; }}
+div[data-testid="collapsedControl"] {{ display:none !important; }}
 .block-container {{ padding:1.35rem 1.4rem 1rem; max-width: 1240px; }}
 .hero {{ font-family:'Playfair Display',serif; font-size:2.35rem; font-weight:900; margin:0; letter-spacing:-0.02em; }}
 .sub {{ color:{MUT}; margin-top:.35rem; margin-bottom:1rem; font-size:1rem; }}
