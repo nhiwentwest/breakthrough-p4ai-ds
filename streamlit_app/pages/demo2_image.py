@@ -377,11 +377,15 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
 
     # Some checkpoints may be wrapped with "module." from DataParallel.
-    # Keep the "model." prefix intact because CNNScratch/MBLANet store the
-    # actual backbone under `self.model`, so stripping it would break loading.
+    # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
+    # their checkpoints may also include a top-level `model.` prefix that must
+    # be preserved. ResNet50 classifier checkpoints, however, should not keep it.
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+    if model_choice in ("Pretrained CNN Frozen", "Pretrained CNN Fine-tuned"):
+        if key_samples and all(k.startswith("model.") for k in key_samples):
+            state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
