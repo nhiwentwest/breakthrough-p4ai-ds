@@ -636,6 +636,26 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
+    if model_choice == "SVM + ResNet50":
+        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        base_model.fc = nn.Identity()
+        base_model.eval()
+
+        def extract_feats(img_tensor):
+            with torch.no_grad():
+                return base_model(img_tensor).cpu().numpy()
+
+        feats = extract_feats(preprocess_image(img_pil))
+        probs = model.predict_proba(feats)[0]
+        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
+        top_vals = probs[top_idx]
+        rows = []
+        for p, i in zip(top_vals, top_idx):
+            label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
+            rows.append((label, float(p)))
+        overlay = _occlusion_sensitivity_heatmap(extract_feats, model.predict_proba, img_pil, int(top_idx[0]))
+        return rows, overlay, overlay, None
+
     if model_choice in ("Pretrained CNN Frozen", "CNN Scratch"):
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
 
@@ -674,9 +694,9 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
         attn_overlay = None
         rows = []
-    for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
-        label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
-        rows.append((label, float(p)))
+        for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
+            label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
+            rows.append((label, float(p)))
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
