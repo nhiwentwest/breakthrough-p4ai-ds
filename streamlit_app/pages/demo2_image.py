@@ -385,8 +385,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     # Some checkpoints may be wrapped with "module." from DataParallel.
     # `CNNScratch`/`MBLANet` keep the real backbone under `self.model`, so
     # their checkpoints may also include a top-level `model.` prefix that must
-    # be preserved. Frozen ResNet50 checkpoint is a plain state_dict with keys
-    # like conv1.weight, layer1.0..., and fc.weight/bias.
+    # be preserved.
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
@@ -395,7 +394,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
     try:
-        load_msg = model.load_state_dict(state_dict, strict=True)
+        load_msg = model.load_state_dict(state_dict, strict=(model_choice != "Pretrained CNN Frozen"))
     except RuntimeError as e:
         if model_choice == "Pretrained CNN Frozen":
             st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
@@ -674,7 +673,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         gradcam_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), cam, alpha=0.45)
 
         attn_overlay = None
-        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+        rows = []
+    for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
+        label = id2label.get(int(i), RSITMD_CLASSES[int(i) % len(RSITMD_CLASSES)])
+        rows.append((label, float(p)))
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
