@@ -105,17 +105,26 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
-def build_resnet50_classifier(num_classes: int, dropout: float = 0.3, pretrained: bool = True, freeze_backbone: bool = False):
+def build_resnet50_classifier(
+    num_classes: int,
+    dropout: float = 0.3,
+    pretrained: bool = True,
+    freeze_backbone: bool = False,
+    head_style: str = "linear",
+):
     weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
     model = models.resnet50(weights=weights)
     if freeze_backbone:
         for param in model.parameters():
             param.requires_grad = False
     in_features = model.fc.in_features
-    model.fc = nn.Sequential(
-        nn.Dropout(dropout),
-        nn.Linear(in_features, num_classes),
-    )
+    if head_style == "sequential":
+        model.fc = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(in_features, num_classes),
+        )
+    else:
+        model.fc = nn.Linear(in_features, num_classes)
     return model
 
 
@@ -358,6 +367,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=True,
+            head_style="linear",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
@@ -365,6 +375,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=False,
+            head_style="sequential",
         ).to(device)
     else:
         model = CNNScratch(
@@ -383,7 +394,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     key_samples = list(state_dict.keys())
     if key_samples and all(k.startswith("module.") for k in key_samples):
         state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-    if model_choice in ("Pretrained CNN Frozen", "Pretrained CNN Fine-tuned"):
+    if model_choice == "Pretrained CNN Fine-tuned":
         if key_samples and all(k.startswith("model.") for k in key_samples):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
