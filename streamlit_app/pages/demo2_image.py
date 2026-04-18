@@ -191,11 +191,13 @@ MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
-PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "1yFW5oxqwUcrQiEFei7_FeJGxanLj3l2b"
+PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "1E_hLRasg19_AolBfSQoK9dXEXmp3jdTA"
 PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1-APpqmy6mofO90bfGPeqcNoZCfjLHNAU"
 PRETRAINED_CNN_FINETUNED_CHECKPOINT_FILE_ID = "1vIgcLba9ylYT7wNUVeQ7FLRBauvioi8_"
 PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID = "1cOLEUL0kULFGM0b0YuJA35-Oc1ohBenV"
 SVM_JOBLIB_FILE_ID = "1IdUgQx5KeCUehWOtBIfeFPhjBXwd_AsY"
+SVM_EXTRACTOR_FILE_ID = "1yFW5oxqwUcrQiEFei7_FeJGxanLj3l2b"
+
 SVM_LABEL_MAP_FILE_ID = "1-APpqmy6mofO90bfGPeqcNoZCfjLHNAU"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
@@ -625,7 +627,7 @@ def _display_label(id2label, idx):
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
-        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        base_model = build_resnet50_backbone(pretrained=True)
         base_model.fc = nn.Identity()
         base_model.eval()
 
