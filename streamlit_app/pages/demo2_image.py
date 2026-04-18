@@ -587,7 +587,7 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
     return overlay
 
 
-def _occlusion_sensitivity_heatmap(feature_extractor, predict_proba_fn, img_pil, target_idx, patch_size=32, stride=32):
+def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_pil, target_idx, patch_size=32, stride=32):
     base = _to_uint8(img_pil)
     pil = Image.fromarray(base).resize((224, 224), Image.BILINEAR)
     arr = np.array(pil, dtype=np.uint8)
@@ -595,7 +595,7 @@ def _occlusion_sensitivity_heatmap(feature_extractor, predict_proba_fn, img_pil,
     heat = np.zeros((h, w), dtype=np.float32)
     counts = np.zeros((h, w), dtype=np.float32)
 
-    orig_feat = feature_extractor(preprocess_image(img_pil))
+    orig_feat = feature_extractor_fn(preprocess_image(img_pil))
     orig_prob = float(predict_proba_fn(orig_feat)[0, target_idx])
 
     for y in range(0, h, stride):
@@ -605,7 +605,7 @@ def _occlusion_sensitivity_heatmap(feature_extractor, predict_proba_fn, img_pil,
             occluded = arr.copy()
             occluded[y:y2, x:x2] = 0
             occl_pil = Image.fromarray(occluded)
-            feat = feature_extractor(preprocess_image(occl_pil))
+            feat = feature_extractor_fn(preprocess_image(occl_pil))
             prob = float(predict_proba_fn(feat)[0, target_idx])
             drop = max(orig_prob - prob, 0.0)
             heat[y:y2, x:x2] += drop
