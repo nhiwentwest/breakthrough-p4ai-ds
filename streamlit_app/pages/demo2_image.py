@@ -159,13 +159,13 @@ RSITMD_CLASSES = [
 ]
 
 # Google Drive assets
-MBLANET_CHECKPOINT_FILE_ID = "1MhgjZPgvib36BQ6zwMZD635IlJN-xNNI"
+MBLANET_CHECKPOINT_FILE_ID = "1JOHbgznyN358XsnUX4jGYAjQc_wsjKZI"
 MBLANET_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
 
 CNN_SCRATCH_CHECKPOINT_FILE_ID = "1D6eAxGMvARoY3Nrt9nsgRxYX7mBAIKAw"
 CNN_SCRATCH_LABEL_MAP_FILE_ID = "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"
-PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "1wCFd6T5b2D4XaBy6iJTvu-2sheeATUn7"
-PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1eDPZVnalAKwpkLbjN8v_nw83vXdkDoRH"
+PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID = "122cFUQk_9GGcygpWcR-kg2vnNAobjJjN"
+PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID = "1nN65cObQTRRIxcvKKE0trrOFCKU-yzhc"
 SVM_JOBLIB_FILE_ID = "1IdUgQx5KeCUehWOtBIfeFPhjBXwd_AsY"
 
 DRIVE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
@@ -692,8 +692,8 @@ with left:
             true_label = st.session_state.get("sample_label")
             meta = st.session_state.get("sample_meta", {})
             st.image(image, caption=f"Drive sample: {meta.get('split', '?')}[{meta.get('index', '?')}]", width=240)
-            if true_label is not None and id2label is not None:
-                if isinstance(true_label, (int, np.integer)) and int(true_label) in id2label:
+            if true_label is not None:
+                if isinstance(true_label, (int, np.integer)) and id2label is not None and int(true_label) in id2label:
                     true_name = id2label[int(true_label)]
                 else:
                     true_name = str(true_label)
