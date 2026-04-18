@@ -128,10 +128,11 @@ def prepare_insurance_data(df: pd.DataFrame):
 def evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test):
     X_test_scaled = scaler.transform(X_test)
     preds = model.predict(X_test_scaled)
+    mse = mean_squared_error(y_test, preds)
     return {
-        "MSE": float(mean_squared_error(y_test, preds)),
+        "MSE": float(mse),
         "MAE": float(mean_absolute_error(y_test, preds)),
-        "RMSE": float(mean_squared_error(y_test, preds, squared=False)),
+        "RMSE": float(np.sqrt(mse)),
         "R2": float(r2_score(y_test, preds)),
     }
 
