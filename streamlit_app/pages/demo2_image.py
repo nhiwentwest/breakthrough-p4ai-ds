@@ -159,16 +159,13 @@ MAPPING_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
     ],
     "Pretrained CNN Frozen": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor_labels.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
     ],
     "Pretrained CNN Fine-tuned": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
     ],
     "SVM + ResNet50": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_mblanet.json",
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping_cnn_scratch.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "label_mapping.json",
     ],
 }
 
