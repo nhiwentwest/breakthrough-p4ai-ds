@@ -547,7 +547,53 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
     return overlay
 
 
+def _occlusion_sensitivity_heatmap(model, feature_extractor, img_pil, device, target_idx, patch_size=32, stride=32):
+    base = _to_uint8(img_pil)
+    pil = Image.fromarray(base).resize((224, 224), Image.BILINEAR)
+    arr = np.array(pil, dtype=np.uint8)
+    h, w = arr.shape[:2]
+    heat = np.zeros((h, w), dtype=np.float32)
+    counts = np.zeros((h, w), dtype=np.float32)
+
+    with torch.no_grad():
+        orig_feat = feature_extractor(preprocess_image(img_pil).to(device))
+        orig_prob = torch.softmax(model(orig_feat), dim=1)[0, target_idx].item()
+
+    for y in range(0, h, stride):
+        for x in range(0, w, stride):
+            x2 = min(x + patch_size, w)
+            y2 = min(y + patch_size, h)
+            occluded = arr.copy()
+            occluded[y:y2, x:x2] = 0
+            occl_pil = Image.fromarray(occluded)
+            with torch.no_grad():
+                feat = feature_extractor(preprocess_image(occl_pil).to(device))
+                prob = torch.softmax(model(feat), dim=1)[0, target_idx].item()
+            drop = max(orig_prob - prob, 0.0)
+            heat[y:y2, x:x2] += drop
+            counts[y:y2, x:x2] += 1
+
+    heat = heat / np.maximum(counts, 1.0)
+    return _apply_heatmap_overlay(arr, heat, alpha=0.55)
+
+
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
+    if model_choice == "SVM + ResNet50":
+        arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
+        arr = transforms.Resize((224, 224))(Image.fromarray(arr.astype(np.uint8)))
+        arr = transforms.ToTensor()(arr).unsqueeze(0)
+        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        base_model.fc = nn.Identity()
+        base_model.eval()
+        with torch.no_grad():
+            feats = base_model(arr).cpu().numpy()
+        probs = model.predict_proba(feats)[0]
+        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
+        top_vals = probs[top_idx]
+        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
+        overlay = _occlusion_sensitivity_heatmap(model, lambda x: base_model(x).detach(), img_pil, device, int(top_idx[0]))
+        return rows, overlay, overlay, None
+
     if model_choice == "Pretrained CNN Frozen":
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
         logits = model(x)
@@ -563,22 +609,6 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_overlay = None
         rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
-
-    if model_choice == "SVM + ResNet50":
-        arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
-        arr = transforms.Resize((224, 224))(Image.fromarray(arr.astype(np.uint8)))
-        arr = transforms.ToTensor()(arr).unsqueeze(0)
-        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        base_model.fc = nn.Identity()
-        base_model.eval()
-        with torch.no_grad():
-            feats = base_model(arr).cpu().numpy()
-        probs = model.predict_proba(feats)[0]
-        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
-        top_vals = probs[top_idx]
-        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
-        overlay = _to_uint8(img_pil)
-        return rows, overlay, overlay, None
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
 
