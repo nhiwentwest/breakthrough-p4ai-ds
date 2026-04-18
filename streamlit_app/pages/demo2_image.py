@@ -369,7 +369,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=True,
-            head_style="linear",
+            head_style="sequential",
         ).to(device)
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
