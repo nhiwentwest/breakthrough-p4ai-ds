@@ -353,6 +353,10 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
                 st_dict = {k.replace("module.", "", 1): v for k, v in st_dict.items()}
             if keys and all(k.startswith("model.") for k in keys):
                 st_dict = {k.replace("model.", "", 1): v for k, v in st_dict.items()}
+            
+            # Remove FC layer weights to avoid size mismatch errors (e.g., 33 vs 1000)
+            st_dict.pop('fc.weight', None)
+            st_dict.pop('fc.bias', None)
                 
             extractor.load_state_dict(st_dict, strict=False)
         
