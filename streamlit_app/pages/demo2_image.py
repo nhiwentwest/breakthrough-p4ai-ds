@@ -105,36 +105,18 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
-class FrozenResNet50(nn.Module):
-    def __init__(self, num_classes=21, dropout=0.3, pretrained=True):
-        super().__init__()
-        weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
-        self.model = models.resnet50(weights=weights)
-        for param in self.model.parameters():
+def build_resnet50_classifier(num_classes: int, dropout: float = 0.3, pretrained: bool = True, freeze_backbone: bool = False):
+    weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+    model = models.resnet50(weights=weights)
+    if freeze_backbone:
+        for param in model.parameters():
             param.requires_grad = False
-        in_features = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes),
-        )
-
-    def forward(self, x):
-        return self.model(x)
-
-
-class PretrainedResNet50(nn.Module):
-    def __init__(self, num_classes=21, dropout=0.3, pretrained=True):
-        super().__init__()
-        weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
-        self.model = models.resnet50(weights=weights)
-        in_features = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes),
-        )
-
-    def forward(self, x):
-        return self.model(x)
+    in_features = model.fc.in_features
+    model.fc = nn.Sequential(
+        nn.Dropout(dropout),
+        nn.Linear(in_features, num_classes),
+    )
+    return model
 
 
 # =========================
@@ -368,20 +350,18 @@ def load_model_and_labels(model_choice: str):
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
     elif model_choice == "Pretrained CNN Frozen":
-        model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
-        for param in model.parameters():
-            param.requires_grad = False
-        in_features = model.fc.in_features
-        model.fc = nn.Sequential(
-            nn.Dropout(cfg.get("dropout", 0.3)),
-            nn.Linear(in_features, len(id2label)),
-        )
-        model = model.to(device)
-    elif model_choice == "Pretrained CNN Fine-tuned":
-        model = PretrainedResNet50(
+        model = build_resnet50_classifier(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
+            freeze_backbone=True,
+        ).to(device)
+    elif model_choice == "Pretrained CNN Fine-tuned":
+        model = build_resnet50_classifier(
+            num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
+            pretrained=True,
+            freeze_backbone=False,
         ).to(device)
     else:
         model = CNNScratch(
@@ -404,7 +384,10 @@ def load_model_and_labels(model_choice: str):
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        st.error(f"Checkpoint does not match the frozen ResNet50 architecture: {e}")
+        if model_choice == "Pretrained CNN Frozen":
+            st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
+        else:
+            st.error(f"Fine-tuned CNN checkpoint does not match ResNet50 architecture: {e}")
         raise
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
