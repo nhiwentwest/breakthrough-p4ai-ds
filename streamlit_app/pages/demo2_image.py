@@ -110,7 +110,6 @@ def build_resnet50_classifier(
     dropout: float = 0.3,
     pretrained: bool = True,
     freeze_backbone: bool = False,
-    head_style: str = "linear",
 ):
     weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
     model = models.resnet50(weights=weights)
@@ -118,13 +117,10 @@ def build_resnet50_classifier(
         for param in model.parameters():
             param.requires_grad = False
     in_features = model.fc.in_features
-    if head_style == "sequential":
-        model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes),
-        )
-    else:
-        model.fc = nn.Linear(in_features, num_classes)
+    model.fc = nn.Sequential(
+        nn.Dropout(dropout),
+        nn.Linear(in_features, num_classes),
+    )
     return model
 
 
