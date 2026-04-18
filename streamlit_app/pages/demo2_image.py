@@ -659,7 +659,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
 
         logits = model(x)
     else:
-        target_layer = model.model.layer4[-1].conv2
+        target_layer = model.layer4[-1].conv2
         h1 = target_layer.register_forward_hook(fwd_hook)
         h2 = target_layer.register_full_backward_hook(bwd_hook)
         h3 = None
