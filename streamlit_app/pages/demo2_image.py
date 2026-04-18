@@ -281,7 +281,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
     elif model_choice == "Pretrained CNN Frozen":
-        target_map = target_dir / "best_resnet50_model_labels.json"
+        target_map = target_dir / "label_mapping.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_map.exists():
@@ -297,7 +297,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
     elif model_choice == "SVM + ResNet50":
-        target_map = target_dir / "resnet50_label_mapping.json"
+        target_map = target_dir / "label_mapping.json"
         file_id = SVM_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_map.exists():
