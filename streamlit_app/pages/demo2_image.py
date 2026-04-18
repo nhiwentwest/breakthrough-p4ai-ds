@@ -137,6 +137,7 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
     "Pretrained CNN Frozen": [
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pt",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pth",
     ],
@@ -162,6 +163,7 @@ MAPPING_CANDIDATES = {
     ],
     "Pretrained CNN Frozen": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model_labels.json",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_extractor_labels.json",
     ],
     "Pretrained CNN Fine-tuned": [
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_finetuned_labels.json",
@@ -217,7 +219,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
     elif model_choice == "Pretrained CNN Frozen":
-        target_ckpt = target_dir / "best_resnet50_model.pt"
+        target_ckpt = target_dir / "resnet50_extractor.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_ckpt.exists():
@@ -363,10 +365,15 @@ def load_model_and_labels(model_choice: str):
     state_dict = ckpt.get("model_state_dict", ckpt)
     if not isinstance(state_dict, dict):
         raise TypeError(f"Unsupported checkpoint format: {type(ckpt)!r}")
-    if "model_state_dict" in ckpt and any(k.startswith("module.") for k in state_dict.keys()):
-        state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
-    if "model_state_dict" not in ckpt and any(k.startswith("model.") for k in state_dict.keys()):
+
+    # Some checkpoints are saved from a wrapped model with keys like "model.conv1.weight".
+    # Others may be wrapped with "module." from DataParallel.
+    key_samples = list(state_dict.keys())
+    if key_samples and all(k.startswith("model.") for k in key_samples):
         state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
+    elif key_samples and all(k.startswith("module.") for k in key_samples):
+        state_dict = {k.replace("module.", "", 1): v for k, v in state_dict.items()}
+
     load_msg = model.load_state_dict(state_dict, strict=True)
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
