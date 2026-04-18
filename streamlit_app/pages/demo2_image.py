@@ -632,8 +632,12 @@ def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_p
     heat = np.zeros((h, w), dtype=np.float32)
     counts = np.zeros((h, w), dtype=np.float32)
 
-    orig_feat = feature_extractor_fn(preprocess_image(img_pil))
+    orig_img_tensor = preprocess_image(img_pil)
+    orig_feat = feature_extractor_fn(orig_img_tensor)
     orig_prob = float(predict_proba_fn(orig_feat)[0, target_idx])
+
+    occluded_tensors = []
+    patch_coords = []
 
     for y in range(0, h, stride):
         for x in range(0, w, stride):
@@ -642,9 +646,18 @@ def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_p
             occluded = arr.copy()
             occluded[y:y2, x:x2] = 0
             occl_pil = Image.fromarray(occluded)
-            feat = feature_extractor_fn(preprocess_image(occl_pil))
-            prob = float(predict_proba_fn(feat)[0, target_idx])
-            drop = max(orig_prob - prob, 0.0)
+            occluded_tensors.append(preprocess_image(occl_pil))
+            patch_coords.append((x, y, x2, y2))
+
+    if occluded_tensors:
+        # Process all occluded images in a single batch
+        batch_tensor = torch.cat(occluded_tensors, dim=0)
+        all_feats = feature_extractor_fn(batch_tensor)
+        all_probs = predict_proba_fn(all_feats)
+        target_probs = all_probs[:, target_idx]
+        
+        for prob, (x, y, x2, y2) in zip(target_probs, patch_coords):
+            drop = max(orig_prob - float(prob), 0.0)
             heat[y:y2, x:x2] += drop
             counts[y:y2, x:x2] += 1
 
@@ -811,21 +824,20 @@ with left:
 
     model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
 
-
-    model = None
-    id2label = None
-    device = None
-    model_ready = True
-    st.info("Model checkpoint will be loaded only when you press Predict.")
-    ckpt_candidates = CHECKPOINT_CANDIDATES.get(model_choice, [])
-    existing_ckpt = next((p for p in ckpt_candidates if p.exists() and p.stat().st_size > 0), None)
-    if existing_ckpt is not None:
+    # Auto-load model assets on selection
+    with st.spinner(f"Preparing {model_choice}..."):
+        ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
+        model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
+    
+    model_ready = (model is not None)
+    
+    if model_ready:
         st.markdown(
-            f"<div class='small-note'>Checkpoint ready: <b>{existing_ckpt}</b></div>",
+            f"<div class='small-note'>Model ready: <b>{_ckpt_used}</b></div>",
             unsafe_allow_html=True,
         )
     else:
-        st.warning("Checkpoint not found locally yet; it will be fetched when you press Predict.")
+        st.warning("Model failed to load.")
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
@@ -896,10 +908,6 @@ with right:
         if image is None:
             st.warning("Please upload an image first.")
         else:
-            if model is None or id2label is None or device is None:
-                with st.spinner(f"Loading {model_choice} checkpoint for prediction..."):
-                    ckpt_path, map_path = get_checkpoint_and_mapping(model_choice)
-                    model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path, map_path)
             with st.spinner("Running inference..."):
                 topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             top_label, top_prob = topk[0]
