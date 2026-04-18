@@ -5,6 +5,7 @@ import gdown
 import joblib
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -132,11 +133,17 @@ def evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test):
     X_test_scaled = scaler.transform(X_test)
     preds = model.predict(X_test_scaled)
     mse = mean_squared_error(y_test, preds)
+    eval_df = X_test.copy().reset_index(drop=True)
+    eval_df["actual"] = y_test.reset_index(drop=True)
+    eval_df["pred"] = preds
+    eval_df["residual"] = eval_df["pred"] - eval_df["actual"]
     return {
         "MSE": float(mse),
         "MAE": float(mean_absolute_error(y_test, preds)),
         "RMSE": float(np.sqrt(mse)),
         "R2": float(r2_score(y_test, preds)),
+        "preds": preds,
+        "eval_df": eval_df,
     }
 
 
@@ -220,6 +227,19 @@ with right:
             pred = model.predict(scaled)
             pred_value = float(np.ravel(pred)[0])
             score = evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test)
+            eval_df = score["eval_df"]
+            residual_std = float(eval_df["residual"].std())
+            outlier_mask = eval_df["residual"].abs() > (2 * residual_std if residual_std > 0 else np.inf)
+            outlier_count = int(outlier_mask.sum())
+            abs_err_by_smoker = eval_df.assign(smoker_group=np.where(eval_df.get("smoker_yes", 0) == 1, "yes", "no")).groupby("smoker_group")["residual"].apply(lambda s: s.abs().mean())
+            abs_err_by_region = {}
+            for region_col, region_label in [("region_northwest", "northwest"), ("region_southeast", "southeast"), ("region_southwest", "southwest")]:
+                if region_col in eval_df.columns:
+                    abs_err_by_region[region_label] = float(eval_df.loc[eval_df[region_col] == 1, "residual"].abs().mean())
+            abs_err_by_sex = {
+                "female": float(eval_df.loc[eval_df.get("sex_male", 0) == 0, "residual"].abs().mean()),
+                "male": float(eval_df.loc[eval_df.get("sex_male", 0) == 1, "residual"].abs().mean()),
+            }
 
             st.markdown(f"<div class='model-chip'>{model_name} ready</div>", unsafe_allow_html=True)
             st.metric("Predicted target", f"{pred_value:.3f}")
@@ -235,6 +255,81 @@ with right:
                     unsafe_allow_html=True,
                 )
             st.markdown("</div>", unsafe_allow_html=True)
+
+            tab_fit, tab_errors, tab_why, tab_compare = st.tabs(["Model fit", "Errors", "Why this prediction", "Compare models"])
+
+            with tab_fit:
+                fig_fit = go.Figure()
+                fig_fit.add_trace(go.Scatter(x=eval_df["actual"], y=eval_df["pred"], mode="markers", name="Actual vs Predicted", marker=dict(size=7, opacity=0.65, color="#b42318")))
+                mn = float(min(eval_df["actual"].min(), eval_df["pred"].min()))
+                mx = float(max(eval_df["actual"].max(), eval_df["pred"].max()))
+                fig_fit.add_trace(go.Scatter(x=[mn, mx], y=[mn, mx], mode="lines", name="Ideal", line=dict(color="#111111", dash="dash")))
+                fig_fit.update_layout(height=360, margin=dict(l=0, r=0, t=30, b=0), xaxis_title="Actual charges", yaxis_title="Predicted charges")
+                st.plotly_chart(fig_fit, use_container_width=True)
+
+            with tab_errors:
+                c_left, c_right = st.columns(2)
+                with c_left:
+                    fig_res = go.Figure()
+                    fig_res.add_trace(go.Scatter(x=eval_df["pred"], y=eval_df["residual"], mode="markers", name="Residuals", marker=dict(size=7, opacity=0.65, color="#4f46e5")))
+                    fig_res.add_hline(y=0, line_dash="dash", line_color="#111111")
+                    fig_res.update_layout(height=320, margin=dict(l=0, r=0, t=25, b=0), xaxis_title="Predicted charges", yaxis_title="Residuals (pred - actual)")
+                    st.plotly_chart(fig_res, use_container_width=True)
+                with c_right:
+                    fig_hist = go.Figure()
+                    fig_hist.add_trace(go.Histogram(x=eval_df["residual"], nbinsx=30, marker_color="#d97706", opacity=0.85))
+                    fig_hist.add_vline(x=0, line_dash="dash", line_color="#111111")
+                    fig_hist.update_layout(height=320, margin=dict(l=0, r=0, t=25, b=0), xaxis_title="Residual", yaxis_title="Count")
+                    st.plotly_chart(fig_hist, use_container_width=True)
+                st.markdown(f"**Outliers**: {outlier_count} points with residual > 2σ")
+
+            with tab_why:
+                top_features = []
+                feature_values = ordered[0]
+                if hasattr(model, "coef_"):
+                    coefs = np.ravel(getattr(model, "coef_"))
+                    for feat, val, coef in zip(feature_columns, feature_values, coefs):
+                        top_features.append((feat, float(abs(coef) * abs(val)), float(coef), float(val)))
+                    top_features.sort(key=lambda x: x[1], reverse=True)
+                    top_features = top_features[:5]
+                elif hasattr(model, "feature_importances_"):
+                    imps = np.ravel(getattr(model, "feature_importances_"))
+                    for feat, val, imp in zip(feature_columns, feature_values, imps):
+                        top_features.append((feat, float(imp), float(imp), float(val)))
+                    top_features.sort(key=lambda x: x[1], reverse=True)
+                    top_features = top_features[:5]
+                else:
+                    top_features = [(feat, float(abs(val)), float(val), float(val)) for feat, val in zip(feature_columns, feature_values)][:5]
+
+                st.markdown("**Top feature influences for this input**")
+                for feat, score_v, direction, raw_v in top_features:
+                    st.write(f"- {feat}: importance {score_v:.4f} | value {raw_v:.4f}")
+                st.markdown("**Segment view**")
+                seg1, seg2, seg3 = st.columns(3)
+                with seg1:
+                    st.metric("MAE by sex", f"male {abs_err_by_sex['male']:.2f} / female {abs_err_by_sex['female']:.2f}")
+                with seg2:
+                    smoker_yes = float(abs_err_by_smoker.get("yes", np.nan))
+                    smoker_no = float(abs_err_by_smoker.get("no", np.nan))
+                    st.metric("MAE by smoker", f"yes {smoker_yes:.2f} / no {smoker_no:.2f}")
+                with seg3:
+                    region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
+                    st.metric("MAE by region", region_summary)
+
+            with tab_compare:
+                compare_rows = []
+                for name in ["Linear Regression", "Random Forest Regressor", "Gradient Boosting Regressor"]:
+                    m, s, cols, _ = load_tabular_model(name)
+                    sc = evaluate_model_on_insurance(m, s, cols, X_test, y_test)
+                    compare_rows.append((name, sc))
+                for name, sc in compare_rows:
+                    st.markdown(f"**{name}**")
+                    cc1, cc2, cc3, cc4 = st.columns(4)
+                    cc1.metric("MSE", f"{sc['MSE']:.2f}")
+                    cc2.metric("MAE", f"{sc['MAE']:.2f}")
+                    cc3.metric("RMSE", f"{sc['RMSE']:.2f}")
+                    cc4.metric("R²", f"{sc['R2']:.4f}")
+
             st.markdown("### Feature snapshot")
             st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
     else:
