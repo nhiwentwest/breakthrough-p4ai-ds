@@ -264,7 +264,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "CNN Scratch":
+    elif model_choice == "CNN (ResNet18)":
         target_map = target_dir / "label_mapping_cnn_scratch.json"
         file_id = CNN_SCRATCH_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -272,7 +272,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Pretrained CNN Frozen":
+    elif model_choice == "Frozen ResNet50":
         target_map = target_dir / "best_resnet50_model_labels.json"
         file_id = PRETRAINED_CNN_FROZEN_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -280,7 +280,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "Pretrained CNN Fine-tuned":
+    elif model_choice == "Fine-tuned ResNet50":
         target_map = target_dir / "best_resnet50_finetuned_labels.json"
         file_id = PRETRAINED_CNN_FINETUNED_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -288,7 +288,7 @@ def ensure_label_mapping_from_drive(model_choice: str):
                 target_map.unlink()
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_map), quiet=False)
-    elif model_choice == "SVM + ResNet50":
+    elif model_choice == "Classical ML: ResNet50 Features + SVM":
         target_map = target_dir / "resnet50_label_mapping.json"
         file_id = SVM_LABEL_MAP_FILE_ID
         if not target_map.exists() or target_map.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
@@ -358,14 +358,14 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
                     module.att_map = None
                 if not hasattr(module, "input_stats"):
                     module.input_stats = None
-    elif model_choice == "Pretrained CNN Frozen":
+    elif model_choice == "Frozen ResNet50":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
             pretrained=True,
             freeze_backbone=True,
         ).to(device)
-    elif model_choice == "Pretrained CNN Fine-tuned":
+    elif model_choice == "Fine-tuned ResNet50":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
             dropout=cfg.get("dropout", 0.3),
@@ -612,7 +612,7 @@ def _occlusion_sensitivity_heatmap(feature_extractor_fn, predict_proba_fn, img_p
 
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
-    if model_choice == "SVM + ResNet50":
+    if model_choice == "Classical ML: ResNet50 Features + SVM":
         base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
         base_model.fc = nn.Identity()
         base_model.eval()
