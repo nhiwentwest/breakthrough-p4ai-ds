@@ -323,7 +323,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
         return svm, id2label, None, str(ckpt_path)
 
-    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    ckpt = torch.load(ckpt_path, map_location=device)
 
     cfg = ckpt.get("cfg", {})
     label2id = ckpt.get("label2id", None)
@@ -335,12 +335,9 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         label2id = mp.get("label2id", {})
         id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
 
-    if id2label is None:
-        raise ValueError("Label mapping missing id2label")
-    if label2id is None:
-        raise ValueError("Label mapping missing label2id")
-    id2label = {int(k): v for k, v in id2label.items()} if isinstance(next(iter(id2label.keys())), str) else id2label
-    label2id = {str(k): int(v) for k, v in label2id.items()}
+    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
+        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
 
     if model_choice == "MBLANet":
         model = MBLANet(
