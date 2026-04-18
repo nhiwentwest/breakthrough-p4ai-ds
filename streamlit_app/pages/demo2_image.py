@@ -643,7 +643,7 @@ with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
-    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
+    model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
 
 
     model = None
