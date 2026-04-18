@@ -9,7 +9,6 @@ import gdown
 import joblib
 import numpy as np
 import streamlit as st
-import tensorflow as tf
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -106,40 +105,6 @@ class CNNScratch(nn.Module):
         return self.model(x)
 
 
-class PretrainedResNet50Frozen(tf.keras.Model):
-    def __init__(self, num_classes=33):
-        super().__init__()
-        self.base = tf.keras.applications.ResNet50(
-            include_top=False,
-            weights="imagenet",
-            input_shape=(224, 224, 3),
-        )
-        self.base.trainable = False
-        self.pool = tf.keras.layers.GlobalAveragePooling2D()
-        self.dropout = tf.keras.layers.Dropout(0.3)
-        self.classifier = tf.keras.layers.Dense(num_classes, activation="softmax")
-
-    def call(self, inputs, training=False):
-        x = tf.keras.applications.resnet50.preprocess_input(inputs)
-        x = self.base(x, training=False)
-        x = self.pool(x)
-        x = self.dropout(x, training=training)
-        return self.classifier(x)
-
-
-class ResNet50FeatureExtractor(nn.Module):
-    def __init__(self, model_path: str):
-        super().__init__()
-        self.model = tf.keras.models.load_model(model_path)
-
-    def extract(self, image_pil: Image.Image):
-        arr = np.array(image_pil.convert("RGB"), dtype=np.float32)
-        arr = tf.image.resize(arr, (224, 224))
-        arr = tf.keras.applications.resnet50.preprocess_input(arr)
-        feats = self.model.predict(np.expand_dims(arr, axis=0), verbose=0)
-        return feats
-
-
 # =========================
 # Paths + model loading
 # =========================
@@ -157,10 +122,10 @@ CHECKPOINT_CANDIDATES = {
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_cnn_scratch.pt",
     ],
     "Pretrained CNN Frozen": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.keras",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pt",
+        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "best_resnet50_model.pth",
     ],
     "SVM + ResNet50": [
-        PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_feature_extractor.keras",
         PROJECT_ROOT / "streamlit_app" / "checkpoints" / "svm_model.joblib",
     ],
 }
@@ -370,11 +335,13 @@ def preprocess_image(img: Image.Image):
     return tfm(img.convert("RGB")).unsqueeze(0)
 
 
-def preprocess_image_tf(img: Image.Image):
-    arr = np.array(img.convert("RGB"), dtype=np.float32)
-    arr = tf.image.resize(arr, (224, 224)).numpy()
-    arr = tf.keras.applications.resnet50.preprocess_input(arr)
-    return np.expand_dims(arr, axis=0)
+def preprocess_image_tensor(img: Image.Image):
+    tfm = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return tfm(img.convert("RGB")).unsqueeze(0)
 
 
 def find_dataset_dict_root(base_dir: str):
@@ -536,43 +503,30 @@ def _apply_heatmap_overlay(base_rgb_uint8, heatmap_01, alpha=0.45):
 
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "Pretrained CNN Frozen":
-        x_np = preprocess_image_tf(img_pil)
-        with tf.GradientTape() as tape:
-            x_tf = tf.convert_to_tensor(x_np)
-            tape.watch(x_tf)
-            preds = model(x_tf, training=False)
-            pred_idx = int(tf.argmax(preds[0]).numpy())
-            class_score = preds[:, pred_idx]
-        grads = tape.gradient(class_score, x_tf)
-        sal = tf.reduce_max(tf.abs(grads), axis=-1)[0].numpy()
+        x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
+        logits = model(x)
+        probs = torch.softmax(logits, dim=1)[0]
+        top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
+        pred_idx = int(top_idx[0].item())
+
+        model.zero_grad(set_to_none=True)
+        logits[0, pred_idx].backward()
+        sal = x.grad.detach()[0].abs().max(dim=0).values.cpu().numpy()
         saliency_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), _norm01(sal), alpha=0.50)
         gradcam_overlay = saliency_overlay
         attn_overlay = None
-        probs = preds[0].numpy()
-        top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
-        top_vals = probs[top_idx]
-        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals, top_idx)]
+        rows = [(id2label[int(i)], float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
         return rows, saliency_overlay, gradcam_overlay, attn_overlay
 
     if model_choice == "SVM + ResNet50":
-        feat_extractor_path = PROJECT_ROOT / "streamlit_app" / "checkpoints" / "resnet50_feature_extractor.keras"
-        if feat_extractor_path.exists():
-            feature_model = tf.keras.models.load_model(feat_extractor_path)
-            arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
-            arr = tf.image.resize(arr, (224, 224))
-            arr = tf.keras.applications.resnet50.preprocess_input(arr)
-            feats = feature_model.predict(np.expand_dims(arr, axis=0), verbose=0)
-        else:
-            base_model = tf.keras.applications.ResNet50(
-                include_top=False,
-                weights="imagenet",
-                input_shape=(224, 224, 3),
-            )
-            arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
-            arr = tf.image.resize(arr, (224, 224))
-            arr = tf.keras.applications.resnet50.preprocess_input(arr)
-            feats = tf.keras.layers.GlobalAveragePooling2D()(base_model(np.expand_dims(arr, axis=0), training=False)).numpy()
-
+        arr = np.array(img_pil.convert("RGB"), dtype=np.float32)
+        arr = transforms.Resize((224, 224))(Image.fromarray(arr.astype(np.uint8)))
+        arr = transforms.ToTensor()(arr).unsqueeze(0)
+        base_model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+        base_model.fc = nn.Identity()
+        base_model.eval()
+        with torch.no_grad():
+            feats = base_model(arr).cpu().numpy()
         probs = model.predict_proba(feats)[0]
         top_idx = np.argsort(probs)[::-1][:min(k, len(probs))]
         top_vals = probs[top_idx]
