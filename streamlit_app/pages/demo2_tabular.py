@@ -5,7 +5,7 @@ import gdown
 import joblib
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 import streamlit as st
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
@@ -259,28 +259,34 @@ with right:
             tab_fit, tab_errors, tab_why, tab_compare = st.tabs(["Model fit", "Errors", "Why this prediction", "Compare models"])
 
             with tab_fit:
-                fig_fit = go.Figure()
-                fig_fit.add_trace(go.Scatter(x=eval_df["actual"], y=eval_df["pred"], mode="markers", name="Actual vs Predicted", marker=dict(size=7, opacity=0.65, color="#b42318")))
+                fig_fit, ax = plt.subplots(figsize=(6, 4))
+                ax.scatter(eval_df["actual"], eval_df["pred"], s=18, alpha=0.65, color="#b42318")
                 mn = float(min(eval_df["actual"].min(), eval_df["pred"].min()))
                 mx = float(max(eval_df["actual"].max(), eval_df["pred"].max()))
-                fig_fit.add_trace(go.Scatter(x=[mn, mx], y=[mn, mx], mode="lines", name="Ideal", line=dict(color="#111111", dash="dash")))
-                fig_fit.update_layout(height=360, margin=dict(l=0, r=0, t=30, b=0), xaxis_title="Actual charges", yaxis_title="Predicted charges")
-                st.plotly_chart(fig_fit, use_container_width=True)
+                ax.plot([mn, mx], [mn, mx], linestyle="--", color="#111111")
+                ax.set_xlabel("Actual charges")
+                ax.set_ylabel("Predicted charges")
+                ax.set_title("Actual vs Predicted")
+                st.pyplot(fig_fit, use_container_width=True)
 
             with tab_errors:
                 c_left, c_right = st.columns(2)
                 with c_left:
-                    fig_res = go.Figure()
-                    fig_res.add_trace(go.Scatter(x=eval_df["pred"], y=eval_df["residual"], mode="markers", name="Residuals", marker=dict(size=7, opacity=0.65, color="#4f46e5")))
-                    fig_res.add_hline(y=0, line_dash="dash", line_color="#111111")
-                    fig_res.update_layout(height=320, margin=dict(l=0, r=0, t=25, b=0), xaxis_title="Predicted charges", yaxis_title="Residuals (pred - actual)")
-                    st.plotly_chart(fig_res, use_container_width=True)
+                    fig_res, ax_res = plt.subplots(figsize=(5.4, 3.6))
+                    ax_res.scatter(eval_df["pred"], eval_df["residual"], s=18, alpha=0.65, color="#4f46e5")
+                    ax_res.axhline(0, linestyle="--", color="#111111")
+                    ax_res.set_xlabel("Predicted charges")
+                    ax_res.set_ylabel("Residuals (pred - actual)")
+                    ax_res.set_title("Residuals vs Predicted")
+                    st.pyplot(fig_res, use_container_width=True)
                 with c_right:
-                    fig_hist = go.Figure()
-                    fig_hist.add_trace(go.Histogram(x=eval_df["residual"], nbinsx=30, marker_color="#d97706", opacity=0.85))
-                    fig_hist.add_vline(x=0, line_dash="dash", line_color="#111111")
-                    fig_hist.update_layout(height=320, margin=dict(l=0, r=0, t=25, b=0), xaxis_title="Residual", yaxis_title="Count")
-                    st.plotly_chart(fig_hist, use_container_width=True)
+                    fig_hist, ax_hist = plt.subplots(figsize=(5.4, 3.6))
+                    ax_hist.hist(eval_df["residual"], bins=30, color="#d97706", alpha=0.85)
+                    ax_hist.axvline(0, linestyle="--", color="#111111")
+                    ax_hist.set_xlabel("Residual")
+                    ax_hist.set_ylabel("Count")
+                    ax_hist.set_title("Residual Histogram")
+                    st.pyplot(fig_hist, use_container_width=True)
                 st.markdown(f"**Outliers**: {outlier_count} points with residual > 2σ")
 
             with tab_why:
@@ -322,8 +328,10 @@ with right:
                     m, s, cols, _ = load_tabular_model(name)
                     sc = evaluate_model_on_insurance(m, s, cols, X_test, y_test)
                     compare_rows.append((name, sc))
+                best_by_r2 = max(compare_rows, key=lambda x: x[1]["R2"])[0]
                 for name, sc in compare_rows:
-                    st.markdown(f"**{name}**")
+                    marker = " ← best" if name == best_by_r2 else ""
+                    st.markdown(f"**{name}{marker}**")
                     cc1, cc2, cc3, cc4 = st.columns(4)
                     cc1.metric("MSE", f"{sc['MSE']:.2f}")
                     cc2.metric("MAE", f"{sc['MAE']:.2f}")
