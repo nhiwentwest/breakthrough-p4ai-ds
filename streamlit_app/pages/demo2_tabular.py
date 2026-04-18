@@ -256,7 +256,7 @@ with right:
                 )
             st.markdown("</div>", unsafe_allow_html=True)
 
-            tab_fit, tab_errors, tab_why, tab_compare = st.tabs(["Model fit", "Errors", "Why this prediction", "Compare models"])
+            tab_fit, tab_errors, tab_why = st.tabs(["Model fit", "Errors", "Why this prediction"])
 
             with tab_fit:
                 fig_fit, ax = plt.subplots(figsize=(6, 4))
@@ -321,22 +321,6 @@ with right:
                 with seg3:
                     region_summary = ", ".join([f"{k} {v:.2f}" for k, v in abs_err_by_region.items()]) or "n/a"
                     st.metric("MAE by region", region_summary)
-
-            with tab_compare:
-                compare_rows = []
-                for name in ["Linear Regression", "Random Forest Regressor", "Gradient Boosting Regressor"]:
-                    m, s, cols, _ = load_tabular_model(name)
-                    sc = evaluate_model_on_insurance(m, s, cols, X_test, y_test)
-                    compare_rows.append((name, sc))
-                best_by_r2 = max(compare_rows, key=lambda x: x[1]["R2"])[0]
-                for name, sc in compare_rows:
-                    marker = " ← best" if name == best_by_r2 else ""
-                    st.markdown(f"**{name}{marker}**")
-                    cc1, cc2, cc3, cc4 = st.columns(4)
-                    cc1.metric("MSE", f"{sc['MSE']:.2f}")
-                    cc2.metric("MAE", f"{sc['MAE']:.2f}")
-                    cc3.metric("RMSE", f"{sc['RMSE']:.2f}")
-                    cc4.metric("R²", f"{sc['R2']:.4f}")
 
             st.markdown("### Feature snapshot")
             st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
