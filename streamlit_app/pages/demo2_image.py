@@ -123,8 +123,10 @@ def build_resnet50_classifier(
             nn.Dropout(dropout),
             nn.Linear(in_features, num_classes),
         )
-    else:
+    elif head_style == "linear":
         model.fc = nn.Linear(in_features, num_classes)
+    else:
+        raise ValueError(f"Unknown head_style: {head_style}")
     return model
 
 
