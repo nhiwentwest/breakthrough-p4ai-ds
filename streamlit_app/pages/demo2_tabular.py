@@ -33,18 +33,21 @@ st.markdown(f"""
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
 body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
 #MainMenu,footer,header {{ visibility:hidden; }}
-.block-container {{ padding-top:1.2rem; }}
-.hero {{ font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; margin:0; }}
-.sub {{ color:{MUT}; margin-top:.25rem; margin-bottom:1rem; }}
-.bento {{ background:{CARD}; border:1px solid {BOR}; border-radius:14px; padding:1rem; }}
-.section {{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.6rem; }}
-.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; }}
+.block-container {{ padding:1.35rem 1.4rem 1rem; max-width: 1240px; }}
+.hero {{ font-family:'Playfair Display',serif; font-size:2.35rem; font-weight:900; margin:0; letter-spacing:-0.02em; }}
+.sub {{ color:{MUT}; margin-top:.35rem; margin-bottom:1rem; font-size:1rem; }}
+.editor-shell {{ background: linear-gradient(180deg, rgba(239,232,220,.92), rgba(247,243,235,.98)); border:1px solid {BOR}; border-radius:20px; box-shadow:0 10px 30px rgba(17,17,17,.06); padding:1rem; }}
+.bento {{ background:rgba(255,255,255,.35); border:1px solid rgba(212,201,184,.95); border-radius:18px; padding:1rem; backdrop-filter: blur(6px); }}
+.section {{ font-size:.68rem; letter-spacing:.14em; text-transform:uppercase; color:{ACC}; font-weight:800; margin-bottom:.8rem; }}
+.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:800; letter-spacing:.08em; border-radius:10px; padding:.55rem .9rem; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
 .small-note {{ color:{MUT}; font-size:0.82rem; }}
-.kpi-grid {{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.65rem; margin:.8rem 0 1rem; }}
-.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.65rem .8rem; }}
-.kpi-lbl {{ font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
-.kpi-val {{ font-weight:700; font-size:1rem; margin-top:.15rem; }}
+.metric-row {{ display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:.7rem; margin-top:.85rem; }}
+.metric-card {{ background:rgba(255,255,255,.65); border:1px solid #dacdbd; border-radius:16px; padding:.8rem .9rem .75rem; box-shadow:0 4px 18px rgba(17,17,17,.05); }}
+.metric-label {{ font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:{MUT}; font-weight:700; }}
+.metric-value {{ font-family:'Playfair Display',serif; font-size:1.55rem; font-weight:900; line-height:1.05; margin-top:.35rem; color:{TEXT}; }}
+.metric-value.small {{ font-size:1.2rem; }}
+.model-chip {{ display:inline-block; padding:.25rem .6rem; border-radius:999px; background:#f1e4d3; border:1px solid #ddceb8; color:#2c2a26; font-size:.82rem; font-weight:700; margin-bottom:.4rem; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -160,7 +163,8 @@ def build_feature_row(age, bmi, children, sex, smoker, region):
     return row
 
 
-left, right = st.columns([1.2, 1])
+st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
+left, right = st.columns([1.15, 1])
 
 with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
@@ -172,17 +176,25 @@ with left:
             "Random Forest Regressor",
             "Gradient Boosting Regressor",
         ],
+        label_visibility="collapsed",
     )
+    st.markdown(f"<div class='model-chip'>{model_name}</div>", unsafe_allow_html=True)
 
     st.markdown("<div class='section'>Input Features</div>", unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     with c1:
         age = st.number_input("Age", min_value=0, max_value=120, value=30, step=1)
-        bmi = st.number_input("BMI", min_value=0.0, max_value=70.0, value=25.0, step=0.1)
-        children = st.number_input("Children", min_value=0, max_value=10, value=0, step=1)
     with c2:
+        bmi = st.number_input("BMI", min_value=0.0, max_value=70.0, value=25.0, step=0.1)
+    with c3:
+        children = st.number_input("Children", min_value=0, max_value=10, value=0, step=1)
+
+    c4, c5, c6 = st.columns(3)
+    with c4:
         sex = st.selectbox("Sex", ["male", "female"])
+    with c5:
         smoker = st.selectbox("Smoker", ["yes", "no"])
+    with c6:
         region = st.selectbox("Region", ["northeast", "northwest", "southeast", "southwest"])
 
     pred_btn = st.button("Predict", use_container_width=True)
@@ -207,19 +219,27 @@ with right:
             scaled = scaler.transform(ordered)
             pred = model.predict(scaled)
             pred_value = float(np.ravel(pred)[0])
-
             score = evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test)
 
+            st.markdown(f"<div class='model-chip'>{model_name} ready</div>", unsafe_allow_html=True)
             st.metric("Predicted target", f"{pred_value:.3f}")
-            st.caption(f"Model used: {model_name}")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("MSE", f"{score['MSE']:.2f}")
-            c2.metric("MAE", f"{score['MAE']:.2f}")
-            c3.metric("RMSE", f"{score['RMSE']:.2f}")
-            c4.metric("R²", f"{score['R2']:.4f}")
+            st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
+            for label, value, small in [
+                ("MSE", score['MSE'], False),
+                ("MAE", score['MAE'], False),
+                ("RMSE", score['RMSE'], False),
+                ("R²", score['R2'], True),
+            ]:
+                st.markdown(
+                    f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value{' small' if small else ''}'>{value:.4f}</div></div>",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("### Feature snapshot")
             st.dataframe({"feature": feature_columns, "value": ordered[0].tolist()}, use_container_width=True, hide_index=True)
     else:
         st.info("Fill features and click Predict.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown("</div>", unsafe_allow_html=True)
