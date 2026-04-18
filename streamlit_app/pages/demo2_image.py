@@ -193,7 +193,7 @@ def ensure_checkpoint_from_drive(model_choice: str):
             url = f"https://drive.google.com/uc?id={file_id}"
             gdown.download(url, str(target_ckpt), quiet=False)
     elif model_choice == "Pretrained CNN Frozen":
-        target_ckpt = target_dir / "best_resnet50_model.keras"
+        target_ckpt = target_dir / "best_resnet50_model.pt"
         file_id = PRETRAINED_CNN_FROZEN_CHECKPOINT_FILE_ID
         if not target_ckpt.exists() or target_ckpt.stat().st_size == 0 or FORCE_DRIVE_REFRESH:
             if FORCE_DRIVE_REFRESH and target_ckpt.exists():
