@@ -316,11 +316,15 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if model_choice == "Classical ML: ResNet50 Features + SVM":
         svm = joblib.load(ckpt_path)
+        if not map_path or not os.path.exists(map_path):
+            raise FileNotFoundError(f"SVM label mapping file not found: {map_path}")
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
-        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
+        if "id2label" not in mp or not isinstance(mp["id2label"], dict):
+            raise KeyError("SVM label mapping must contain an 'id2label' dict")
+        id2label = {int(k): v for k, v in mp["id2label"].items()}
         if not id2label or not all(isinstance(v, str) for v in id2label.values()):
-            id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
+            raise ValueError("SVM label mapping id2label is invalid")
         return svm, id2label, None, str(ckpt_path)
 
     ckpt = torch.load(ckpt_path, map_location=device)
@@ -329,15 +333,17 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     label2id = ckpt.get("label2id", None)
     id2label = ckpt.get("id2label", None)
 
-    if (label2id is None or id2label is None) and map_path is not None:
-        with open(map_path, "r", encoding="utf-8") as f:
-            mp = json.load(f)
-        label2id = mp.get("label2id", {})
-        id2label = {int(k): v for k, v in mp.get("id2label", {}).items()}
-
-    if id2label is None or all(isinstance(v, (int, np.integer)) or (isinstance(v, str) and v.isdigit()) for v in id2label.values()):
-        id2label = {i: name for i, name in enumerate(RSITMD_CLASSES)}
-        label2id = {name: i for i, name in enumerate(RSITMD_CLASSES)}
+    if not map_path or not os.path.exists(map_path):
+        raise FileNotFoundError(f"Label mapping file not found: {map_path}")
+    with open(map_path, "r", encoding="utf-8") as f:
+        mp = json.load(f)
+    if "id2label" not in mp or not isinstance(mp["id2label"], dict):
+        raise KeyError("Label mapping must contain an 'id2label' dict")
+    id2label = {int(k): v for k, v in mp["id2label"].items()}
+    label2id = mp.get("label2id", None)
+    if label2id is None or not isinstance(label2id, dict):
+        raise KeyError("Label mapping must contain a 'label2id' dict")
+    label2id = {str(k): int(v) for k, v in label2id.items()}
 
     if model_choice == "MBLANet":
         model = MBLANet(
