@@ -357,7 +357,10 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     elif model_choice == "Pretrained CNN Fine-tuned":
         model = build_resnet50_classifier(
             num_classes=len(id2label),
+            dropout=cfg.get("dropout", 0.3),
             pretrained=True,
+            freeze_backbone=False,
+            head_style="sequential",
         ).to(device)
     else:
         model = CNNScratch(
@@ -381,7 +384,10 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             state_dict = {k.replace("model.", "", 1): v for k, v in state_dict.items()}
 
     try:
-        load_msg = model.load_state_dict(state_dict, strict=True)
+        if model_choice == "Pretrained CNN Frozen":
+            load_msg = model.load_state_dict(state_dict, strict=False)
+        else:
+            load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
         if model_choice == "Pretrained CNN Frozen":
             st.error(f"Frozen CNN checkpoint does not match frozen ResNet50 architecture: {e}")
