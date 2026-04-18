@@ -232,3 +232,38 @@ plt.title(
 )
 plt.axis('off')
 plt.show()
+
+import joblib
+import json
+
+print("Saving models and metadata to disk...")
+
+# 1. Save the trained SVM model
+# We use joblib as it is highly optimized for scikit-learn models
+svm_filepath = 'svm_model.joblib'
+joblib.dump(svm_classifier, svm_filepath)
+print(f"✅ SVM saved to: {svm_filepath}")
+
+# NOTE: If you absolutely need a .pkl file for a specific deployment platform,
+# you can use this instead:
+# import pickle
+# with open('svm_model.pkl', 'wb') as f:
+#     pickle.dump(svm_classifier, f)
+
+# 2. Save the label mapping (id2label and label2id)
+label_mapping = {
+    "id2label": {int(i): name for i, name in enumerate(class_names)},
+    "label2id": {name: int(i) for i, name in enumerate(class_names)}
+}
+
+with open("label_mapping.json", "w") as f:
+    json.dump(label_mapping, f, indent=4)
+print("✅ Label mapping saved to: label_mapping.json")
+
+# 3. Save the TensorFlow Feature Extractor
+# You need this to process raw images before handing them to the SVM!
+extractor_filepath = "resnet50_feature_extractor.keras"
+feature_extractor.save(extractor_filepath)
+print(f"✅ Feature Extractor saved to: {extractor_filepath}")
+
+print("\n🎉 Export complete! You can now download these files from the Colab sidebar.")
