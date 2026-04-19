@@ -103,7 +103,7 @@ def _resolve_asset(filename: str) -> Path:
     return candidate
 
 
-@st.cache_resource(show_spinner=True)
+@st.cache_resource(show_spinner=True, max_entries=3)
 def load_tabular_model(model_name: str):
     assets = MODEL_ASSETS[model_name]
     model_path = _resolve_asset(assets["model"])
