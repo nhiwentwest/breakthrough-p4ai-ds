@@ -692,7 +692,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
             idx = int(i)
             rows.append((_display_label(id2label, idx), float(p)))
         overlay = _occlusion_sensitivity_heatmap(extract_feats, svm_model.predict_proba, img_pil, int(top_idx[0]))
-        return rows, overlay, overlay, None
+        return rows, overlay, overlay, None, None
 
     if model_choice in ("Pretrained CNN Frozen", "CNN Scratch"):
         x = preprocess_image_tensor(img_pil).to(device).clone().detach().requires_grad_(True)
@@ -769,6 +769,10 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
     pred_idx = int(top_idx[0].item())
+    top1_prob = float(top_vals[0].item())
+    top2_prob = float(top_vals[1].item()) if top_vals.numel() > 1 else 0.0
+    top1_top2_gap = top1_prob - top2_prob
+    entropy = float((-(probs * torch.log(probs.clamp_min(1e-12))).sum()).item())
 
     model.zero_grad(set_to_none=True)
     logits[0, pred_idx].backward()
@@ -796,7 +800,17 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_np, alpha=0.60)
 
     rows = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
-    return rows, saliency_overlay, gradcam_overlay, attn_overlay
+    debug = {
+        "raw_logits_top5": [float(v) for v in torch.topk(logits[0], k=min(5, logits.shape[1])).values.detach().cpu().tolist()],
+        "raw_logits_top5_idx": [int(i) for i in torch.topk(logits[0], k=min(5, logits.shape[1])).indices.detach().cpu().tolist()],
+        "softmax_top5": [float(v) for v in top_vals.detach().cpu().tolist()],
+        "softmax_top5_idx": [int(i) for i in top_idx.detach().cpu().tolist()],
+        "top1_prob": top1_prob,
+        "top2_prob": top2_prob,
+        "top1_top2_gap": top1_top2_gap,
+        "entropy": entropy,
+    }
+    return rows, saliency_overlay, gradcam_overlay, attn_overlay, debug
 
 
 
@@ -913,9 +927,10 @@ with right:
         if image is None:
             st.warning("Please upload an image first.")
         else:
+            model_debug = None
             if explain:
                 with st.spinner("Running inference with explanations..."):
-                    topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
+                    topk, saliency_overlay, gradcam_overlay, attention_overlay, model_debug = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             else:
                 if model_choice == "SVM + ResNet50":
                     svm_model = model["svm"]
@@ -928,7 +943,6 @@ with right:
                         top_idx = np.argsort(probs)[::-1][:min(5, len(probs))]
                         top_vals = probs[top_idx]
                         topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals, top_idx)]
-
                 else:
                     with torch.no_grad():
                         x = preprocess_image(image).to(device)
@@ -936,6 +950,21 @@ with right:
                         probs = torch.softmax(logits, dim=1)[0]
                         top_vals, top_idx = torch.topk(probs, k=min(5, probs.shape[0]))
                         topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+
+                    if model_choice == "MBLANet":
+                        raw_top5 = torch.topk(logits[0], k=min(5, logits.shape[1]))
+                        top1_prob = float(top_vals[0].item())
+                        top2_prob = float(top_vals[1].item()) if top_vals.numel() > 1 else 0.0
+                        model_debug = {
+                            "raw_logits_top5": [float(v) for v in raw_top5.values.detach().cpu().tolist()],
+                            "raw_logits_top5_idx": [int(i) for i in raw_top5.indices.detach().cpu().tolist()],
+                            "softmax_top5": [float(v) for v in top_vals.detach().cpu().tolist()],
+                            "softmax_top5_idx": [int(i) for i in top_idx.detach().cpu().tolist()],
+                            "top1_prob": top1_prob,
+                            "top2_prob": top2_prob,
+                            "top1_top2_gap": top1_prob - top2_prob,
+                            "entropy": float((-(probs * torch.log(probs.clamp_min(1e-12))).sum()).item()),
+                        }
                 saliency_overlay = gradcam_overlay = attention_overlay = None
 
             top_label, top_prob = topk[0]
@@ -949,6 +978,21 @@ with right:
             st.markdown("**Top-5 predictions**")
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
+
+            if model_choice == "MBLANet":
+                st.markdown("---")
+                st.markdown("**MBLANet confidence debug**")
+                if model_debug is None:
+                    st.info("Enable Explain to inspect raw logits, softmax, gap, and entropy.")
+                else:
+                    st.write(f"Raw logits top-5 idx: {model_debug['raw_logits_top5_idx']}")
+                    st.write(f"Raw logits top-5: {[round(v, 6) for v in model_debug['raw_logits_top5']]}")
+                    st.write(f"Softmax top-5 idx: {model_debug['softmax_top5_idx']}")
+                    st.write(f"Softmax top-5: {[round(v, 8) for v in model_debug['softmax_top5']]}")
+                    st.write(f"Top-1 probability: {model_debug['top1_prob']:.8f}")
+                    st.write(f"Top-2 probability: {model_debug['top2_prob']:.8f}")
+                    st.write(f"Top-1 - Top-2 gap: {model_debug['top1_top2_gap']:.8f}")
+                    st.write(f"Entropy: {model_debug['entropy']:.8f}")
 
             if explain:
                 if model_choice == "SVM + ResNet50":
