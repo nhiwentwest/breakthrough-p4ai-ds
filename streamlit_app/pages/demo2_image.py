@@ -979,12 +979,30 @@ with right:
                 with st.spinner("Running inference with explanations..."):
                     topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
             else:
-                with torch.no_grad():
-                    x = preprocess_image(image).to(device)
-                    logits = model(x)
-                    probs = torch.softmax(logits, dim=1)[0]
-                    top_vals, top_idx = torch.topk(probs, k=min(5, probs.shape[0]))
-                    topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+                if model_choice == "SVM + ResNet50":
+                    svm_model = model["svm"]
+                    extractor = model["extractor"]
+
+                    with torch.no_grad():
+                        x = preprocess_image(image).to(device)
+                        feats = extractor(x).cpu().numpy()
+                        probs = svm_model.predict_proba(feats)[0]
+                        top_idx = np.argsort(probs)[::-1][:min(5, len(probs))]
+                        top_vals = probs[top_idx]
+                        topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals, top_idx)]
+
+                    st.session_state["svm_feature_debug"] = {
+                        "fingerprint": _feature_fingerprint(feats),
+                        "pred_idx": int(top_idx[0]),
+                        "pred_prob": float(top_vals[0]),
+                    }
+                else:
+                    with torch.no_grad():
+                        x = preprocess_image(image).to(device)
+                        logits = model(x)
+                        probs = torch.softmax(logits, dim=1)[0]
+                        top_vals, top_idx = torch.topk(probs, k=min(5, probs.shape[0]))
+                        topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
                 saliency_overlay = gradcam_overlay = attention_overlay = None
 
             top_label, top_prob = topk[0]
