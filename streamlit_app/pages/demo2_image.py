@@ -769,10 +769,6 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
     probs = torch.softmax(logits, dim=1)[0]
     top_vals, top_idx = torch.topk(probs, k=min(k, probs.shape[0]))
     pred_idx = int(top_idx[0].item())
-    top1_prob = float(top_vals[0].item())
-    top2_prob = float(top_vals[1].item()) if top_vals.numel() > 1 else 0.0
-    top1_top2_gap = top1_prob - top2_prob
-    entropy = float((-(probs * torch.log(probs.clamp_min(1e-12))).sum()).item())
 
     model.zero_grad(set_to_none=True)
     logits[0, pred_idx].backward()
@@ -978,21 +974,6 @@ with right:
             st.markdown("**Top-5 predictions**")
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
-
-            if model_choice == "MBLANet":
-                st.markdown("---")
-                st.markdown("**MBLANet confidence debug**")
-                if model_debug is None:
-                    st.info("Enable Explain to inspect raw logits, softmax, gap, and entropy.")
-                else:
-                    st.write(f"Raw logits top-5 idx: {model_debug['raw_logits_top5_idx']}")
-                    st.write(f"Raw logits top-5: {[round(v, 6) for v in model_debug['raw_logits_top5']]}")
-                    st.write(f"Softmax top-5 idx: {model_debug['softmax_top5_idx']}")
-                    st.write(f"Softmax top-5: {[round(v, 8) for v in model_debug['softmax_top5']]}")
-                    st.write(f"Top-1 probability: {model_debug['top1_prob']:.8f}")
-                    st.write(f"Top-2 probability: {model_debug['top2_prob']:.8f}")
-                    st.write(f"Top-1 - Top-2 gap: {model_debug['top1_top2_gap']:.8f}")
-                    st.write(f"Entropy: {model_debug['entropy']:.8f}")
 
             if explain:
                 if model_choice == "SVM + ResNet50":
