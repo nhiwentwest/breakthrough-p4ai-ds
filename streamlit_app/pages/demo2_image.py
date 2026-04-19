@@ -375,6 +375,8 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             "extractor_path": str(extractor_path),
             "extractor_sha256": _sha256_file(extractor_path),
             "extractor_state_sha256": _tensor_sha256_state_dict(extractor.state_dict()),
+            "svm_classes": svm.classes_.tolist() if hasattr(svm, "classes_") else None,
+            "id2label_items": sorted((int(k), v) for k, v in id2label.items()),
         }
 
         return {"svm": svm, "extractor": extractor}, id2label, device, str(ckpt_path)
@@ -1027,6 +1029,21 @@ with right:
             st.markdown("**Top-5 predictions**")
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
+
+            if model_choice == "SVM + ResNet50":
+                dbg = st.session_state.get("svm_debug_info", {})
+                feat_dbg = st.session_state.get("svm_feature_debug", {})
+                with st.expander("SVM debug info", expanded=True):
+                    st.write(f"SVM classes_: {dbg.get('svm_classes')}")
+                    st.write(f"id2label keys: {[k for k, _ in dbg.get('id2label_items', [])]}")
+                    st.write(f"id2label values: {[v for _, v in dbg.get('id2label_items', [])]}")
+                    st.write(f"Feature shape: {feat_dbg.get('fingerprint', {}).get('shape')}")
+                    st.write(f"Feature mean: {feat_dbg.get('fingerprint', {}).get('mean')}")
+                    st.write(f"Feature std: {feat_dbg.get('fingerprint', {}).get('std')}")
+                    st.write(f"Feature min/max: {feat_dbg.get('fingerprint', {}).get('min')} / {feat_dbg.get('fingerprint', {}).get('max')}")
+                    st.write(f"Feature SHA256: {feat_dbg.get('fingerprint', {}).get('sha256')}")
+                    st.write(f"Feature head: {feat_dbg.get('fingerprint', {}).get('head')}")
+                    st.write(f"Pred idx: {feat_dbg.get('pred_idx')}, pred prob: {feat_dbg.get('pred_prob')}")
 
             if explain:
                 if model_choice == "SVM + ResNet50":
