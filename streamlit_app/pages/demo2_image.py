@@ -331,6 +331,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if model_choice == "SVM + ResNet50":
+        # 1. Load SVM và file mapping (vẫn giữ nguyên vì phần này bạn đã làm đúng)
         svm = joblib.load(ckpt_path)
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
@@ -339,28 +340,32 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         if not id2label:
             raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
         
-        # Load specialized extractor for SVM
+        # 2. XÂY MẠNG RỖNG - KHÔNG FALLBACK
         extractor_path = Path(ckpt_path).parent / "resnet50_extractor.pt"
-        extractor = build_resnet50_backbone(pretrained=False)
-        if extractor_path.exists():
-            st_dict = torch.load(extractor_path, map_location=device)
-            if isinstance(st_dict, dict) and "model_state_dict" in st_dict:
-                st_dict = st_dict["model_state_dict"]
-            
-            # Prefix stripping
-            keys = list(st_dict.keys())
-            if keys and all(k.startswith("module.") for k in keys):
-                st_dict = {k.replace("module.", "", 1): v for k, v in st_dict.items()}
-            if keys and all(k.startswith("model.") for k in keys):
-                st_dict = {k.replace("model.", "", 1): v for k, v in st_dict.items()}
-            
-            # Remove FC layer weights to avoid size mismatch errors (e.g., 33 vs 1000)
-            st_dict.pop('fc.weight', None)
-            st_dict.pop('fc.bias', None)
-                
-            extractor.load_state_dict(st_dict, strict=False)
+        extractor = build_resnet50_backbone(pretrained=False) 
         
+        # 3. CHẶT LỚP CUỐI cho khớp cấu trúc
         extractor.fc = nn.Identity()
+
+        # 4. ÉP LẤY FILE .PT - KHÔNG CÓ THÌ VĂNG LỖI NGAY LẬP TỨC
+        if not extractor_path.exists():
+            raise FileNotFoundError(f"LỖI TRÍ MẠNG: Không tìm thấy file extractor tại {extractor_path}. KIỂM TRA LẠI KHÂU TẢI FILE!")
+
+        st_dict = torch.load(extractor_path, map_location=device)
+        if isinstance(st_dict, dict) and "model_state_dict" in st_dict:
+            st_dict = st_dict["model_state_dict"]
+        
+        # Dọn dẹp tiền tố (nếu có)
+        st_dict = {k.replace("module.", "", 1).replace("model.", "", 1): v for k, v in st_dict.items()}
+        
+        # Xóa các key của lớp FC (vì mình đã dùng Identity ở trên)
+        st_dict.pop('fc.weight', None)
+        st_dict.pop('fc.bias', None)
+            
+        # 5. ÉP CHẶT KEY TRỌNG SỐ - LỆCH KEY LÀ VĂNG LỖI
+        extractor.load_state_dict(st_dict, strict=True)
+        
+        # 6. Đưa mô hình vào trạng thái đánh giá (tắt random)
         extractor.to(device).eval()
 
         return {"svm": svm, "extractor": extractor}, id2label, device, str(ckpt_path)
