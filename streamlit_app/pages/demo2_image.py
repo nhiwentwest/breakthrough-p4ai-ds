@@ -2,7 +2,6 @@ import json
 import os
 import random
 import re
-import hashlib
 import importlib.util
 from pathlib import Path
 
@@ -686,28 +685,6 @@ def _display_label(id2label, idx):
     return label if isinstance(label, str) else RSITMD_CLASSES[int(idx)]
 
 
-def _sha256_file(path: str, chunk_size: int = 1024 * 1024) -> str:
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(chunk_size), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def _tensor_sha256_state_dict(state_dict) -> str:
-    h = hashlib.sha256()
-    for key in sorted(state_dict.keys()):
-        h.update(key.encode("utf-8"))
-        value = state_dict[key]
-        if torch.is_tensor(value):
-            h.update(value.detach().cpu().numpy().tobytes())
-        elif isinstance(value, np.ndarray):
-            h.update(value.tobytes())
-        else:
-            h.update(repr(value).encode("utf-8"))
-    return h.hexdigest()
-
-
 def _feature_fingerprint(feats: np.ndarray, n: int = 8) -> dict:
     flat = np.asarray(feats).reshape(-1)
     head = flat[:n].tolist()
@@ -893,17 +870,6 @@ with left:
             f"<div class='small-note'>Model ready: <b>{_ckpt_used}</b></div>",
             unsafe_allow_html=True,
         )
-        if model_choice == "SVM + ResNet50" and "svm_debug_info" in st.session_state:
-            dbg = st.session_state["svm_debug_info"]
-            with st.expander("SVM / extractor debug info", expanded=False):
-                st.code(
-                    f"SVM file: {dbg['svm_path']}\n"
-                    f"SVM SHA256: {dbg['svm_sha256']}\n"
-                    f"Extractor file: {dbg['extractor_path']}\n"
-                    f"Extractor SHA256: {dbg['extractor_sha256']}\n"
-                    f"Extractor state SHA256: {dbg['extractor_state_sha256']}",
-                    language="text",
-                )
     else:
         st.warning("Model failed to load.")
 
@@ -993,11 +959,6 @@ with right:
                         top_vals = probs[top_idx]
                         topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals, top_idx)]
 
-                    st.session_state["svm_feature_debug"] = {
-                        "fingerprint": _feature_fingerprint(feats),
-                        "pred_idx": int(top_idx[0]),
-                        "pred_prob": float(top_vals[0]),
-                    }
                 else:
                     with torch.no_grad():
                         x = preprocess_image(image).to(device)
@@ -1009,17 +970,6 @@ with right:
 
             top_label, top_prob = topk[0]
 
-            if model_choice == "SVM + ResNet50" and "svm_feature_debug" in st.session_state:
-                dbg = st.session_state["svm_feature_debug"]
-                with st.expander("SVM feature debug", expanded=False):
-                    st.write(f"Feature shape: {dbg['fingerprint']['shape']}")
-                    st.write(f"Feature mean: {dbg['fingerprint']['mean']:.6f}")
-                    st.write(f"Feature std: {dbg['fingerprint']['std']:.6f}")
-                    st.write(f"Feature min/max: {dbg['fingerprint']['min']:.6f} / {dbg['fingerprint']['max']:.6f}")
-                    st.write(f"Feature SHA256: {dbg['fingerprint']['sha256']}")
-                    st.write(f"Feature head: {dbg['fingerprint']['head']}")
-                    st.write(f"Pred idx: {dbg['pred_idx']}, pred prob: {dbg['pred_prob']:.6f}")
-
             st.metric("Predicted class", top_label)
             st.markdown(f"<div class='demo-label'>Predicted label: {top_label}</div>", unsafe_allow_html=True)
             st.progress(float(top_prob))
@@ -1029,21 +979,6 @@ with right:
             st.markdown("**Top-5 predictions**")
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
-
-            if model_choice == "SVM + ResNet50":
-                dbg = st.session_state.get("svm_debug_info", {})
-                feat_dbg = st.session_state.get("svm_feature_debug", {})
-                with st.expander("SVM debug info", expanded=True):
-                    st.write(f"SVM classes_: {dbg.get('svm_classes')}")
-                    st.write(f"id2label keys: {[k for k, _ in dbg.get('id2label_items', [])]}")
-                    st.write(f"id2label values: {[v for _, v in dbg.get('id2label_items', [])]}")
-                    st.write(f"Feature shape: {feat_dbg.get('fingerprint', {}).get('shape')}")
-                    st.write(f"Feature mean: {feat_dbg.get('fingerprint', {}).get('mean')}")
-                    st.write(f"Feature std: {feat_dbg.get('fingerprint', {}).get('std')}")
-                    st.write(f"Feature min/max: {feat_dbg.get('fingerprint', {}).get('min')} / {feat_dbg.get('fingerprint', {}).get('max')}")
-                    st.write(f"Feature SHA256: {feat_dbg.get('fingerprint', {}).get('sha256')}")
-                    st.write(f"Feature head: {feat_dbg.get('fingerprint', {}).get('head')}")
-                    st.write(f"Pred idx: {feat_dbg.get('pred_idx')}, pred prob: {feat_dbg.get('pred_prob')}")
 
             if explain:
                 if model_choice == "SVM + ResNet50":
