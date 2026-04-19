@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import hashlib
 import importlib.util
 from pathlib import Path
 
@@ -326,7 +327,7 @@ def get_checkpoint_and_mapping(model_choice: str):
     return str(ensure_checkpoint_from_drive(model_choice)), str(ensure_label_mapping_from_drive(model_choice))
 
 
-@st.cache_resource(show_spinner=True)
+@st.cache_resource(show_spinner=True, max_entries=3)
 def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -367,6 +368,14 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         
         # 6. Đưa mô hình vào trạng thái đánh giá (tắt random)
         extractor.to(device).eval()
+
+        st.session_state["svm_debug_info"] = {
+            "svm_path": str(ckpt_path),
+            "svm_sha256": _sha256_file(ckpt_path),
+            "extractor_path": str(extractor_path),
+            "extractor_sha256": _sha256_file(extractor_path),
+            "extractor_state_sha256": _tensor_sha256_state_dict(extractor.state_dict()),
+        }
 
         return {"svm": svm, "extractor": extractor}, id2label, device, str(ckpt_path)
 
@@ -675,6 +684,28 @@ def _display_label(id2label, idx):
     return label if isinstance(label, str) else RSITMD_CLASSES[int(idx)]
 
 
+def _sha256_file(path: str, chunk_size: int = 1024 * 1024) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(chunk_size), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _tensor_sha256_state_dict(state_dict) -> str:
+    h = hashlib.sha256()
+    for key in sorted(state_dict.keys()):
+        h.update(key.encode("utf-8"))
+        value = state_dict[key]
+        if torch.is_tensor(value):
+            h.update(value.detach().cpu().numpy().tobytes())
+        elif isinstance(value, np.ndarray):
+            h.update(value.tobytes())
+        else:
+            h.update(repr(value).encode("utf-8"))
+    return h.hexdigest()
+
+
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
         svm_model = model["svm"]
@@ -841,6 +872,17 @@ with left:
             f"<div class='small-note'>Model ready: <b>{_ckpt_used}</b></div>",
             unsafe_allow_html=True,
         )
+        if model_choice == "SVM + ResNet50" and "svm_debug_info" in st.session_state:
+            dbg = st.session_state["svm_debug_info"]
+            with st.expander("SVM / extractor debug info", expanded=False):
+                st.code(
+                    f"SVM file: {dbg['svm_path']}\n"
+                    f"SVM SHA256: {dbg['svm_sha256']}\n"
+                    f"Extractor file: {dbg['extractor_path']}\n"
+                    f"Extractor SHA256: {dbg['extractor_sha256']}\n"
+                    f"Extractor state SHA256: {dbg['extractor_state_sha256']}",
+                    language="text",
+                )
     else:
         st.warning("Model failed to load.")
 
@@ -903,6 +945,7 @@ with left:
                 st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
+    explain = st.checkbox("Explain", value=False, help="Generate saliency / Grad-CAM / occlusion heatmaps only when enabled.")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with right:
@@ -913,8 +956,18 @@ with right:
         if image is None:
             st.warning("Please upload an image first.")
         else:
-            with st.spinner("Running inference..."):
-                topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
+            if explain:
+                with st.spinner("Running inference with explanations..."):
+                    topk, saliency_overlay, gradcam_overlay, attention_overlay = predict_with_explanations(model, id2label, device, image, model_choice=model_choice, k=5)
+            else:
+                with torch.no_grad():
+                    x = preprocess_image(image).to(device)
+                    logits = model(x)
+                    probs = torch.softmax(logits, dim=1)[0]
+                    top_vals, top_idx = torch.topk(probs, k=min(5, probs.shape[0]))
+                    topk = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+                saliency_overlay = gradcam_overlay = attention_overlay = None
+
             top_label, top_prob = topk[0]
 
             st.metric("Predicted class", top_label)
@@ -927,27 +980,30 @@ with right:
             for label, prob in topk:
                 st.write(f"- {label}: {prob:.2%}")
 
-            if model_choice == "SVM + ResNet50":
-                st.markdown("---")
-                st.markdown("**Occlusion sensitivity**")
-                st.image(saliency_overlay, caption="Occlusion heatmap", use_container_width=True)
-            else:
-                st.markdown("---")
-                st.markdown("**Visual Explanations**")
-                if attention_overlay is not None:
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                    with c2:
-                        st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
-                    with c3:
-                        st.image(attention_overlay, caption="Attention map", use_container_width=True)
+            if explain:
+                if model_choice == "SVM + ResNet50":
+                    st.markdown("---")
+                    st.markdown("**Occlusion sensitivity**")
+                    st.image(saliency_overlay, caption="Occlusion heatmap", use_container_width=True)
                 else:
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                    with c2:
-                        st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
+                    st.markdown("---")
+                    st.markdown("**Visual Explanations**")
+                    if attention_overlay is not None:
+                        c1, c2, c3 = st.columns(3)
+                        with c1:
+                            st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                        with c2:
+                            st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
+                        with c3:
+                            st.image(attention_overlay, caption="Attention map", use_container_width=True)
+                    else:
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                        with c2:
+                            st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
+            else:
+                st.info("Explain is off, so no heatmaps were generated.")
     else:
         st.info("Upload image and click Predict.")
 
