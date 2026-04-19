@@ -330,7 +330,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if model_choice == "SVM + ResNet50":
-        # 1. Load SVM và file mapping (vẫn giữ nguyên vì phần này bạn đã làm đúng)
+        # 1. Load SVM và file mapping
         svm = joblib.load(ckpt_path)
         with open(map_path, "r", encoding="utf-8") as f:
             mp = json.load(f)
@@ -340,7 +340,7 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
             raise ValueError(f"Label mapping file is empty or missing id2label: {map_path}")
         
         # 2. XÂY MẠNG RỖNG - KHÔNG FALLBACK
-        extractor_path = Path(ckpt_path).parent / "resnet50_extractor.pt"
+        extractor_path = Path(ckpt_path).parent / "best_resnet50_model.pt"
         extractor = build_resnet50_backbone(pretrained=False) 
         
         # 3. CHẶT LỚP CUỐI cho khớp cấu trúc
@@ -366,16 +366,6 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
         
         # 6. Đưa mô hình vào trạng thái đánh giá (tắt random)
         extractor.to(device).eval()
-
-        st.session_state["svm_debug_info"] = {
-            "svm_path": str(ckpt_path),
-            "svm_sha256": _sha256_file(ckpt_path),
-            "extractor_path": str(extractor_path),
-            "extractor_sha256": _sha256_file(extractor_path),
-            "extractor_state_sha256": _tensor_sha256_state_dict(extractor.state_dict()),
-            "svm_classes": svm.classes_.tolist() if hasattr(svm, "classes_") else None,
-            "id2label_items": sorted((int(k), v) for k, v in id2label.items()),
-        }
 
         return {"svm": svm, "extractor": extractor}, id2label, device, str(ckpt_path)
 
@@ -684,20 +674,6 @@ def _display_label(id2label, idx):
     return label if isinstance(label, str) else RSITMD_CLASSES[int(idx)]
 
 
-def _feature_fingerprint(feats: np.ndarray, n: int = 8) -> dict:
-    flat = np.asarray(feats).reshape(-1)
-    head = flat[:n].tolist()
-    return {
-        "shape": list(np.asarray(feats).shape),
-        "mean": float(flat.mean()) if flat.size else 0.0,
-        "std": float(flat.std()) if flat.size else 0.0,
-        "min": float(flat.min()) if flat.size else 0.0,
-        "max": float(flat.max()) if flat.size else 0.0,
-        "sha256": hashlib.sha256(flat.tobytes()).hexdigest(),
-        "head": [float(x) for x in head],
-    }
-
-
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
         svm_model = model["svm"]
@@ -715,11 +691,6 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         for p, i in zip(top_vals, top_idx):
             idx = int(i)
             rows.append((_display_label(id2label, idx), float(p)))
-        st.session_state["svm_feature_debug"] = {
-            "fingerprint": _feature_fingerprint(feats),
-            "pred_idx": int(top_idx[0]),
-            "pred_prob": float(top_vals[0]),
-        }
         overlay = _occlusion_sensitivity_heatmap(extract_feats, svm_model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
