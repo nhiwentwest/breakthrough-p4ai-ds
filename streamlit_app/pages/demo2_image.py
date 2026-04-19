@@ -706,6 +706,20 @@ def _tensor_sha256_state_dict(state_dict) -> str:
     return h.hexdigest()
 
 
+def _feature_fingerprint(feats: np.ndarray, n: int = 8) -> dict:
+    flat = np.asarray(feats).reshape(-1)
+    head = flat[:n].tolist()
+    return {
+        "shape": list(np.asarray(feats).shape),
+        "mean": float(flat.mean()) if flat.size else 0.0,
+        "std": float(flat.std()) if flat.size else 0.0,
+        "min": float(flat.min()) if flat.size else 0.0,
+        "max": float(flat.max()) if flat.size else 0.0,
+        "sha256": hashlib.sha256(flat.tobytes()).hexdigest(),
+        "head": [float(x) for x in head],
+    }
+
+
 def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=5):
     if model_choice == "SVM + ResNet50":
         svm_model = model["svm"]
@@ -723,6 +737,11 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         for p, i in zip(top_vals, top_idx):
             idx = int(i)
             rows.append((_display_label(id2label, idx), float(p)))
+        st.session_state["svm_feature_debug"] = {
+            "fingerprint": _feature_fingerprint(feats),
+            "pred_idx": int(top_idx[0]),
+            "pred_prob": float(top_vals[0]),
+        }
         overlay = _occlusion_sensitivity_heatmap(extract_feats, svm_model.predict_proba, img_pil, int(top_idx[0]))
         return rows, overlay, overlay, None
 
@@ -969,6 +988,17 @@ with right:
                 saliency_overlay = gradcam_overlay = attention_overlay = None
 
             top_label, top_prob = topk[0]
+
+            if model_choice == "SVM + ResNet50" and "svm_feature_debug" in st.session_state:
+                dbg = st.session_state["svm_feature_debug"]
+                with st.expander("SVM feature debug", expanded=False):
+                    st.write(f"Feature shape: {dbg['fingerprint']['shape']}")
+                    st.write(f"Feature mean: {dbg['fingerprint']['mean']:.6f}")
+                    st.write(f"Feature std: {dbg['fingerprint']['std']:.6f}")
+                    st.write(f"Feature min/max: {dbg['fingerprint']['min']:.6f} / {dbg['fingerprint']['max']:.6f}")
+                    st.write(f"Feature SHA256: {dbg['fingerprint']['sha256']}")
+                    st.write(f"Feature head: {dbg['fingerprint']['head']}")
+                    st.write(f"Pred idx: {dbg['pred_idx']}, pred prob: {dbg['pred_prob']:.6f}")
 
             st.metric("Predicted class", top_label)
             st.markdown(f"<div class='demo-label'>Predicted label: {top_label}</div>", unsafe_allow_html=True)
