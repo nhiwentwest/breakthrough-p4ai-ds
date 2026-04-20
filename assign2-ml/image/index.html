@@ -91,9 +91,9 @@
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1; }
         .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
 
-        .links-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
-        .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-        .section-label { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin: 4px 0 10px; }
+        .links-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .model-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .section-label { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin: 18px 0 10px; }
         .link-card {
             background: var(--bg-card); border: 1px solid var(--border-md);
             border-radius: var(--r-sm); padding: 14px 16px;
@@ -125,45 +125,45 @@
 
     <header class="page-head">
         <div class="kicker">Assignment 02 · Machine Learning</div>
-        <h1>🖼 Image <em>Page</em></h1>
+        <h1>🖼 Image <em>Classification</em></h1>
         <div class="chips">
-            <span class="chip chip--blue">RSITMD / Image Classification</span>
-            <span class="chip chip--ok">PyTorch · torchvision · sklearn</span>
-            <span class="chip">Assignment 02 child page</span>
+            <span class="chip chip--blue">RSITMD multimodal dataset</span>
+            <span class="chip chip--ok">Used for image classification</span>
+            <span class="chip">PyTorch · torchvision · sklearn</span>
         </div>
     </header>
 
     <div class="dataset-card">
         <h2>Section</h2>
-        <div class="dataset-title">Image experiments for Assignment 02</div>
-        <div class="dataset-sub">This page is the dedicated child page for the image modality, following the same folder/path pattern as Assignment 01.</div>
+        <div class="dataset-title">RSITMD-based image classification</div>
+        <div class="dataset-sub">Although RSITMD is a multimodal image-text dataset, this assignment uses the image branch as a pure image classification workspace with five model variants.</div>
         <div class="dataset-meta">
-            <span class="meta-tag">/assign2-ml/image/</span>
-            <span class="meta-tag">Separate subpage</span>
-            <span class="meta-tag">Ready for content</span>
+            <span class="meta-tag">RSITMD multimodal</span>
+            <span class="meta-tag">Image classification</span>
+            <span class="meta-tag">5 model variants</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card">
-            <div class="stat-label">Status</div>
-            <div class="stat-val">Ready</div>
-            <div class="stat-sub">Child page scaffold</div>
+            <div class="stat-label">Dataset role</div>
+            <div class="stat-val">Multimodal</div>
+            <div class="stat-sub">Used here as image classification data</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Purpose</div>
-            <div class="stat-val">Navigation</div>
-            <div class="stat-sub">Landing page destination</div>
+            <div class="stat-label">Model count</div>
+            <div class="stat-val">5</div>
+            <div class="stat-sub">Scratch, pretrained, MBLANet, SVM, hybrid</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Style</div>
-            <div class="stat-val">A01-like</div>
-            <div class="stat-sub">Simple modular structure</div>
+            <div class="stat-label">Input pipeline</div>
+            <div class="stat-val">224×224</div>
+            <div class="stat-sub">HF Dataset → transforms → loaders</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Content</div>
-            <div class="stat-val">TBD</div>
-            <div class="stat-sub">Fill with your image notes</div>
+            <div class="stat-label">Explainability</div>
+            <div class="stat-val">Grad-CAM</div>
+            <div class="stat-sub">Saliency + attention in MBLANet</div>
         </div>
     </div>
 
@@ -172,36 +172,41 @@
         <a class="link-card" href="../image/cnn_scratch.py">
             <span class="link-icon">1️⃣</span>
             <span class="link-label">CNN Scratch</span>
-            <span class="link-url">/assign2-ml/image/cnn_scratch.py</span>
+            <span class="link-url">Baseline CNN trained from scratch</span>
         </a>
         <a class="link-card" href="../image/cnn_pretrain_resnet50_finetune.py">
             <span class="link-icon">2️⃣</span>
-            <span class="link-label">ResNet50 Fine-tune</span>
-            <span class="link-url">/assign2-ml/image/cnn_pretrain_resnet50_finetune.py</span>
+            <span class="link-label">Pretrained CNN Fine-tune</span>
+            <span class="link-url">ResNet50 ImageNet backbone, fully fine-tuned</span>
         </a>
         <a class="link-card" href="../image/mblanet.py">
             <span class="link-icon">3️⃣</span>
             <span class="link-label">MBLANet</span>
-            <span class="link-url">/assign2-ml/image/mblanet.py</span>
+            <span class="link-url">ResNet50 + local attention blocks</span>
         </a>
         <a class="link-card" href="../images/rsitmd_svm_feature_pytorch.py">
             <span class="link-icon">4️⃣</span>
-            <span class="link-label">SVM + ResNet50</span>
-            <span class="link-url">/assign2-ml/images/rsitmd_svm_feature_pytorch.py</span>
+            <span class="link-label">SVM + ResNet50 Features</span>
+            <span class="link-url">Frozen extractor + SVM classifier</span>
         </a>
         <a class="link-card" href="../images/rsmitsd_cnn_pytorch.py">
             <span class="link-icon">5️⃣</span>
             <span class="link-label">CNN + ResNet50</span>
-            <span class="link-url">/assign2-ml/images/rsmitsd_cnn_pytorch.py</span>
+            <span class="link-url">Compact ResNet50 classifier baseline</span>
         </a>
     </div>
 
-    <div class="section-label">Navigation</div>
+    <div class="section-label">Utilities &amp; Data</div>
     <div class="links-grid">
         <a class="link-card" href="../index.html">
             <span class="link-icon">🏠</span>
             <span class="link-label">Back to landpage</span>
             <span class="link-url">/assign2-ml/index.html</span>
+        </a>
+        <a class="link-card" href="../image/preprocess_rsitmd.py">
+            <span class="link-icon">⚙️</span>
+            <span class="link-label">Preprocess RSITMD</span>
+            <span class="link-url">/assign2-ml/image/preprocess_rsitmd.py</span>
         </a>
         <a class="link-card" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
             <span class="link-icon">🔗</span>
