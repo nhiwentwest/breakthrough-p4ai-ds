@@ -91,7 +91,9 @@
         .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1; }
         .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
 
-        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .links-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+        .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+        .section-label { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin: 4px 0 10px; }
         .link-card {
             background: var(--bg-card); border: 1px solid var(--border-md);
             border-radius: var(--r-sm); padding: 14px 16px;
@@ -165,21 +167,46 @@
         </div>
     </div>
 
+    <div class="section-label">Model Cards</div>
+    <div class="model-grid">
+        <a class="link-card" href="../image/cnn_scratch.py">
+            <span class="link-icon">1️⃣</span>
+            <span class="link-label">CNN Scratch</span>
+            <span class="link-url">/assign2-ml/image/cnn_scratch.py</span>
+        </a>
+        <a class="link-card" href="../image/cnn_pretrain_resnet50_finetune.py">
+            <span class="link-icon">2️⃣</span>
+            <span class="link-label">ResNet50 Fine-tune</span>
+            <span class="link-url">/assign2-ml/image/cnn_pretrain_resnet50_finetune.py</span>
+        </a>
+        <a class="link-card" href="../image/mblanet.py">
+            <span class="link-icon">3️⃣</span>
+            <span class="link-label">MBLANet</span>
+            <span class="link-url">/assign2-ml/image/mblanet.py</span>
+        </a>
+        <a class="link-card" href="../images/rsitmd_svm_feature_pytorch.py">
+            <span class="link-icon">4️⃣</span>
+            <span class="link-label">SVM + ResNet50</span>
+            <span class="link-url">/assign2-ml/images/rsitmd_svm_feature_pytorch.py</span>
+        </a>
+        <a class="link-card" href="../images/rsmitsd_cnn_pytorch.py">
+            <span class="link-icon">5️⃣</span>
+            <span class="link-label">CNN + ResNet50</span>
+            <span class="link-url">/assign2-ml/images/rsmitsd_cnn_pytorch.py</span>
+        </a>
+    </div>
+
+    <div class="section-label">Navigation</div>
     <div class="links-grid">
         <a class="link-card" href="../index.html">
             <span class="link-icon">🏠</span>
             <span class="link-label">Back to landpage</span>
             <span class="link-url">/assign2-ml/index.html</span>
         </a>
-        <a class="link-card" href="../image/cnn_scratch.py">
-            <span class="link-icon">🐍</span>
-            <span class="link-label">CNN Scratch</span>
-            <span class="link-url">/assign2-ml/image/cnn_scratch.py</span>
-        </a>
-        <a class="link-card" href="../image/mblanet.py">
-            <span class="link-icon">🧠</span>
-            <span class="link-label">MBLANet</span>
-            <span class="link-url">/assign2-ml/image/mblanet.py</span>
+        <a class="link-card" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
+            <span class="link-icon">🔗</span>
+            <span class="link-label">Source Data / Repo</span>
+            <span class="link-url">github.com/xiaoyuan1996/AMFMN/tree/master</span>
         </a>
     </div>
 
