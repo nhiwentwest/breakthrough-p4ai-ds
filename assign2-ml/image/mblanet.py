@@ -29,8 +29,8 @@ class CFG:
     image_size: int = 224
     num_classes: int = 21
 
-    epochs: int = 100
-    batch_size: int = 64
+    epochs: int = 50
+    batch_size: int = 32
     num_workers: int = 4
     lr: float = 0.01
     weight_decay: float = 1e-4
@@ -538,7 +538,7 @@ def run_training(cfg: CFG):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
-    p.add_argument("--epochs", type=int, default=100)
+    p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--lr", type=float, default=0.01)
     args, _ = p.parse_known_args()

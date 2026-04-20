@@ -143,13 +143,41 @@ with open("label_mapping.json", "w") as f:
 print("✅ Saved: svm_model.joblib, resnet50_extractor.pt, label_mapping.json")
 
 import torch.nn.functional as F
+import hashlib
 
 # ==========================================
-# 8. TEST ON SINGLE IMAGE + FEATURE ATTENTION
+# 8. TEST ON SINGLE IMAGE + DEBUG EXPORT
 # ==========================================
-sample = hf_dataset['validation'][0]
+# Change this to "test[0]", "test[5]", "validation[0]", etc.
+DEBUG_SAMPLE_SPEC = os.environ.get("RSITMD_DEBUG_SAMPLE", "test[0]")
+DEBUG_OUTPUT_DIR = os.environ.get("RSITMD_DEBUG_OUTPUT_DIR", "/kaggle/working/rsitmd_svm_debug")
+os.makedirs(DEBUG_OUTPUT_DIR, exist_ok=True)
+
+
+def parse_split_index(spec: str):
+    spec = spec.strip().lower()
+    if "[" not in spec or "]" not in spec:
+        raise ValueError(f"Bad sample spec: {spec}. Use format like test[0] or validation[5].")
+    split_name = spec.split("[")[0].strip()
+    idx = int(spec[spec.find("[") + 1:spec.find("]")].strip())
+    return split_name, idx
+
+
+split_name, sample_idx = parse_split_index(DEBUG_SAMPLE_SPEC)
+if split_name not in hf_dataset:
+    raise KeyError(f"Split '{split_name}' not found. Available splits: {list(hf_dataset.keys())}")
+if sample_idx < 0 or sample_idx >= len(hf_dataset[split_name]):
+    raise IndexError(f"Index {sample_idx} out of range for split '{split_name}' (0..{len(hf_dataset[split_name]) - 1})")
+
+sample = hf_dataset[split_name][sample_idx]
 img_tensor = sample['pixel_values'].unsqueeze(0).to(device)
 true_label_text = class_names[sample['label'].item()]
+
+print("\n================ DEBUG SAMPLE ================")
+print(f"Debug sample spec: {DEBUG_SAMPLE_SPEC}")
+print(f"Resolved sample: split='{split_name}', index={sample_idx}")
+print(f"True label: {true_label_text}")
+print("============================================\n")
 
 # 1. Setup a Hook to eavesdrop on ResNet50's final layer
 activations = []
@@ -167,6 +195,48 @@ with torch.no_grad(): # No gradients needed!
 pred_idx = svm.predict(single_feature)[0]
 pred_prob = np.max(svm.predict_proba(single_feature)) * 100
 pred_class = class_names[pred_idx]
+
+feature_flat = single_feature.reshape(-1)
+feature_debug = {
+    "debug_sample_spec": DEBUG_SAMPLE_SPEC,
+    "split": split_name,
+    "index": sample_idx,
+    "true_label": true_label_text,
+    "feature_shape": list(single_feature.shape),
+    "feature_mean": float(feature_flat.mean()),
+    "feature_std": float(feature_flat.std()),
+    "feature_min": float(feature_flat.min()),
+    "feature_max": float(feature_flat.max()),
+    "feature_sha256": hashlib.sha256(feature_flat.tobytes()).hexdigest(),
+    "feature_head": [float(x) for x in feature_flat[:8]],
+    "pred_idx": int(pred_idx),
+    "pred_class": pred_class,
+    "pred_prob_percent": float(pred_prob),
+    "svm_classes": svm.classes_.tolist() if hasattr(svm, "classes_") else None,
+    "id2label": {int(i): name for i, name in enumerate(class_names)},
+}
+
+json_path = os.path.join(DEBUG_OUTPUT_DIR, f"debug_{split_name}_{sample_idx}.json")
+with open(json_path, "w", encoding="utf-8") as f:
+    json.dump(feature_debug, f, indent=2, ensure_ascii=False)
+
+text_path = os.path.join(DEBUG_OUTPUT_DIR, f"debug_{split_name}_{sample_idx}.txt")
+with open(text_path, "w", encoding="utf-8") as f:
+    for k, v in feature_debug.items():
+        f.write(f"{k}: {v}\n")
+
+print(f"Saved debug JSON: {json_path}")
+print(f"Saved debug TXT : {text_path}")
+print("Feature fingerprint:")
+print(f"  shape: {feature_debug['feature_shape']}")
+print(f"  mean : {feature_debug['feature_mean']:.6f}")
+print(f"  std  : {feature_debug['feature_std']:.6f}")
+print(f"  min/max: {feature_debug['feature_min']:.6f} / {feature_debug['feature_max']:.6f}")
+print(f"  sha256: {feature_debug['feature_sha256']}")
+print(f"  head  : {feature_debug['feature_head']}")
+print(f"SVM classes_: {feature_debug['svm_classes']}")
+print(f"id2label keys: {list(feature_debug['id2label'].keys())}")
+print(f"Pred idx: {pred_idx}, pred prob: {pred_prob:.4f}%")
 
 # 3. Process the generalized Feature Attention Map
 # Take the mean of the feature maps across all channels to see general attention
@@ -208,4 +278,5 @@ plt.title("ResNet50 Attention Map\n(What the Extractor focuses on)", fontsize=14
 plt.axis('off')
 
 plt.tight_layout()
+plt.show()
 plt.show()

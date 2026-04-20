@@ -69,8 +69,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.fc.parameters(), lr=0.001)
 
 # 4. TRAINING LOOP WITH CHECKPOINTS
-EPOCHS = 10
+EPOCHS = 50
+EARLY_STOP_PATIENCE = 8
 best_acc = 0.0
+no_improve = 0
 
 print(f"Starting training for {EPOCHS} epochs...")
 for epoch in range(EPOCHS):
@@ -102,8 +104,14 @@ for epoch in range(EPOCHS):
 
     if val_acc > best_acc:
         best_acc = val_acc
+        no_improve = 0
         torch.save(model.state_dict(), "best_resnet50.pt")
         print("  -> Checkpoint: New best model saved!")
+    else:
+        no_improve += 1
+        if no_improve >= EARLY_STOP_PATIENCE:
+            print(f"Early stopping at epoch {epoch+1}")
+            break
 
 # 5. CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
