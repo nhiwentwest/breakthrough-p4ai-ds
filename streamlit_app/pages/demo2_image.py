@@ -796,6 +796,12 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         attn_overlay = _apply_heatmap_overlay(_to_uint8(img_pil), attn_np, alpha=0.60)
 
     rows = [(_display_label(id2label, int(i)), float(p)) for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy())]
+
+    top1_prob = float(top_vals[0].item())
+    top2_prob = float(top_vals[1].item()) if top_vals.numel() > 1 else 0.0
+    top1_top2_gap = top1_prob - top2_prob
+    entropy = float((-(probs * torch.log(probs.clamp_min(1e-12))).sum()).item())
+
     debug = {
         "raw_logits_top5": [float(v) for v in torch.topk(logits[0], k=min(5, logits.shape[1])).values.detach().cpu().tolist()],
         "raw_logits_top5_idx": [int(i) for i in torch.topk(logits[0], k=min(5, logits.shape[1])).indices.detach().cpu().tolist()],
