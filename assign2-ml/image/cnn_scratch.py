@@ -19,13 +19,13 @@ class CFG:
     seed: int = 42
     image_size: int = 224
 
-    epochs: int = 20
+    epochs: int = 50
     batch_size: int = 32
     num_workers: int = 4
     lr: float = 3e-4
     weight_decay: float = 1e-4
 
-    early_stop_patience: int = 3
+    early_stop_patience: int = 8
     early_stop_min_delta: float = 1e-4
 
 
@@ -390,12 +390,12 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
     p.add_argument("--output_dir", type=str, default="outputs_cnn_scratch")
-    p.add_argument("--epochs", type=int, default=20)
+    p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
-    p.add_argument("--early_stop_patience", type=int, default=3)
+    p.add_argument("--early_stop_patience", type=int, default=8)
     p.add_argument("--early_stop_min_delta", type=float, default=1e-4)
     p.add_argument("--seed", type=int, default=42)
     args, _ = p.parse_known_args()
