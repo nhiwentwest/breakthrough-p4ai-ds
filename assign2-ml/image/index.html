@@ -45,15 +45,34 @@
         }
         .topbar-logo {
             font-family: 'Cormorant Garamond', Georgia, serif;
-            font-size: 1.12rem;
+            font-size: 1.08rem;
             font-weight: 600;
             letter-spacing: 0.04em;
             color: var(--ink);
             text-decoration: none;
             transition: color 0.18s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
         }
-        .topbar-logo span { color: var(--blue); }
-        .topbar-logo:hover { text-decoration: none; color: var(--blue); }
+        .topbar-logo:hover { text-decoration: none; }
+        .brand-icon {
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: var(--blue-bg);
+            color: var(--blue);
+            font-size: 0.7rem;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .brand-break { color: var(--ink); }
+        .brand-through { color: var(--accent); }
+        .topbar-logo:hover .brand-break,
+        .topbar-logo:hover .brand-through { color: var(--blue); }
         .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
 
         main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
@@ -135,7 +154,9 @@
 <body>
 
 <div class="topbar">
-    <a class="topbar-logo" href="../index.html">Breakthrough<span>.</span></a>
+    <a class="topbar-logo" href="../index.html" title="Return to landpage">
+        <span class="brand-icon">↩</span><span class="brand-break">Break</span><span class="brand-through">through.</span>
+    </a>
     <div class="topbar-meta">A02 · Image</div>
 </div>
 
@@ -154,19 +175,19 @@
     <div class="dataset-card">
         <h2>Section</h2>
         <div class="dataset-title">RSITMD-based image classification</div>
-        <div class="dataset-sub">Although RSITMD is a multimodal image-text dataset, this assignment uses the image branch as a pure image classification workspace with five model variants.</div>
+        <div class="dataset-sub">The source data comes from the AMFMN / RSITMD repository, then is preprocessed locally and used here as an image classification workspace.</div>
         <div class="dataset-meta">
-            <span class="meta-tag">RSITMD multimodal</span>
-            <span class="meta-tag">Image classification</span>
-            <span class="meta-tag">5 model variants</span>
+            <span class="meta-tag">Source repo: AMFMN / RSITMD</span>
+            <span class="meta-tag">Preprocessed locally</span>
+            <span class="meta-tag">Current task: image classification</span>
         </div>
     </div>
 
     <div class="stats-grid">
         <div class="stat-card">
             <div class="stat-label">Dataset role</div>
-            <div class="stat-val">Multimodal</div>
-            <div class="stat-sub">Used here as image classification data</div>
+            <div class="stat-val">Image classification</div>
+            <div class="stat-sub">Source dataset is multimodal RSITMD</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Model count</div>
@@ -176,7 +197,7 @@
         <div class="stat-card">
             <div class="stat-label">Input pipeline</div>
             <div class="stat-val">224×224</div>
-            <div class="stat-sub">HF Dataset → transforms → loaders</div>
+            <div class="stat-sub">Source repo → preprocess → image loaders</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Explainability</div>
@@ -187,30 +208,30 @@
 
     <div class="section-label">Model Cards</div>
     <div class="model-grid">
-        <a class="link-card" href="../image/cnn_scratch.py">
+        <a class="link-card" href="./cnn_scratch/">
             <span class="link-icon">🧱</span>
             <span class="link-label">CNN Scratch</span>
-            <span class="link-url">Baseline CNN trained from scratch</span>
+            <span class="link-url">Open child page · GitHub file: `assign2-ml/image/cnn_scratch.py`</span>
         </a>
-        <a class="link-card" href="../image/cnn_pretrain_resnet50_finetune.py">
+        <a class="link-card" href="./cnn_pretrain_resnet50_finetune/">
             <span class="link-icon">🌱</span>
             <span class="link-label">Pretrained CNN Fine-tune</span>
-            <span class="link-url">ResNet50 ImageNet backbone, fully fine-tuned</span>
+            <span class="link-url">Open child page · GitHub file: `assign2-ml/image/cnn_pretrain_resnet50_finetune.py`</span>
         </a>
-        <a class="link-card" href="../image/mblanet.py">
+        <a class="link-card" href="./mblanet/">
             <span class="link-icon">🎯</span>
             <span class="link-label">MBLANet</span>
-            <span class="link-url">ResNet50 + local attention blocks</span>
+            <span class="link-url">Open child page · GitHub file: `assign2-ml/image/mblanet.py`</span>
         </a>
-        <a class="link-card" href="../images/rsitmd_svm_feature_pytorch.py">
+        <a class="link-card" href="./rsitmd_svm_feature_pytorch/">
             <span class="link-icon">🧩</span>
             <span class="link-label">SVM + ResNet50 Features</span>
-            <span class="link-url">Frozen extractor + SVM classifier</span>
+            <span class="link-url">Open child page · GitHub file: `assign2-ml/images/rsitmd_svm_feature_pytorch.py`</span>
         </a>
-        <a class="link-card" href="../images/rsmitsd_cnn_pytorch.py">
+        <a class="link-card" href="./rsmitsd_cnn_pytorch/">
             <span class="link-icon">⚡</span>
             <span class="link-label">CNN + ResNet50</span>
-            <span class="link-url">Compact ResNet50 classifier baseline</span>
+            <span class="link-url">Open child page · GitHub file: `assign2-ml/images/rsmitsd_cnn_pytorch.py`</span>
         </a>
     </div>
 
@@ -219,7 +240,7 @@
         <a class="link-card" href="../image/preprocess_rsitmd.py">
             <span class="link-icon">⚙️</span>
             <span class="link-label">Preprocess RSITMD</span>
-            <span class="link-url">/assign2-ml/image/preprocess_rsitmd.py</span>
+            <span class="link-url">GitHub file: `assign2-ml/image/preprocess_rsitmd.py`</span>
         </a>
         <a class="link-card" href="https://github.com/xiaoyuan1996/AMFMN/tree/master" target="_blank" rel="noopener">
             <span class="link-icon">🔗</span>
