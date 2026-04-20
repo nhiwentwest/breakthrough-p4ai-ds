@@ -22,8 +22,11 @@
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
         .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-        .topbar-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;font-weight:600;letter-spacing:.04em;color:var(--ink);text-decoration:none}
-        .topbar-logo span{color:var(--accent)}
+        .topbar-logo{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08rem;font-weight:600;letter-spacing:.04em;color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:7px;transition:color .18s ease}
+        .brand-icon{width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--accent-light);color:var(--accent);font-size:.7rem;line-height:1;flex-shrink:0}
+        .brand-break{color:var(--ink)}
+        .brand-through{color:var(--accent)}
+        .topbar-logo:hover .brand-break,.topbar-logo:hover .brand-through{color:var(--blue)}
         .topbar-right{display:flex;align-items:center;gap:10px}
         .topbar-tag{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
         .topbar-badge{font-size:.62rem;padding:3px 9px;border-radius:999px;background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);letter-spacing:.06em}
@@ -87,7 +90,9 @@
 </head>
 <body>
     <div class="topbar">
-        <a class="topbar-logo" href="../">Breakthrough<span>.</span></a>
+        <a class="topbar-logo" href="../" title="Return to landpage">
+            <span class="brand-icon">↩</span><span class="brand-break">Break</span><span class="brand-through">through.</span>
+        </a>
         <div class="topbar-right">
             <span class="topbar-badge">A02 · Active</span>
             <span class="topbar-tag">CO3135 · P4AI-DS</span>
