@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image · Assignment 02 | Breakthrough</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg:        #F0EDE6;
+            --bg-card:   #FAF8F4;
+            --ink:       #1C1A16;
+            --ink-muted: #7A746A;
+            --ink-faint: #B0A89C;
+            --blue:      #3D5A80;
+            --blue-bg:   rgba(61, 90, 128, 0.09);
+            --blue-md:   rgba(61, 90, 128, 0.22);
+            --r: 16px;
+            --r-sm: 10px;
+            --shadow-sm: 0 1px 3px rgba(28,26,22,0.06), 0 2px 8px rgba(28,26,22,0.04);
+            --border:    rgba(28, 26, 22, 0.09);
+            --border-md: rgba(28, 26, 22, 0.14);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 32px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar-logo {
+            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .topbar-logo span { color: var(--blue); }
+        .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
+
+        main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        .page-head { margin-bottom: 24px; }
+        .kicker { font-size: 0.65rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
+        h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 10px; }
+        h1 em { font-style: normal; color: var(--blue); }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+        .chip {
+            font-size: 0.66rem; padding: 4px 12px;
+            border-radius: 999px; border: 1px solid var(--border-md);
+            background: var(--bg-card); color: var(--ink-muted);
+            letter-spacing: 0.04em;
+        }
+        .chip--blue { background: var(--blue-bg); border-color: var(--blue-md); color: var(--blue); font-weight: 500; }
+        .chip--ok { background: rgba(45,106,79,0.09); border-color: rgba(45,106,79,0.28); color: #2D6A4F; font-weight: 500; }
+
+        .dataset-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r); padding: 20px 22px; margin-bottom: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .dataset-card h2 { font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 10px; }
+        .dataset-title { font-size: 1.05rem; font-weight: 700; color: var(--blue); margin-bottom: 4px; }
+        .dataset-sub { font-size: 0.72rem; color: var(--ink-muted); margin-bottom: 10px; }
+        .dataset-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+        .meta-tag { font-size: 0.64rem; padding: 3px 10px; border-radius: 6px; background: var(--bg); border: 1px solid var(--border-md); color: var(--ink-muted); }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px; box-shadow: var(--shadow-sm);
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-faint); margin-bottom: 4px; }
+        .stat-val { font-size: 1.4rem; font-weight: 700; color: var(--blue); line-height: 1; }
+        .stat-sub { font-size: 0.62rem; color: var(--ink-faint); margin-top: 2px; }
+
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .link-card {
+            background: var(--bg-card); border: 1px solid var(--border-md);
+            border-radius: var(--r-sm); padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 6px;
+            box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
+        }
+        .link-card:hover { border-color: var(--blue-md); transform: translateY(-2px); }
+        .link-icon { font-size: 1.1rem; }
+        .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
+        .link-url { font-size: 0.63rem; color: var(--blue); font-family: monospace; word-break: break-all; }
+
+        footer { text-align: center; padding: 18px; font-size: 0.63rem; letter-spacing: 0.08em; color: var(--ink-faint); border-top: 1px solid var(--border); }
+
+        @media (max-width: 640px) {
+            main { padding: 20px 16px 40px; }
+            .links-grid { grid-template-columns: 1fr; }
+            .topbar { padding: 12px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <div class="topbar-meta">A02 · Image</div>
+</div>
+
+<main>
+
+    <header class="page-head">
+        <div class="kicker">Assignment 02 · Machine Learning</div>
+        <h1>🖼 Image <em>Page</em></h1>
+        <div class="chips">
+            <span class="chip chip--blue">RSITMD / Image Classification</span>
+            <span class="chip chip--ok">PyTorch · torchvision · sklearn</span>
+            <span class="chip">Assignment 02 child page</span>
+        </div>
+    </header>
+
+    <div class="dataset-card">
+        <h2>Section</h2>
+        <div class="dataset-title">Image experiments for Assignment 02</div>
+        <div class="dataset-sub">This page is the dedicated child page for the image modality, following the same folder/path pattern as Assignment 01.</div>
+        <div class="dataset-meta">
+            <span class="meta-tag">/assign2-ml/image/</span>
+            <span class="meta-tag">Separate subpage</span>
+            <span class="meta-tag">Ready for content</span>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Status</div>
+            <div class="stat-val">Ready</div>
+            <div class="stat-sub">Child page scaffold</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Purpose</div>
+            <div class="stat-val">Navigation</div>
+            <div class="stat-sub">Landing page destination</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Style</div>
+            <div class="stat-val">A01-like</div>
+            <div class="stat-sub">Simple modular structure</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Content</div>
+            <div class="stat-val">TBD</div>
+            <div class="stat-sub">Fill with your image notes</div>
+        </div>
+    </div>
+
+    <div class="links-grid">
+        <a class="link-card" href="../index.html">
+            <span class="link-icon">🏠</span>
+            <span class="link-label">Back to landpage</span>
+            <span class="link-url">/assign2-ml/index.html</span>
+        </a>
+        <a class="link-card" href="../image/cnn_scratch.py">
+            <span class="link-icon">🐍</span>
+            <span class="link-label">CNN Scratch</span>
+            <span class="link-url">/assign2-ml/image/cnn_scratch.py</span>
+        </a>
+        <a class="link-card" href="../image/mblanet.py">
+            <span class="link-icon">🧠</span>
+            <span class="link-label">MBLANet</span>
+            <span class="link-url">/assign2-ml/image/mblanet.py</span>
+        </a>
+    </div>
+
+</main>
+
+<footer>
+    Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026
+</footer>
+
+</body>
+</html>
