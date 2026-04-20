@@ -44,9 +44,16 @@
             position: sticky; top: 0; z-index: 100;
         }
         .topbar-logo {
-            font-size: 0.9rem; font-weight: 600; letter-spacing: 0.04em;
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-size: 1.12rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            color: var(--ink);
+            text-decoration: none;
+            transition: color 0.18s ease;
         }
         .topbar-logo span { color: var(--blue); }
+        .topbar-logo:hover { text-decoration: none; color: var(--blue); }
         .topbar-meta { font-size: 0.68rem; color: var(--ink-faint); letter-spacing: 0.08em; }
 
         main { max-width: 900px; margin: 0 auto; padding: 28px 32px 48px; }
@@ -101,7 +108,18 @@
             box-shadow: var(--shadow-sm); transition: border-color 0.2s, transform 0.2s;
         }
         .link-card:hover { border-color: var(--blue-md); transform: translateY(-2px); }
-        .link-icon { font-size: 1.1rem; }
+        .link-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--blue-bg);
+            color: var(--blue);
+            font-size: 1rem;
+            margin-bottom: 2px;
+        }
         .link-label { font-size: 0.68rem; font-weight: 600; color: var(--ink); }
         .link-url { font-size: 0.63rem; color: var(--blue); font-family: monospace; word-break: break-all; }
 
@@ -117,7 +135,7 @@
 <body>
 
 <div class="topbar">
-    <div class="topbar-logo">Breakthrough<span>.</span></div>
+    <a class="topbar-logo" href="../index.html">Breakthrough<span>.</span></a>
     <div class="topbar-meta">A02 · Image</div>
 </div>
 
@@ -170,27 +188,27 @@
     <div class="section-label">Model Cards</div>
     <div class="model-grid">
         <a class="link-card" href="../image/cnn_scratch.py">
-            <span class="link-icon">1️⃣</span>
+            <span class="link-icon">🧱</span>
             <span class="link-label">CNN Scratch</span>
             <span class="link-url">Baseline CNN trained from scratch</span>
         </a>
         <a class="link-card" href="../image/cnn_pretrain_resnet50_finetune.py">
-            <span class="link-icon">2️⃣</span>
+            <span class="link-icon">🌱</span>
             <span class="link-label">Pretrained CNN Fine-tune</span>
             <span class="link-url">ResNet50 ImageNet backbone, fully fine-tuned</span>
         </a>
         <a class="link-card" href="../image/mblanet.py">
-            <span class="link-icon">3️⃣</span>
+            <span class="link-icon">🎯</span>
             <span class="link-label">MBLANet</span>
             <span class="link-url">ResNet50 + local attention blocks</span>
         </a>
         <a class="link-card" href="../images/rsitmd_svm_feature_pytorch.py">
-            <span class="link-icon">4️⃣</span>
+            <span class="link-icon">🧩</span>
             <span class="link-label">SVM + ResNet50 Features</span>
             <span class="link-url">Frozen extractor + SVM classifier</span>
         </a>
         <a class="link-card" href="../images/rsmitsd_cnn_pytorch.py">
-            <span class="link-icon">5️⃣</span>
+            <span class="link-icon">⚡</span>
             <span class="link-label">CNN + ResNet50</span>
             <span class="link-url">Compact ResNet50 classifier baseline</span>
         </a>
@@ -198,11 +216,6 @@
 
     <div class="section-label">Utilities &amp; Data</div>
     <div class="links-grid">
-        <a class="link-card" href="../index.html">
-            <span class="link-icon">🏠</span>
-            <span class="link-label">Back to landpage</span>
-            <span class="link-url">/assign2-ml/index.html</span>
-        </a>
         <a class="link-card" href="../image/preprocess_rsitmd.py">
             <span class="link-icon">⚙️</span>
             <span class="link-label">Preprocess RSITMD</span>
