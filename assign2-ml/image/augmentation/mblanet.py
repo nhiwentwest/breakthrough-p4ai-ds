@@ -113,7 +113,6 @@ def build_dataloaders(cfg: CFG):
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomRotation(10),
         transforms.ColorJitter(brightness=0.18, contrast=0.18, saturation=0.12, hue=0.04),
-        transforms.RandomPerspective(distortion_scale=0.15, p=0.25),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
