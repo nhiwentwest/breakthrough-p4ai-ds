@@ -85,6 +85,43 @@ optimizer = optim.AdamW(model.fc.parameters(), lr=0.001, weight_decay=1e-4)
 
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
+
+def measure_inference_speed(model, loader, device, warmup=5):
+    model.eval()
+    times = []
+    it = iter(loader)
+    with torch.no_grad():
+        for _ in range(warmup):
+            try:
+                batch = next(it)
+            except StopIteration:
+                break
+            inputs = batch["pixel_values"].to(device)
+            _ = model(inputs)
+        for batch in loader:
+            inputs = batch["pixel_values"].to(device)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            t0 = torch.cuda.Event(enable_timing=True) if device.type == "cuda" else None
+            if device.type == "cuda":
+                start = torch.cuda.Event(enable_timing=True)
+                end = torch.cuda.Event(enable_timing=True)
+                start.record()
+                _ = model(inputs)
+                end.record()
+                torch.cuda.synchronize()
+                times.append(start.elapsed_time(end) / 1000.0)
+            else:
+                import time as _time
+                t0 = _time.time()
+                _ = model(inputs)
+                times.append(_time.time() - t0)
+    if not times:
+        return {"ms_per_batch": None, "images_per_sec": None}
+    ms_per_batch = float(np.mean(times)) * 1000.0
+    images_per_sec = float(loader.batch_size / np.mean(times))
+    return {"ms_per_batch": ms_per_batch, "images_per_sec": images_per_sec}
+
 # ==========================================
 # 4. TRAINING & DUAL EVALUATION LOOP
 # ==========================================
@@ -151,6 +188,11 @@ for epoch in range(EPOCHS):
         best_val_macro_f1 = val_macro_f1
         torch.save(model.state_dict(), "best_resnet50.pt")
         print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
+
+# 5. INFERENCE SPEED
+print("\nMeasuring inference speed...")
+inference = measure_inference_speed(model, test_loader, device)
+print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
 
 # 5. CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
