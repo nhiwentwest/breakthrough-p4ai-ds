@@ -643,8 +643,7 @@ def render_step(step_idx):
             st.metric("Total images", f"{D['n_total']:,}")
             st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
         with c1:
-            class_df = D['cat_counts'].reset_index()
-            class_df.columns = ["Class", "Count"]
+            class_df = pd.DataFrame(D['cat_counts'].items(), columns=["Class", "Count"])
             class_df = class_df.sort_values("Count", ascending=False).head(20)
             fig0, ax0 = make_fig(w_mult=1.0, h_mult=0.85)
             colors_cls = sns.color_palette("crest", len(class_df))
