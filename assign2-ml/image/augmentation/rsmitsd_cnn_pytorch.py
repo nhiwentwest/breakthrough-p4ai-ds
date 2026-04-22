@@ -198,11 +198,11 @@ print("\nGenerating Prediction, Saliency, and Grad-CAM...")
 
 # 1. Grab a single example
 sample_idx = 24
-sample = hf_dataset['test'][sample_idx]
-true_label_text = class_names[sample['label']]
+raw_sample = hf_dataset['test'][sample_idx]
+true_label_text = class_names[raw_sample['label']]
 
 # 2. Prepare the image and track gradients
-img_tensor = sample['pixel_values'].unsqueeze(0).to(device)
+img_tensor = eval_preprocess(raw_sample['image'].convert('RGB')).unsqueeze(0).to(device)
 img_tensor.requires_grad_()
 
 # 3. Setup PyTorch Hooks for Grad-CAM
