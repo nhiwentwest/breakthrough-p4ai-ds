@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 from datasets import load_from_disk
 import kagglehub
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, confusion_matrix, f1_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -99,8 +99,12 @@ svm.fit(X_train, y_train)
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 y_pred = svm.predict(X_val)
-val_acc = accuracy_score(y_val, y_pred)
-print(f"SVM Accuracy: {val_acc:.4f}")
+overall_acc = accuracy_score(y_val, y_pred)
+bal_acc = balanced_accuracy_score(y_val, y_pred)
+macro_f1 = f1_score(y_val, y_pred, average='macro', zero_division=0)
+print(f"Overall Accuracy: {overall_acc:.4f}")
+print(f"Balanced Accuracy: {bal_acc:.4f}")
+print(f"Macro F1: {macro_f1:.4f}")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, digits=4, zero_division=0))
 
 cm = confusion_matrix(y_val, y_pred)
