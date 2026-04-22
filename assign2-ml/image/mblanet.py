@@ -424,6 +424,36 @@ def train_one_epoch(model, loader, optimizer, criterion, device, scaler):
         "macro_f1": f1_score(ys, ps, average="macro"),
     }
 
+def measure_inference_speed(model, loader, device, warmup=10):
+    model.eval()
+    times = []
+    amp_enabled = device.type == "cuda"
+    it = iter(loader)
+    with torch.no_grad():
+        for _ in range(warmup):
+            try:
+                x, _ = next(it)
+            except StopIteration:
+                break
+            x = x.to(device, non_blocking=True)
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+        for x, _ in loader:
+            x = x.to(device, non_blocking=True)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            t0 = time.time()
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            times.append(time.time() - t0)
+    if not times:
+        return {"ms_per_batch": None, "images_per_sec": None}
+    ms_per_batch = 1000.0 * float(np.mean(times))
+    images_per_sec = float(loader.batch_size / np.mean(times))
+    return {"ms_per_batch": ms_per_batch, "images_per_sec": images_per_sec}
+
 def run_training(cfg: CFG):
     os.makedirs(cfg.output_dir, exist_ok=True)
     set_seed(cfg.seed)
@@ -481,6 +511,7 @@ def run_training(cfg: CFG):
         model.load_state_dict(torch.load(best_path, map_location=device)["model_state_dict"])
     
     test_metrics = run_eval(model, test_loader, device)
+    inference = measure_inference_speed(model, test_loader, device)
     
     # Render and save Confusion Matrix
     labels = list(range(len(id2label)))
@@ -501,6 +532,11 @@ def run_training(cfg: CFG):
         output_dict=True,
         zero_division=0,
     )
+    
+    print(f"Test Overall Accuracy: {test_metrics['acc']:.4f}")
+    print(f"Test Balanced Accuracy: {test_metrics['balanced_acc']:.4f}")
+    print(f"Test Macro F1: {test_metrics['macro_f1']:.4f}")
+    print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
     
     generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples, epoch=epoch)
 
@@ -528,7 +564,7 @@ def run_training(cfg: CFG):
 
     report_path = os.path.join(cfg.output_dir, "mblanet_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
-        json.dump({"test": test_metrics, "classification_report": cls_report, "history": history}, f, indent=2)
+        json.dump({"test": test_metrics, "inference": inference, "classification_report": cls_report, "history": history}, f, indent=2)
 
     print(f"Done. Report: {report_path}")
 
