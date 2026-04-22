@@ -99,8 +99,9 @@ svm.fit(X_train, y_train)
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 y_pred = svm.predict(X_val)
-print("SVM Accuracy:", accuracy_score(y_val, y_pred))
-print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names))
+val_acc = accuracy_score(y_val, y_pred)
+print(f"SVM Accuracy: {val_acc:.4f}")
+print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, digits=4, zero_division=0))
 
 cm = confusion_matrix(y_val, y_pred)
 plt.figure(figsize=(10, 8))
