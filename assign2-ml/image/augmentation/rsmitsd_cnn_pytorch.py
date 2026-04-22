@@ -264,7 +264,7 @@ mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
 
 # Reverse the math and clamp values between 0 and 1
-unnormalized_tensor = sample['pixel_values'].cpu() * std + mean
+unnormalized_tensor = eval_preprocess(raw_sample['image'].convert('RGB')).cpu() * std + mean
 unnormalized_tensor = torch.clamp(unnormalized_tensor, 0, 1)
 
 # Convert to a human-readable image
