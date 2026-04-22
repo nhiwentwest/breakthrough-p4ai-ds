@@ -1,8 +1,10 @@
 """
-CNN Scratch baseline (single-file, step-by-step)
+CNN Scratch baseline with augmentation (single-file, step-by-step)
 
 Run:
   python cnn_scratch.py
+
+NOTE: This augmentation clone keeps the same model idea but uses stronger train-time image augmentation for comparison.
 """
 
 # =========================

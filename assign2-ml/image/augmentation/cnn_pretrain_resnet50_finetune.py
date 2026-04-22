@@ -1,11 +1,13 @@
 """
-CNN pre-trained ResNet50 fine-tuning baseline (single-file, step-by-step)
+CNN pre-trained ResNet50 fine-tuning baseline with augmentation (single-file, step-by-step)
 
 This script uses a standard ResNet50 backbone pre-trained on ImageNet,
 then fine-tunes all layers end-to-end without any special custom architecture.
 
 Run:
   python cnn_pretrain_resnet50_finetune.py
+
+NOTE: This augmentation clone applies stronger train-time augmentation so you can compare against the non-augmentation version.
 """
 
 # =========================
