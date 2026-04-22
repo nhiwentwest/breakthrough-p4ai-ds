@@ -963,14 +963,14 @@ def render_step(step_idx):
             im = ax.imshow(heat.values, cmap="magma", vmin=0, vmax=1, aspect='auto')
             ax.set_xticks(range(len(heat.columns)))
             ax.set_yticks(range(len(heat.index)))
-            ax.set_xticklabels(heat.columns, fontsize=max(4.5, 6.6 * font_scale))
-            ax.set_yticklabels(heat.index, fontsize=max(4.5, 6.0 * font_scale))
+            ax.set_xticklabels(heat.columns, fontsize=max(4.5, 6.6 * diagram_text_scale))
+            ax.set_yticklabels(heat.index, fontsize=max(4.5, 6.0 * diagram_text_scale))
             for i in range(heat.shape[0]):
                 for j in range(heat.shape[1]):
-                    ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(4.0, 5.6 * font_scale), color='white' if heat.values[i, j] > 0.5 else 'black')
+                    ax.text(j, i, f"{heat.values[i, j]:.2f}", ha='center', va='center', fontsize=max(4.0, 5.6 * diagram_text_scale), color='white' if heat.values[i, j] > 0.5 else 'black')
             ax.set_title(f"Cross-modal contradiction map ({split})", color=TEXT, pad=10)
             cbar = fig471.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
+            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * diagram_text_scale))
             render_chart(fig471)
 
             render_bento_table(
