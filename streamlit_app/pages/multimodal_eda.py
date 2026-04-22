@@ -589,17 +589,20 @@ with st.expander("🎛️ Chart controls", expanded=False):
     with c4:
         chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
     with c5:
-        diagram_text_scale = st.slider("Chart text size", 0.45, 1.25, 0.70, 0.05, key="chart_font_scale")
+        diagram_text_scale = st.slider("Chart text size", 0.75, 1.35, 1.00, 0.05, key="chart_font_scale")
     with c6:
         marker_size = st.slider("Marker size", 6, 40, 18, 2, key="chart_marker_size")
 
-sns.set_context("paper", font_scale=diagram_text_scale)
+# Keep titles slightly smaller than axis labels for a cleaner chart hierarchy.
+label_scale = 0.94 * diagram_text_scale
+text_scale = 0.86 * diagram_text_scale
+sns.set_context("paper", font_scale=label_scale)
 plt.rcParams.update({
-    "axes.titlesize": max(7, 11 * diagram_text_scale),
-    "axes.labelsize": max(6, 9 * diagram_text_scale),
-    "xtick.labelsize": max(5.5, 8 * diagram_text_scale),
-    "ytick.labelsize": max(5.5, 8 * diagram_text_scale),
-    "legend.fontsize": max(5.5, 8 * diagram_text_scale),
+    "axes.titlesize": max(8, 10.5 * text_scale),
+    "axes.labelsize": max(7, 8.5 * label_scale),
+    "xtick.labelsize": max(6.5, 7.4 * text_scale),
+    "ytick.labelsize": max(6.5, 7.4 * text_scale),
+    "legend.fontsize": max(6.5, 7.4 * text_scale),
 })
 
 if "mm_step_cache" not in st.session_state:
