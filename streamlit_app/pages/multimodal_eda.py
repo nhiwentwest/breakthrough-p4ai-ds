@@ -589,17 +589,17 @@ with st.expander("🎛️ Chart controls", expanded=False):
     with c4:
         chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
     with c5:
-        font_scale = st.slider("Font scale", 0.5, 1.1, 0.75, 0.05, key="chart_font_scale")
+        diagram_text_scale = st.slider("Diagram text size", 0.5, 1.25, 0.80, 0.05, key="chart_font_scale")
     with c6:
         marker_size = st.slider("Marker size", 6, 40, 18, 2, key="chart_marker_size")
 
-sns.set_context("paper", font_scale=font_scale)
+sns.set_context("paper", font_scale=diagram_text_scale)
 plt.rcParams.update({
-    "axes.titlesize": max(7, 11 * font_scale),
-    "axes.labelsize": max(6, 9 * font_scale),
-    "xtick.labelsize": max(5.5, 8 * font_scale),
-    "ytick.labelsize": max(5.5, 8 * font_scale),
-    "legend.fontsize": max(5.5, 8 * font_scale),
+    "axes.titlesize": max(7, 11 * diagram_text_scale),
+    "axes.labelsize": max(6, 9 * diagram_text_scale),
+    "xtick.labelsize": max(5.5, 8 * diagram_text_scale),
+    "ytick.labelsize": max(5.5, 8 * diagram_text_scale),
+    "legend.fontsize": max(5.5, 8 * diagram_text_scale),
 })
 
 if "mm_step_cache" not in st.session_state:
@@ -643,32 +643,23 @@ def render_step(step_idx):
             st.metric("Total images", f"{D['n_total']:,}")
             st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
         with c1:
-            class_df = pd.DataFrame(D['cat_counts'].items(), columns=["Class", "Count"])
-            class_df = class_df.sort_values("Count", ascending=False).head(20)
-            fig0, ax0 = make_fig(w_mult=1.0, h_mult=0.85)
-            colors_cls = sns.color_palette("crest", len(class_df))
-            ax0.barh(class_df["Class"][::-1], class_df["Count"][::-1], color=colors_cls)
-            ax0.set_title("Class distribution (train)", color=TEXT, pad=10)
-            ax0.set_xlabel("Count")
-            render_chart(fig0)
-
-        audit = pd.DataFrame([
-            ["Duplicate filenames", 0],
-            ["Missing image files (sampled check)", 0],
-            ["Empty captions", 0],
-            ["Captions per image", 5],
-        ], columns=["Check", "Value"])
-        render_bento_table(
-            title="Dataset audit",
-            icon="🧾",
-            df=audit,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Check": st.column_config.TextColumn("Data Quality Check 🔍"),
-                "Value": st.column_config.NumberColumn("Result", format="%d")
-            }
-        )
+            audit = pd.DataFrame([
+                ["Duplicate filenames", 0],
+                ["Missing image files (sampled check)", 0],
+                ["Empty captions", 0],
+                ["Captions per image", 5],
+            ], columns=["Check", "Value"])
+            render_bento_table(
+                title="Dataset audit",
+                icon="🧾",
+                df=audit,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Check": st.column_config.TextColumn("Data Quality Check 🔍"),
+                    "Value": st.column_config.NumberColumn("Result", format="%d")
+                }
+            )
 
     elif step_idx == 1:
         wn = st.slider("Top words", 10, 40, 15, key="top_words_n")
