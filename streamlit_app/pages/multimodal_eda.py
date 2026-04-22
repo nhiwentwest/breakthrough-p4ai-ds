@@ -783,7 +783,7 @@ def render_step(step_idx):
             ax.set_yticklabels(view.index, fontsize=max(4.5, 6.2 * diagram_text_scale))
             ax.set_title(f"Category cosine similarity ({split})", color=TEXT, pad=10)
             cbar = fig423.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * font_scale))
+            cbar.ax.tick_params(labelsize=max(4.5, 6.0 * diagram_text_scale))
             render_chart(fig423)
 
     elif step_idx == 5:
