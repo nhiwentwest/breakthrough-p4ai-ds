@@ -18,6 +18,7 @@ from datasets import load_from_disk
 import kagglehub
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, confusion_matrix, f1_score
+import time
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -98,13 +99,16 @@ svm.fit(X_train, y_train)
 
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
+start_inf = time.time()
 y_pred = svm.predict(X_val)
+inference_sec_per_batch = (time.time() - start_inf)
 overall_acc = accuracy_score(y_val, y_pred)
 bal_acc = balanced_accuracy_score(y_val, y_pred)
 macro_f1 = f1_score(y_val, y_pred, average='macro', zero_division=0)
 print(f"Overall Accuracy: {overall_acc:.4f}")
 print(f"Balanced Accuracy: {bal_acc:.4f}")
 print(f"Macro F1: {macro_f1:.4f}")
+print(f"Inference Time: {inference_sec_per_batch * 1000:.4f} ms/batch | {len(X_val) / inference_sec_per_batch:.4f} images/sec")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, digits=4, zero_division=0))
 
 cm = confusion_matrix(y_val, y_pred)
