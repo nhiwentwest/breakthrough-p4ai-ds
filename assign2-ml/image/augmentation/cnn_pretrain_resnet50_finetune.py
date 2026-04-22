@@ -311,6 +311,7 @@ def run_training(cfg: CFG):
     model.load_state_dict(ckpt["model_state_dict"])
 
     test = evaluate(model, test_loader, device)
+    inference = measure_inference_speed(model, test_loader, device)
 
     # Render and save Confusion Matrix
     labels = sorted(id2label.keys())
@@ -344,6 +345,7 @@ def run_training(cfg: CFG):
             "balanced_acc": test["balanced_acc"],
             "macro_f1": test["macro_f1"],
         },
+        "inference": inference,
         "timing": {
             "total_train_time_sec": total_train_time,
             "avg_epoch_time_sec": float(np.mean([h["epoch_time_sec"] for h in history])) if history else None,
@@ -351,6 +353,11 @@ def run_training(cfg: CFG):
         "classification_report": cls_report,
         "history": history,
     }
+
+    print(f"Test Overall Accuracy: {test['acc']:.4f}")
+    print(f"Test Balanced Accuracy: {test['balanced_acc']:.4f}")
+    print(f"Test Macro F1: {test['macro_f1']:.4f}")
+    print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
 
     # Plot Learning Curves
     if history:
