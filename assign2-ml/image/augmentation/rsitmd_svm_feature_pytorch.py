@@ -8,8 +8,9 @@ Original file is located at
 """
 
 # ==========================================
-# PYTORCH EXTRACTOR + SVM
+# PYTORCH EXTRACTOR + SVM (AUGMENTATION CLONE)
 # ==========================================
+# Augmentation clone: train-time transforms are stronger than the non-augmentation baseline.
 import os
 import random
 import time
