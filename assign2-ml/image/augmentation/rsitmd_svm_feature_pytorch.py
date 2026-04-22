@@ -124,8 +124,8 @@ svm.fit(X_train, y_train)
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 y_pred = svm.predict(X_val)
-print("SVM Accuracy:", accuracy_score(y_val, y_pred))
-print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names))
+print(f"SVM Accuracy: {accuracy_score(y_val, y_pred):.4f}")
+print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0))
 
 cm = confusion_matrix(y_val, y_pred)
 plt.figure(figsize=(10, 8))
@@ -148,7 +148,16 @@ import torch.nn.functional as F
 # ==========================================
 # 8. TEST ON SINGLE IMAGE + FEATURE ATTENTION
 # ==========================================
-sample = hf_dataset['test'][450]
+def get_transformed_sample(split_name: str, idx: int):
+    raw = hf_dataset[split_name][idx]
+    image = raw["image"].convert("RGB")
+    if split_name == "train":
+        pixel_values = train_preprocess(image)
+    else:
+        pixel_values = eval_preprocess(image)
+    return {"pixel_values": pixel_values, "label": raw["label"]}
+
+sample = get_transformed_sample('test', 450)
 img_tensor = sample['pixel_values'].unsqueeze(0).to(device)
 true_label_text = class_names[sample['label']]
 
