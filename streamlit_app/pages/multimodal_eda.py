@@ -589,7 +589,7 @@ with st.expander("🎛️ Chart controls", expanded=False):
     with c4:
         chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
     with c5:
-        diagram_text_scale = st.slider("Diagram text size", 0.5, 1.25, 0.80, 0.05, key="chart_font_scale")
+        diagram_text_scale = st.slider("Chart text size", 0.45, 1.25, 0.70, 0.05, key="chart_font_scale")
     with c6:
         marker_size = st.slider("Marker size", 6, 40, 18, 2, key="chart_marker_size")
 
@@ -704,6 +704,8 @@ def render_step(step_idx):
             ax.barh(cl[::-1], cv[::-1], color=colors_cat)
             ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
             ax.set_xlabel("Count")
+            ax.tick_params(axis='y', labelsize=max(5.0, 7.0 * diagram_text_scale))
+            ax.tick_params(axis='x', labelsize=max(5.0, 7.0 * diagram_text_scale))
             render_chart(fig371)
 
         px_df = get_or_compute(
