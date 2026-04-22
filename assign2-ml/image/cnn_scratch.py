@@ -217,6 +217,37 @@ def train_one_epoch(model, loader, optimizer, criterion, device, scaler):
     }
 
 
+def measure_inference_speed(model, loader, device, warmup=10):
+    model.eval()
+    times = []
+    amp_enabled = device.type == "cuda"
+    it = iter(loader)
+    with torch.no_grad():
+        for _ in range(warmup):
+            try:
+                x, _ = next(it)
+            except StopIteration:
+                break
+            x = x.to(device, non_blocking=True)
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+        for x, _ in loader:
+            x = x.to(device, non_blocking=True)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            t0 = time.time()
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            times.append(time.time() - t0)
+    if not times:
+        return {"ms_per_batch": None, "images_per_sec": None}
+    ms_per_batch = 1000.0 * float(np.mean(times))
+    images_per_sec = float(loader.batch_size / np.mean(times))
+    return {"ms_per_batch": ms_per_batch, "images_per_sec": images_per_sec}
+
+
 # =========================
 # STEP 6 — Train / Validate / Test
 # =========================
@@ -300,6 +331,7 @@ def run_training(cfg: CFG):
     model.load_state_dict(ckpt["model_state_dict"])
 
     test = evaluate(model, test_loader, device)
+    inference = measure_inference_speed(model, test_loader, device)
 
     # Render and save Confusion Matrix
     labels = sorted(id2label.keys())
@@ -319,6 +351,11 @@ def run_training(cfg: CFG):
         digits=4, output_dict=True, zero_division=0,
     )
 
+    print(f"Test Overall Accuracy: {test['acc']:.4f}")
+    print(f"Test Balanced Accuracy: {test['balanced_acc']:.4f}")
+    print(f"Test Macro F1: {test['macro_f1']:.4f}")
+    print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
+
     report = {
         "best_val_macro_f1": best_f1,
         "early_stopping": {
@@ -333,6 +370,7 @@ def run_training(cfg: CFG):
             "balanced_acc": test["balanced_acc"],
             "macro_f1": test["macro_f1"],
         },
+        "inference": inference,
         "timing": {
             "total_train_time_sec": total_train_time,
             "avg_epoch_time_sec": float(np.mean([h["epoch_time_sec"] for h in history])) if history else None,
