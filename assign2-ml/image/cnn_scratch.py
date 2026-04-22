@@ -143,10 +143,7 @@ class CNNScratch(nn.Module):
         
         # Thêm dropout và chỉnh lại số lượng class đầu ra
         in_features = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes)
-        )
+        self.model.fc = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
         return self.model(x)

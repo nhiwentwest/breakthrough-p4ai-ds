@@ -145,10 +145,7 @@ class PretrainedResNet50FineTune(nn.Module):
         self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
 
         in_features = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes)
-        )
+        self.model.fc = nn.Linear(in_features, num_classes)
 
         # Full-layer fine-tuning: keep every layer trainable
         for param in self.model.parameters():

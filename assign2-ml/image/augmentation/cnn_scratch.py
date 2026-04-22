@@ -143,13 +143,10 @@ class CNNScratch(nn.Module):
         super().__init__()
         # Khởi tạo ResNet18 từ đầu (không dùng weights pre-trained)
         self.model = models.resnet18(weights=None)
-        
-        # Thêm dropout và chỉnh lại số lượng class đầu ra
+
+        # Head thuần Linear, không dùng dropout
         in_features = self.model.fc.in_features
-        self.model.fc = nn.Sequential(
-            nn.Dropout(dropout),
-            nn.Linear(in_features, num_classes)
-        )
+        self.model.fc = nn.Linear(in_features, num_classes)
 
     def forward(self, x):
         return self.model(x)
