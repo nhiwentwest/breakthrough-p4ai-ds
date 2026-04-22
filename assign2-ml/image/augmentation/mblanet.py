@@ -1,8 +1,11 @@
 """
-MBLANet (Multi-Branch Local Attention Network) based on ResNet50
-================================================================
+MBLANet (Multi-Branch Local Attention Network) based on ResNet50 with augmentation
+=========================================================================
 This script implements a paper-aligned version of MBLANet (ResNet50 + CLAM)
 for image classification.
+
+NOTE: This augmentation clone keeps the same architecture but strengthens the train-time image transforms for comparison.
+Train augmentation includes random resized crop, flips, rotation, affine jitter, and color jitter.
 
 Features:
 - STEP 0: Config
@@ -29,13 +32,13 @@ class CFG:
     image_size: int = 224
     num_classes: int = 21
 
-    epochs: int = 50
-    batch_size: int = 32
+    epochs: int = 100
+    batch_size: int = 64
     num_workers: int = 4
     lr: float = 0.01
     weight_decay: float = 1e-4
 
-    early_stop_patience: int = 8
+    early_stop_patience: int = 10
     early_stop_min_delta: float = 1e-4
     viz_samples: int = 12
 
@@ -109,10 +112,12 @@ def build_dataloaders(cfg: CFG):
     id2label = {i: c for c, i in label2id.items()}
 
     train_tfm = transforms.Compose([
-        transforms.RandomResizedCrop(cfg.image_size, scale=(0.7, 1.0)),
+        transforms.RandomResizedCrop(cfg.image_size, scale=(0.65, 1.0)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(10),
-        transforms.ColorJitter(brightness=0.18, contrast=0.18, saturation=0.12, hue=0.04),
+        transforms.RandomVerticalFlip(p=0.2),
+        transforms.RandomRotation(12),
+        transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(0.95, 1.05), shear=5),
+        transforms.ColorJitter(brightness=0.22, contrast=0.22, saturation=0.16, hue=0.05),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
@@ -439,8 +444,8 @@ def run_training(cfg: CFG):
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
 
-    criterion = nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay, nesterov=True)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
     scaler = torch.amp.GradScaler(device="cuda", enabled=(device.type == "cuda"))
 
@@ -539,8 +544,8 @@ def run_training(cfg: CFG):
 def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
-    p.add_argument("--epochs", type=int, default=50)
-    p.add_argument("--batch_size", type=int, default=32)
+    p.add_argument("--epochs", type=int, default=100)
+    p.add_argument("--batch_size", type=int, default=64)
     p.add_argument("--lr", type=float, default=0.01)
     args, _ = p.parse_known_args()
     return args

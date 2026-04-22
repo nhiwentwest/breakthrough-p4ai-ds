@@ -638,8 +638,21 @@ def render_bento_table(title, icon, df, **kwargs):
 
 def render_step(step_idx):
     if step_idx == 0:
-        st.metric("Total images", f"{D['n_total']:,}")
-        st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
+        c0, c1 = st.columns(2)
+        with c0:
+            st.metric("Total images", f"{D['n_total']:,}")
+            st.metric("Train/Test", f"{D['n_train']:,} / {D['n_test']:,}")
+        with c1:
+            class_df = D['cat_counts'].reset_index()
+            class_df.columns = ["Class", "Count"]
+            class_df = class_df.sort_values("Count", ascending=False).head(20)
+            fig0, ax0 = make_fig(w_mult=1.0, h_mult=0.85)
+            colors_cls = sns.color_palette("crest", len(class_df))
+            ax0.barh(class_df["Class"][::-1], class_df["Count"][::-1], color=colors_cls)
+            ax0.set_title("Class distribution (train)", color=TEXT, pad=10)
+            ax0.set_xlabel("Count")
+            render_chart(fig0)
+
         audit = pd.DataFrame([
             ["Duplicate filenames", 0],
             ["Missing image files (sampled check)", 0],
