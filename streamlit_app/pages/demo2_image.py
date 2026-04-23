@@ -18,6 +18,16 @@ from torchvision import models, transforms
 
 st.set_page_config(page_title="Demo 2 · Image Classification", page_icon="🖼️", layout="wide")
 
+if st.session_state.get("current_page") != "demo2_image":
+    st.cache_resource.clear()
+    import gc; gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
+    except ImportError:
+        pass
+    st.session_state["current_page"] = "demo2_image"
+
 BG = "#F7F3EB"
 CARD = "#EFE8DC"
 TEXT = "#111111"
@@ -735,7 +745,7 @@ def predict_with_explanations(model, id2label, device, img_pil, model_choice, k=
         for p, i in zip(top_vals.detach().cpu().numpy(), top_idx.detach().cpu().numpy()):
             idx = int(i)
             rows.append((_display_label(id2label, idx), float(p)))
-        return rows, saliency_overlay, gradcam_overlay, attn_overlay
+        return rows, saliency_overlay, gradcam_overlay, attn_overlay, None
 
     x = preprocess_image(img_pil).to(device).clone().detach().requires_grad_(True)
 
@@ -989,20 +999,15 @@ with right:
                 else:
                     st.markdown("---")
                     st.markdown("**Visual Explanations**")
+                    cols = st.columns(3)
+                    with cols[0]:
+                        st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
+                    with cols[1]:
+                        gradcam_caption = "Grad-CAM (CNN focus)" if attention_overlay is not None else "Grad-CAM"
+                        st.image(gradcam_overlay, caption=gradcam_caption, use_container_width=True)
                     if attention_overlay is not None:
-                        c1, c2, c3 = st.columns(3)
-                        with c1:
-                            st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                        with c2:
-                            st.image(gradcam_overlay, caption="Grad-CAM (CNN focus)", use_container_width=True)
-                        with c3:
+                        with cols[2]:
                             st.image(attention_overlay, caption="Attention map", use_container_width=True)
-                    else:
-                        c1, c2 = st.columns(2)
-                        with c1:
-                            st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                        with c2:
-                            st.image(gradcam_overlay, caption="Grad-CAM (CNN Scratch)", use_container_width=True)
             else:
                 st.info("Explain is off, so no heatmaps were generated.")
     else:
