@@ -3,9 +3,8 @@ import os
 import warnings
 
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
-warnings.filterwarnings("ignore", message=r".*Accessing `__path__`.*", category=UserWarning)
-warnings.filterwarnings("ignore", message=r".*alias will be removed in future versions.*", category=UserWarning)
-warnings.filterwarnings("ignore", category=FutureWarning)
+os.environ["TRANSFORMERS_VERBOSITY"] = "error"
+warnings.filterwarnings("ignore")
 
 import gdown
 import numpy as np
@@ -138,29 +137,7 @@ def load_sample_dataset():
     return ds[split_name].to_pandas().copy()
 
 
-def evaluate_model(model, tokenizer, df: pd.DataFrame, sample_size: int = 64):
-    sample = df.sample(n=min(sample_size, len(df)), random_state=42).reset_index(drop=True)
-    dataset = TwitterSentimentDataset(sample["text"], sample["label"], tokenizer, max_length=64)
-    loader = DataLoader(dataset, batch_size=16)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    all_preds, all_labels = [], []
-
-    with torch.no_grad():
-        for batch in loader:
-            input_ids = batch["input_ids"].to(device)
-            attention_mask = batch["attention_mask"].to(device)
-            labels = batch["label"].to(device)
-            logits = model(input_ids, attention_mask)
-            preds = torch.argmax(logits, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
-
-    acc = accuracy_score(all_labels, all_preds)
-    prec, rec, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average="weighted", zero_division=0)
-    cm = confusion_matrix(all_labels, all_preds)
-    return sample, acc, prec, rec, f1, cm
+# Evaluation function removed as per request
 
 
 model, tokenizer, checkpoint_path = load_text_model()
@@ -187,17 +164,8 @@ with left:
 
 with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
-    st.markdown("<div class='section'>Evaluation</div>", unsafe_allow_html=True)
-    sample, acc, prec, rec, f1, cm = evaluate_model(model, tokenizer, df)
-
-    st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
-    for label, value in [("Accuracy", acc), ("Precision", prec), ("Recall", rec), ("F1", f1)]:
-        st.markdown(
-            f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value'>{value:.4f}</div></div>",
-            unsafe_allow_html=True,
-        )
-    st.markdown("</div>", unsafe_allow_html=True)
-
+    st.markdown("<div class='section'>Prediction</div>", unsafe_allow_html=True)
+    
     if pred_btn:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
@@ -214,9 +182,7 @@ with right:
             )
     else:
         st.info("Choose a sample or type text, then click Predict.")
-        st.caption("The app evaluates the loaded checkpoint on a sample of the Hugging Face test split.")
 
-    st.caption(f"Confusion matrix (sample): {cm.tolist()}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
