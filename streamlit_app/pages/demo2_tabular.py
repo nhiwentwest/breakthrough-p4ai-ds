@@ -12,6 +12,16 @@ from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Demo 2 · Tabular Regression", page_icon="📊", layout="wide")
 
+if st.session_state.get("current_page") != "demo2_tabular":
+    st.cache_resource.clear()
+    import gc; gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available(): torch.cuda.empty_cache()
+    except ImportError:
+        pass
+    st.session_state["current_page"] = "demo2_tabular"
+
 BG = "#F7F3EB"
 CARD = "#EFE8DC"
 TEXT = "#111111"
