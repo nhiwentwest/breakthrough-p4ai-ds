@@ -140,7 +140,6 @@ def load_sample_dataset():
     return df
 
 
-@st.cache_data(show_spinner=True)
 def evaluate_model(model, tokenizer, df: pd.DataFrame, sample_size: int = 128):
     sample = df.sample(n=min(sample_size, len(df)), random_state=42).reset_index(drop=True)
     dataset = TwitterSentimentDataset(sample["text"], sample["label"], tokenizer, max_length=64)
