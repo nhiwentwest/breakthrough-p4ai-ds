@@ -122,15 +122,8 @@ def load_text_model():
     if isinstance(state, dict) and "state_dict" in state:
         state = state["state_dict"]
     if isinstance(state, dict):
-        cleaned = {}
-        for k, v in state.items():
-            nk = k.replace("module.", "")
-            if nk.startswith("bert.") or nk.startswith("classifier.") or nk.startswith("dropout."):
-                cleaned[nk] = v
-        if cleaned:
-            model.load_state_dict(cleaned, strict=False)
-        else:
-            model.load_state_dict(state, strict=False)
+        cleaned = {k.replace("module.", ""): v for k, v in state.items()}
+        model.load_state_dict(cleaned, strict=False)
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     return model, tokenizer, str(checkpoint_path)
@@ -140,12 +133,10 @@ def load_text_model():
 def load_sample_dataset():
     ds = load_dataset("zeroshot/twitter-financial-news-sentiment")
     split_name = "test" if "test" in ds else ("validation" if "validation" in ds else list(ds.keys())[-1])
-    df = ds[split_name].to_pandas().copy()
-    df = df.rename(columns={"text": "text", "label": "label"})
-    return df
+    return ds[split_name].to_pandas().copy()
 
 
-def evaluate_model(model, tokenizer, df: pd.DataFrame, sample_size: int = 128):
+def evaluate_model(model, tokenizer, df: pd.DataFrame, sample_size: int = 64):
     sample = df.sample(n=min(sample_size, len(df)), random_state=42).reset_index(drop=True)
     dataset = TwitterSentimentDataset(sample["text"], sample["label"], tokenizer, max_length=64)
     loader = DataLoader(dataset, batch_size=16)
@@ -194,8 +185,16 @@ with left:
 
 with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
-    st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section'>Evaluation</div>", unsafe_allow_html=True)
     sample, acc, prec, rec, f1, cm = evaluate_model(model, tokenizer, df)
+
+    st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
+    for label, value in [("Accuracy", acc), ("Precision", prec), ("Recall", rec), ("F1", f1)]:
+        st.markdown(
+            f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value'>{value:.4f}</div></div>",
+            unsafe_allow_html=True,
+        )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if pred_btn:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -205,21 +204,13 @@ with right:
             probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
             pred_id = int(np.argmax(probs))
         st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
-        st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
-        for label, value in [("Accuracy", acc), ("F1", f1)]:
-            st.markdown(f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value'>{value:.4f}</div></div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.caption(f"Precision: {prec:.4f} · Recall: {rec:.4f}")
         st.write("Class probabilities")
         st.bar_chart(pd.Series(probs, index=[LABELS[i] for i in range(3)]))
     else:
         st.info("Choose a sample or type text, then click Predict.")
-        st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample accuracy</div><div class='metric-value'>{acc:.4f}</div></div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample F1</div><div class='metric-value'>{f1:.4f}</div></div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-        st.caption("The app evaluates the loaded checkpoint on a sample subset from the Hugging Face dataset.")
+        st.caption("The app evaluates the loaded checkpoint on a sample of the Hugging Face test split.")
 
+    st.caption(f"Confusion matrix (sample): {cm.tolist()}")
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
