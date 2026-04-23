@@ -22,11 +22,11 @@
         <p>Bagging-based regression model from <code>ml_tabular_insurance1.ipynb</code>.</p>
         <h2>Pipeline</h2>
         <ul>
-            <li>Reuse the same one-hot encoded and scaled features</li>
-            <li>Train <code>RandomForestRegressor(n_estimators=100, random_state=42)</code></li>
-            <li>Measure training time and inference time</li>
-            <li>Evaluate with RMSE, MAE, and R²</li>
-            <li>Inspect residual plots and compare against the linear baseline</li>
+            <li><strong>Input:</strong> insurance rows with numeric and categorical fields</li>
+            <li><strong>Preprocess:</strong> one-hot encoding + standard scaling</li>
+            <li><strong>Head:</strong> <code>RandomForestRegressor(n_estimators=100, random_state=42)</code></li>
+            <li><strong>Evaluation:</strong> RMSE, MAE, and R²</li>
+            <li><strong>Analysis:</strong> residual plots and comparison against the linear baseline</li>
         </ul>
         <h2>Key idea</h2>
         <p>Uses multiple trees and bagging to capture non-linear relationships in the insurance data.</p>
