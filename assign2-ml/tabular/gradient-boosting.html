@@ -12,8 +12,7 @@
         h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
         ul{padding-left:20px;line-height:1.8}
         .back{display:inline-block;margin-bottom:16px}
-        code,pre{background:#1C1A16;color:#D4C9BB;border-radius:10px}
-        pre{padding:14px;overflow:auto}
+        code{background:#1C1A16;color:#D4C9BB;border-radius:10px;padding:2px 5px}
     </style>
 </head>
 <body>
@@ -23,11 +22,11 @@
         <p>Boosting-based regression model from <code>ml_tabular_insurance1.ipynb</code>.</p>
         <h2>Pipeline</h2>
         <ul>
-            <li>Use the same encoded and scaled features as the other models</li>
-            <li>Train <code>GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)</code></li>
-            <li>Benchmark training and inference time</li>
-            <li>Evaluate with RMSE, MAE, and R²</li>
-            <li>Inspect residual distribution, learning curves, and feature importance</li>
+            <li><strong>Input:</strong> cleaned tabular insurance rows</li>
+            <li><strong>Preprocess:</strong> one-hot encoding + scaling + train/test split</li>
+            <li><strong>Head:</strong> <code>GradientBoostingRegressor(n_estimators=100, learning_rate=0.1, max_depth=3, random_state=42)</code></li>
+            <li><strong>Evaluation:</strong> RMSE, MAE, and R²</li>
+            <li><strong>Analysis:</strong> residual plots, learning curves, and feature importance</li>
         </ul>
         <h2>Key idea</h2>
         <p>Sequentially corrects errors from earlier trees and is the strongest model in the notebook.</p>
