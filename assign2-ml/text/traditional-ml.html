@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traditional ML | Text A02</title>
+    <style>
+        body{font-family:system-ui,sans-serif;background:#F0EDE6;color:#1C1A16;max-width:900px;margin:0 auto;padding:32px}
+        a{color:#2A7A70;text-decoration:none}
+        .card{background:#FAF8F4;border:1px solid rgba(28,26,22,.14);border-radius:16px;padding:24px;margin-bottom:16px}
+        h1{font-size:2rem;margin-bottom:8px}
+        h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
+        ul{padding-left:20px;line-height:1.8}
+        .back{display:inline-block;margin-bottom:16px}
+        code{background:#1C1A16;color:#D4C9BB;border-radius:10px;padding:2px 5px}
+    </style>
+</head>
+<body>
+    <a class="back" href="./">← Back to Text overview</a>
+    <div class="card">
+        <h1>Traditional ML</h1>
+        <p>Classical sentiment pipeline from <code>text/Traditional_ML.py</code> and <code>Traditional_ML.ipynb</code>.</p>
+        <h2>Pipeline</h2>
+        <ul>
+            <li><strong>Input:</strong> Twitter financial news text</li>
+            <li><strong>Preprocess:</strong> remove URLs, handle tickers, lowercase, clean punctuation, remove stopwords, drop duplicates and missing values</li>
+            <li><strong>Head:</strong> TF-IDF vectorizer + classical classifier</li>
+            <li><strong>Evaluation:</strong> accuracy, precision, recall, F1, confusion matrix</li>
+            <li><strong>Analysis:</strong> feature extraction statistics and model comparison</li>
+        </ul>
+        <h2>Key idea</h2>
+        <p>A lightweight baseline that converts text into sparse vectors before classification.</p>
+    </div>
+</body>
+</html>
