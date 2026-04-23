@@ -3,7 +3,9 @@ import os
 import warnings
 
 os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", message=r".*Accessing `__path__`.*", category=UserWarning)
+warnings.filterwarnings("ignore", message=r".*alias will be removed in future versions.*", category=UserWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 import gdown
 import numpy as np
@@ -125,7 +127,7 @@ def load_text_model():
         cleaned = {k.replace("module.", ""): v for k, v in state.items()}
         model.load_state_dict(cleaned, strict=False)
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=True)
     return model, tokenizer, str(checkpoint_path)
 
 
