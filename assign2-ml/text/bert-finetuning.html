@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BERT Fine-tuning | Text A02</title>
+    <style>
+        body{font-family:system-ui,sans-serif;background:#F0EDE6;color:#1C1A16;max-width:900px;margin:0 auto;padding:32px}
+        a{color:#3D5A80;text-decoration:none}
+        .card{background:#FAF8F4;border:1px solid rgba(28,26,22,.14);border-radius:16px;padding:24px;margin-bottom:16px}
+        h1{font-size:2rem;margin-bottom:8px}
+        h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
+        ul{padding-left:20px;line-height:1.8}
+        .back{display:inline-block;margin-bottom:16px}
+        code{background:#1C1A16;color:#D4C9BB;border-radius:10px;padding:2px 5px}
+    </style>
+</head>
+<body>
+    <a class="back" href="./">← Back to Text overview</a>
+    <div class="card">
+        <h1>BERT Fine-tuning</h1>
+        <p>Transformer-based sentiment pipeline from <code>text/BERT-finetuning.py</code> and <code>BERT-finetuning.ipynb</code>.</p>
+        <h2>Pipeline</h2>
+        <ul>
+            <li><strong>Input:</strong> raw tweet text</li>
+            <li><strong>Preprocess:</strong> tokenizer with max length, padding, truncation</li>
+            <li><strong>Head:</strong> BERT backbone + mean pooling + linear classifier</li>
+            <li><strong>Evaluation:</strong> accuracy, precision, recall, F1, inference time</li>
+            <li><strong>Analysis:</strong> end-to-end fine-tuning with training loop and scheduler</li>
+        </ul>
+        <h2>Key idea</h2>
+        <p>Uses contextual embeddings to model sentiment directly from the token sequence.</p>
+    </div>
+</body>
+</html>
