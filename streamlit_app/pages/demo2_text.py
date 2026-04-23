@@ -207,7 +207,11 @@ with right:
             pred_id = int(np.argmax(probs))
         st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
         st.write("Class probabilities")
-        st.bar_chart(pd.Series(probs, index=[LABELS[i] for i in range(3)]))
+        for i, p in enumerate(probs):
+            st.markdown(
+                f"<div style='margin-bottom:0.6rem;'><div style='display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.25rem; font-weight:600;'><span>{LABELS[i]}</span><span>{p:.1%}</span></div><div style='width:100%; background:rgba(212,201,184,0.4); border-radius:99px; height:8px; overflow:hidden;'><div style='width:{p*100}%; background:#B42318; height:100%; border-radius:99px;'></div></div></div>",
+                unsafe_allow_html=True
+            )
     else:
         st.info("Choose a sample or type text, then click Predict.")
         st.caption("The app evaluates the loaded checkpoint on a sample of the Hugging Face test split.")
