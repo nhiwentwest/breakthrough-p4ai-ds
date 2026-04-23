@@ -12,8 +12,7 @@
         h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
         ul{padding-left:20px;line-height:1.8}
         .back{display:inline-block;margin-bottom:16px}
-        code,pre{background:#1C1A16;color:#D4C9BB;border-radius:10px}
-        pre{padding:14px;overflow:auto}
+        code{background:#1C1A16;color:#D4C9BB;border-radius:10px;padding:2px 5px}
     </style>
 </head>
 <body>
@@ -23,14 +22,14 @@
         <p>Baseline regression model from <code>ml_tabular_insurance1.ipynb</code>.</p>
         <h2>Pipeline</h2>
         <ul>
-            <li>One-hot encode categorical columns</li>
-            <li>Standardize numerical features with <code>StandardScaler</code></li>
-            <li>Fit <code>LinearRegression()</code> on the training split</li>
-            <li>Evaluate with RMSE, MAE, and R²</li>
-            <li>Inspect actual-vs-predicted scatter plot and residual plot</li>
+            <li><strong>Input:</strong> raw insurance attributes</li>
+            <li><strong>Preprocess:</strong> one-hot encoding + standard scaling</li>
+            <li><strong>Head:</strong> <code>LinearRegression()</code></li>
+            <li><strong>Evaluation:</strong> RMSE, MAE, and R²</li>
+            <li><strong>Analysis:</strong> actual-vs-predicted scatter and residual plot</li>
         </ul>
         <h2>Key idea</h2>
-        <p>Serves as a lightweight baseline to compare against non-linear ensemble methods.</p>
+        <p>Serves as a lightweight baseline to compare against the non-linear ensemble methods.</p>
     </div>
 </body>
 </html>
