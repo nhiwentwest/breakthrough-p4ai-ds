@@ -1,4 +1,9 @@
 from pathlib import Path
+import os
+import warnings
+
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+warnings.filterwarnings("ignore")
 
 import gdown
 import numpy as np
@@ -213,7 +218,7 @@ with right:
         st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample accuracy</div><div class='metric-value'>{acc:.4f}</div></div>", unsafe_allow_html=True)
         st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample F1</div><div class='metric-value'>{f1:.4f}</div></div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
-        st.caption("The app evaluates the loaded checkpoint on a cached test subset from the Hugging Face dataset.")
+        st.caption("The app evaluates the loaded checkpoint on a sample subset from the Hugging Face dataset.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
