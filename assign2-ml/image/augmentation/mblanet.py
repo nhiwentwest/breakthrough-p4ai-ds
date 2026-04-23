@@ -442,6 +442,7 @@ def run_training(cfg: CFG):
     model = MBLANet(num_classes=len(label2id), pretrained=True).to(device)
 
     if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats()
         torch.backends.cudnn.benchmark = True
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1).to(device)
@@ -488,7 +489,8 @@ def run_training(cfg: CFG):
     
     test_metrics = run_eval(model, test_loader, device)
     inference = measure_inference_speed(model, test_loader, device)
-    
+    gpu_peak_mb = (torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None
+
     # Render and save Confusion Matrix
     labels = list(range(len(id2label)))
     cm = confusion_matrix(test_metrics["y_true"], test_metrics["y_pred"], labels=labels)
@@ -538,6 +540,11 @@ def run_training(cfg: CFG):
         fig.savefig(os.path.join(cfg.output_dir, "learning_curves.png"), dpi=150)
         plt.close(fig)
 
+    summary = {
+        "inference": inference,
+        "gpu_peak_mb": gpu_peak_mb,
+    }
+    
     report_path = os.path.join(cfg.output_dir, "mblanet_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
         json.dump({"test": test_metrics, "classification_report": cls_report, "history": history}, f, indent=2)
