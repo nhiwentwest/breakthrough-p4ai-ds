@@ -134,7 +134,8 @@ def load_text_model():
 @st.cache_data(show_spinner=True)
 def load_sample_dataset():
     ds = load_dataset("zeroshot/twitter-financial-news-sentiment")
-    df = ds["test"].to_pandas().copy()
+    split_name = "test" if "test" in ds else ("validation" if "validation" in ds else list(ds.keys())[-1])
+    df = ds[split_name].to_pandas().copy()
     df = df.rename(columns={"text": "text", "label": "label"})
     return df
 
