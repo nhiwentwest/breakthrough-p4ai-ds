@@ -27,7 +27,7 @@ class CFG:
     output_dir: str = "outputs_mblanet"
     seed: int = 42
     image_size: int = 224
-    num_classes: int = 21
+    num_classes: int = 33
 
     epochs: int = 50
     batch_size: int = 32
@@ -458,6 +458,8 @@ def run_training(cfg: CFG):
     os.makedirs(cfg.output_dir, exist_ok=True)
     set_seed(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
     print(f"Device: {device}")
     
     train_loader, val_loader, test_loader, label2id, id2label, class_counts = build_dataloaders(cfg)
@@ -467,6 +469,7 @@ def run_training(cfg: CFG):
 
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
+        torch.cuda.reset_peak_memory_stats()
 
     criterion = nn.CrossEntropyLoss().to(device)
     optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
@@ -512,6 +515,7 @@ def run_training(cfg: CFG):
     
     test_metrics = run_eval(model, test_loader, device)
     inference = measure_inference_speed(model, test_loader, device)
+    gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
     
     # Render and save Confusion Matrix
     labels = list(range(len(id2label)))
@@ -537,6 +541,7 @@ def run_training(cfg: CFG):
     print(f"Test Balanced Accuracy: {test_metrics['balanced_acc']:.4f}")
     print(f"Test Macro F1: {test_metrics['macro_f1']:.4f}")
     print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
+    print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
     
     generate_visualizations(model, test_loader, device, cfg.output_dir, max_samples=cfg.viz_samples, epoch=epoch)
 
@@ -564,8 +569,9 @@ def run_training(cfg: CFG):
 
     report_path = os.path.join(cfg.output_dir, "mblanet_report.json")
     with open(report_path, "w", encoding="utf-8") as f:
-        json.dump({"test": test_metrics, "inference": inference, "classification_report": cls_report, "history": history}, f, indent=2)
+        json.dump({"test": test_metrics, "inference": inference, "gpu_peak_mb": gpu_peak_mb, "classification_report": cls_report, "history": history}, f, indent=2)
 
+    print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
     print(f"Done. Report: {report_path}")
 
 # =========================
