@@ -1,7 +1,17 @@
-import streamlit as st
-import numpy as np
+from pathlib import Path
 
-st.set_page_config(page_title="Demo 2 · Text Regression", page_icon="📝", layout="wide")
+import gdown
+import numpy as np
+import pandas as pd
+import streamlit as st
+import torch
+import torch.nn as nn
+from datasets import load_dataset
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+from torch.utils.data import DataLoader, Dataset
+from transformers import AutoConfig, AutoModel, AutoTokenizer
+
+st.set_page_config(page_title="Demo 2 · Text Classification", page_icon="📝", layout="wide")
 
 BG = "#F7F3EB"
 CARD = "#EFE8DC"
@@ -9,8 +19,14 @@ TEXT = "#111111"
 ACC = "#B42318"
 MUT = "#6B6560"
 BOR = "#D4C9B8"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CHECKPOINT_DIR = PROJECT_ROOT / "streamlit_app" / "checkpoints"
+TEXT_CHECKPOINT_ID = "1IfVsAt5c9cHgaNiM3Q-y6z8XCTwDBsJw"
+MODEL_NAME = "bert-base-uncased"
+LABELS = {0: "Bearish", 1: "Bullish", 2: "Neutral"}
 
-st.markdown(f"""
+st.markdown(
+    f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Source+Sans+3:wght@300;400;600;700&display=swap');
 body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-serif; }}
@@ -26,85 +42,184 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 .stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:800; letter-spacing:.08em; border-radius:10px; padding:.55rem .9rem; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
 .model-chip {{ display:inline-block; padding:.25rem .6rem; border-radius:999px; background:#f1e4d3; border:1px solid #ddceb8; color:#2c2a26; font-size:.82rem; font-weight:700; margin-bottom:.4rem; }}
-.metric-row {{ display:grid; grid-template-columns: repeat(1, minmax(0,1fr)); gap:.7rem; margin-top:.85rem; }}
+.metric-row {{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:.7rem; margin-top:.85rem; }}
 .metric-card {{ background:rgba(255,255,255,.65); border:1px solid #dacdbd; border-radius:16px; padding:.8rem .9rem .75rem; box-shadow:0 4px 18px rgba(17,17,17,.05); }}
 .metric-label {{ font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:{MUT}; font-weight:700; }}
 .metric-value {{ font-family:'Playfair Display',serif; font-size:1.55rem; font-weight:900; line-height:1.05; margin-top:.35rem; color:{TEXT}; }}
 .small-note {{ color:{MUT}; font-size:0.82rem; }}
+.code {{ background:#1C1A16; color:#D4C9BB; border-radius:14px; padding:14px 16px; font-family:'Menlo','Consolas',monospace; font-size:.72rem; line-height:1.7; overflow:auto; }}
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
-st.markdown("<p class='hero'>Demo 2 · Text Regression</p>", unsafe_allow_html=True)
-st.markdown("<p class='sub'>Input text and predict a continuous score.</p>", unsafe_allow_html=True)
+st.markdown("<p class='hero'>Demo 2 · Text Classification</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub'>Single-model demo using BERT fine-tuning on the Twitter financial news sentiment dataset.</p>", unsafe_allow_html=True)
+
+
+def _download_checkpoint() -> Path:
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = CHECKPOINT_DIR / "text_bert_checkpoint.bin"
+    if checkpoint_path.exists() and checkpoint_path.stat().st_size > 0:
+        return checkpoint_path
+    url = f"https://drive.google.com/uc?id={TEXT_CHECKPOINT_ID}"
+    gdown.download(url, str(checkpoint_path), quiet=False)
+    return checkpoint_path
+
+
+class TwitterSentimentDataset(Dataset):
+    def __init__(self, texts, labels, tokenizer, max_length=64):
+        self.texts = list(texts)
+        self.labels = list(labels)
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        enc = self.tokenizer(
+            str(self.texts[idx]),
+            truncation=True,
+            padding="max_length",
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        return {
+            "input_ids": enc["input_ids"].squeeze(0),
+            "attention_mask": enc["attention_mask"].squeeze(0),
+            "label": torch.tensor(int(self.labels[idx]), dtype=torch.long),
+        }
+
+
+class BERTMeanPoolingClassifier(nn.Module):
+    def __init__(self, model_name: str, num_labels: int = 3):
+        super().__init__()
+        config = AutoConfig.from_pretrained(model_name)
+        self.bert = AutoModel.from_pretrained(model_name, config=config)
+        self.dropout = nn.Dropout(0.1)
+        self.classifier = nn.Linear(config.hidden_size, num_labels)
+
+    def forward(self, input_ids, attention_mask):
+        out = self.bert(input_ids=input_ids, attention_mask=attention_mask, return_dict=True)
+        last_hidden = out.last_hidden_state
+        mask = attention_mask.unsqueeze(-1).expand(last_hidden.size()).float()
+        pooled = (last_hidden * mask).sum(dim=1) / torch.clamp(mask.sum(dim=1), min=1e-9)
+        pooled = self.dropout(pooled)
+        return self.classifier(pooled)
+
+
+@st.cache_resource(show_spinner=True)
+def load_text_model():
+    checkpoint_path = _download_checkpoint()
+    model = BERTMeanPoolingClassifier(MODEL_NAME, num_labels=3)
+    state = torch.load(checkpoint_path, map_location="cpu")
+    if isinstance(state, dict) and "state_dict" in state:
+        state = state["state_dict"]
+    if isinstance(state, dict):
+        cleaned = {}
+        for k, v in state.items():
+            nk = k.replace("module.", "")
+            if nk.startswith("bert.") or nk.startswith("classifier.") or nk.startswith("dropout."):
+                cleaned[nk] = v
+        if cleaned:
+            model.load_state_dict(cleaned, strict=False)
+        else:
+            model.load_state_dict(state, strict=False)
+    model.eval()
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    return model, tokenizer, str(checkpoint_path)
+
+
+@st.cache_data(show_spinner=True)
+def load_sample_dataset():
+    ds = load_dataset("zeroshot/twitter-financial-news-sentiment")
+    df = ds["test"].to_pandas().copy()
+    df = df.rename(columns={"text": "text", "label": "label"})
+    return df
+
+
+@st.cache_data(show_spinner=True)
+def evaluate_model(model, tokenizer, df: pd.DataFrame, sample_size: int = 128):
+    sample = df.sample(n=min(sample_size, len(df)), random_state=42).reset_index(drop=True)
+    dataset = TwitterSentimentDataset(sample["text"], sample["label"], tokenizer, max_length=64)
+    loader = DataLoader(dataset, batch_size=16)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    all_preds, all_labels = [], []
+
+    with torch.no_grad():
+        for batch in loader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["label"].to(device)
+            logits = model(input_ids, attention_mask)
+            preds = torch.argmax(logits, dim=1)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+
+    acc = accuracy_score(all_labels, all_preds)
+    prec, rec, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average="weighted", zero_division=0)
+    cm = confusion_matrix(all_labels, all_preds)
+    return sample, acc, prec, rec, f1, cm
+
+
+model, tokenizer, checkpoint_path = load_text_model()
+df = load_sample_dataset()
 
 st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
 left, right = st.columns([1.15, 1])
-SAMPLE_SNIPPETS = {
-    "test[0]": "Reuters reported that investors remained cautious after the policy update.",
-    "test[7]": "The company posted stronger earnings, but guidance was still mixed.",
-    "test[12]": "Analysts said the market reaction was muted despite the headline result.",
-}
 
 with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
-    st.markdown("<div class='section'>Model Selection</div>", unsafe_allow_html=True)
-    model = st.selectbox(
-        "Choose regression model",
-        [
-            "DistilBERT Regressor",
-            "RoBERTa Regressor",
-            "Linear TF-IDF Regressor",
-        ],
-        label_visibility="collapsed",
-    )
-    st.markdown(f"<div class='model-chip'>{model}</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section'>Model</div>", unsafe_allow_html=True)
+    st.markdown("<div class='model-chip'>BERT fine-tuning</div>", unsafe_allow_html=True)
+    st.caption("Checkpoint")
+    st.code(checkpoint_path, language="text")
 
-    st.markdown("<div class='section'>Text Input</div>", unsafe_allow_html=True)
-    input_mode = st.radio("Input mode", ["Manual text", "Drive named sample"], horizontal=True)
-    if input_mode == "Manual text":
-        text = st.text_area(
-            "Enter text",
-            height=240,
-            placeholder="Type / paste text here...",
-            label_visibility="collapsed",
-        )
-        sample_meta = None
-    else:
-        sample_key = st.text_input("Sample key", value="test[0]", help="Choose a Drive sample key like test[7]")
-        if st.button("Load named sample", use_container_width=True):
-            if sample_key in SAMPLE_SNIPPETS:
-                st.session_state["sample_text"] = SAMPLE_SNIPPETS[sample_key]
-                st.session_state["sample_meta"] = {"key": sample_key}
-            else:
-                st.error("Sample not found. Try test[0], test[7], or test[12].")
-        text = st.session_state.get("sample_text", "")
-        sample_meta = st.session_state.get("sample_meta")
-        if text:
-            st.text_area("Loaded sample", value=text, height=220, label_visibility="collapsed", disabled=True)
-            if sample_meta:
-                st.markdown(f"<div class='model-chip'>Ground truth label: {sample_meta.get('key', 'n/a')}</div>", unsafe_allow_html=True)
-
+    st.markdown("<div class='section'>Input Text</div>", unsafe_allow_html=True)
+    sample_options = df.sample(6, random_state=7).reset_index(drop=True)
+    sample_labels = [f"sample {i} · {LABELS[int(row['label'])]}" for i, row in sample_options.iterrows()]
+    selected = st.selectbox("Choose sample", sample_labels, label_visibility="collapsed")
+    idx = sample_labels.index(selected)
+    text = st.text_area("Text", value=str(sample_options.iloc[idx]["text"]), height=220, label_visibility="collapsed")
     pred_btn = st.button("Predict", use_container_width=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
+    sample, acc, prec, rec, f1, cm = evaluate_model(model, tokenizer, df)
 
     if pred_btn:
-        n_words = len(text.split())
-        punct = sum(ch in ".,;:!?" for ch in text)
-        base = 2.0 + 0.02 * n_words + 0.01 * punct
-        bump = {"DistilBERT Regressor": 0.08, "RoBERTa Regressor": 0.12, "Linear TF-IDF Regressor": -0.04}[model]
-        value = float(np.clip(base + bump, 0.0, 5.0))
-        st.markdown(f"<div class='model-chip'>{model} ready</div>", unsafe_allow_html=True)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
+        with torch.no_grad():
+            logits = model.to(device)(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
+            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+            pred_id = int(np.argmax(probs))
+        st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
         st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
-        st.markdown(f"<div class='metric-card'><div class='metric-label'>Predicted score</div><div class='metric-value'>{value:.3f}</div></div>", unsafe_allow_html=True)
+        for label, value in [("Accuracy", acc), ("F1", f1)]:
+            st.markdown(f"<div class='metric-card'><div class='metric-label'>{label}</div><div class='metric-value'>{value:.4f}</div></div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
-        st.caption(f"Model used: {model}")
+        st.caption(f"Precision: {prec:.4f} · Recall: {rec:.4f}")
+        st.write("Class probabilities")
+        st.bar_chart(pd.Series(probs, index=[LABELS[i] for i in range(3)]))
     else:
-        st.info("Enter text and click Predict.")
+        st.info("Choose a sample or type text, then click Predict.")
+        st.markdown("<div class='metric-row'>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample accuracy</div><div class='metric-value'>{acc:.4f}</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>Validation sample F1</div><div class='metric-value'>{f1:.4f}</div></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        st.caption("The app evaluates the loaded checkpoint on a cached test subset from the Hugging Face dataset.")
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='bento' style='margin-top:1rem'><div class='section'>Dataset</div><div class='small-note'>Loaded with <code>from datasets import load_dataset</code> and <code>load_dataset(\"zeroshot/twitter-financial-news-sentiment\")</code>. The demo uses the test split for evaluation.</div></div>",
+    unsafe_allow_html=True,
+)
 
 st.markdown("</div>", unsafe_allow_html=True)
