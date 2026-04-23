@@ -29,3 +29,5 @@ assign2-ml/p4-btl2/processed_rice_224/
 assign2-ml/p4-btl2/
 assign2-ml/logs-*.txt
 assign2-ml/data/
+test.zip
+output/
