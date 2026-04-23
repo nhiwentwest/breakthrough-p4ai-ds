@@ -101,33 +101,33 @@
                 <a class="card card--teal" href="./traditional-ml.html">
                     <h3>01. Traditional ML</h3>
                     <div class="card-title">📚 TF-IDF + Classical Classifiers</div>
-                    <p>Input text → preprocess & vectorize → classifier head using TF-IDF with Naive Bayes / Logistic Regression style experiments.</p>
                     <div class="mini-table">
                         <div class="mini-k">Input</div><div class="mini-v">Financial news text</div>
                         <div class="mini-k">Preprocess</div><div class="mini-v">URL removal, company token handling, stopword filtering</div>
-                        <div class="mini-k">Head</div><div class="mini-v">TF-IDF + traditional classifier</div>
+                        <div class="mini-k">Vectorizer</div><div class="mini-v">TF-IDF with unigrams and bigrams</div>
+                        <div class="mini-k">Head</div><div class="mini-v">Classical classifier</div>
                     </div>
                     <span class="link link--teal">Open model details →</span>
                 </a>
                 <a class="card card--blue" href="./bert-finetuning.html">
                     <h3>02. Neural</h3>
                     <div class="card-title">🤖 BERT Fine-tuning</div>
-                    <p>Input text → tokenizer → BERT backbone with mean pooling → linear classification head for sentiment prediction.</p>
                     <div class="mini-table">
                         <div class="mini-k">Input</div><div class="mini-v">Raw tweet text</div>
                         <div class="mini-k">Preprocess</div><div class="mini-v">Tokenization, truncation, padding</div>
-                        <div class="mini-k">Head</div><div class="mini-v">BERT + mean pooling + linear layer</div>
+                        <div class="mini-k">Backbone</div><div class="mini-v">BERT encoder with mean pooling</div>
+                        <div class="mini-k">Head</div><div class="mini-v">Linear classifier</div>
                     </div>
                     <span class="link link--blue">Open model details →</span>
                 </a>
                 <a class="card card--accent" href="./pipeline-comparison.html">
                     <h3>03. Comparison</h3>
                     <div class="card-title">⚖️ Pipeline Comparison</div>
-                    <p>Input text → preprocessing → vectorization/encoder → classifier to compare traditional and neural pipelines under the same task.</p>
                     <div class="mini-table">
                         <div class="mini-k">Input</div><div class="mini-v">Same sentiment dataset</div>
                         <div class="mini-k">Preprocess</div><div class="mini-v">Normalization and split handling</div>
-                        <div class="mini-k">Head</div><div class="mini-v">Multiple pipeline variants</div>
+                        <div class="mini-k">Compare</div><div class="mini-v">Traditional vs neural pipelines</div>
+                        <div class="mini-k">Output</div><div class="mini-v">Best-performing model selection</div>
                     </div>
                     <span class="link link--accent">Open model details →</span>
                 </a>
