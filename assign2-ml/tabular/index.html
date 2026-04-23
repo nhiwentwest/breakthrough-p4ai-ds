@@ -11,6 +11,8 @@
             --bg:#F0EDE6; --bg-card:#FAF8F4; --bg-subtle:#E8E4DC;
             --ink:#1C1A16; --ink-muted:#7A746A; --ink-faint:#B0A89C;
             --accent:#A06820; --accent-light:rgba(160,104,32,.10); --accent-soft:rgba(160,104,32,.20);
+            --teal:#2A7A70; --teal-light:rgba(42,122,112,.10); --teal-soft:rgba(42,122,112,.20);
+            --blue:#3D5A80; --blue-light:rgba(61,90,128,.10); --blue-soft:rgba(61,90,128,.20);
             --border:rgba(28,26,22,.09); --border-md:rgba(28,26,22,.14);
             --r:16px; --r-sm:10px;
             --shadow-sm:0 1px 3px rgba(28,26,22,.06),0 2px 8px rgba(28,26,22,.04);
@@ -44,10 +46,14 @@
         .stat-sub{font-size:.62rem;color:var(--ink-faint);margin-top:2px}
         .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm)}
+        .card--accent{border-color:var(--accent-soft)}
+        .card--teal{border-color:var(--teal-soft)}
+        .card--blue{border-color:var(--blue-soft)}
         .card h3{font-size:.76rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-faint);margin-bottom:10px}
         .card-title{font-size:1rem;font-weight:700;margin-bottom:6px}
         .card p{font-size:.75rem;color:var(--ink-muted);line-height:1.55;margin-bottom:10px}
-        .link{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:var(--accent)}
+        .link{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600}
+        .link--accent{color:var(--accent)} .link--teal{color:var(--teal)} .link--blue{color:var(--blue)}
         .link:hover{text-decoration:underline}
         .code{background:#1C1A16;color:#D4C9BB;border-radius:var(--r-sm);padding:16px 18px;font-family:'Menlo','Consolas',monospace;font-size:.72rem;line-height:1.7;overflow-x:auto;box-shadow:var(--shadow-sm)}
         footer{text-align:center;padding:18px;font-size:.63rem;letter-spacing:.1em;color:var(--ink-faint);border-top:1px solid var(--border)}
@@ -89,26 +95,26 @@
         </section>
 
         <section class="panel">
-            <div class="panel-title">Pipeline Highlights</div>
+            <div class="panel-title">Model Cards</div>
             <div class="cards">
-                <div class="card">
-                    <h3>1. Preprocessing</h3>
-                    <div class="card-title">Encoding + Scaling</div>
-                    <p>One-hot encode categorical variables and standardize numeric features before training to keep feature scales consistent.</p>
-                    <span class="link">Notebook step: preprocessing</span>
-                </div>
-                <div class="card">
-                    <h3>2. Modeling</h3>
-                    <div class="card-title">Three regressors</div>
-                    <p>Train a linear baseline, a bagging-based Random Forest, and a boosting-based Gradient Boosting model for comparison.</p>
-                    <span class="link">Notebook step: algorithms 1–3</span>
-                </div>
-                <div class="card">
-                    <h3>3. Analysis</h3>
-                    <div class="card-title">Residuals + learning curves</div>
-                    <p>Inspect residual distributions, overfitting patterns, and model stability through learning curves and sample predictions.</p>
-                    <span class="link">Notebook step: analysis</span>
-                </div>
+                <a class="card card--accent" href="./linear-regression.html">
+                    <h3>01. Baseline</h3>
+                    <div class="card-title">Linear Regression</div>
+                    <p>Simple linear baseline after one-hot encoding and scaling. A quick reference point for the regression task.</p>
+                    <span class="link link--accent">Open model details →</span>
+                </a>
+                <a class="card card--teal" href="./random-forest.html">
+                    <h3>02. Ensemble</h3>
+                    <div class="card-title">Random Forest</div>
+                    <p>Bagging-based ensemble that captures non-linear relationships through multiple decision trees.</p>
+                    <span class="link link--teal">Open model details →</span>
+                </a>
+                <a class="card card--blue" href="./gradient-boosting.html">
+                    <h3>03. Boosting</h3>
+                    <div class="card-title">Gradient Boosting</div>
+                    <p>Boosting-based model that performs sequential correction of residual errors for stronger fit.</p>
+                    <span class="link link--blue">Open model details →</span>
+                </a>
             </div>
         </section>
 
@@ -118,17 +124,17 @@
                 <div class="card">
                     <div class="card-title">Notebook</div>
                     <p>Main notebook for the insurance regression pipeline.</p>
-                    <a class="link" href="../../ml_tabular_insurance1.ipynb">Open notebook</a>
+                    <a class="link link--accent" href="../../ml_tabular_insurance1.ipynb">Open notebook</a>
                 </div>
                 <div class="card">
                     <div class="card-title">Landing page</div>
                     <p>Back to the Assignment 02 modality hub.</p>
-                    <a class="link" href="../">Open A02 index</a>
+                    <a class="link link--accent" href="../">Open A02 index</a>
                 </div>
                 <div class="card">
                     <div class="card-title">Dataset source</div>
                     <p>Kaggle dataset for the Medical Cost Personal Datasets.</p>
-                    <a class="link" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source</a>
+                    <a class="link link--accent" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source</a>
                 </div>
             </div>
         </section>

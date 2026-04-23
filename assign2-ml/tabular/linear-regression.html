@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression | Tabular A02</title>
+    <style>
+        body{font-family:system-ui,sans-serif;background:#F0EDE6;color:#1C1A16;max-width:900px;margin:0 auto;padding:32px}
+        a{color:#A06820;text-decoration:none}
+        .card{background:#FAF8F4;border:1px solid rgba(28,26,22,.14);border-radius:16px;padding:24px;margin-bottom:16px}
+        h1{font-size:2rem;margin-bottom:8px}
+        h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
+        ul{padding-left:20px;line-height:1.8}
+        .back{display:inline-block;margin-bottom:16px}
+        code,pre{background:#1C1A16;color:#D4C9BB;border-radius:10px}
+        pre{padding:14px;overflow:auto}
+    </style>
+</head>
+<body>
+    <a class="back" href="./">← Back to Tabular overview</a>
+    <div class="card">
+        <h1>Linear Regression</h1>
+        <p>Baseline regression model from <code>ml_tabular_insurance1.ipynb</code>.</p>
+        <h2>Pipeline</h2>
+        <ul>
+            <li>One-hot encode categorical columns</li>
+            <li>Standardize numerical features with <code>StandardScaler</code></li>
+            <li>Fit <code>LinearRegression()</code> on the training split</li>
+            <li>Evaluate with RMSE, MAE, and R²</li>
+            <li>Inspect actual-vs-predicted scatter plot and residual plot</li>
+        </ul>
+        <h2>Key idea</h2>
+        <p>Serves as a lightweight baseline to compare against non-linear ensemble methods.</p>
+    </div>
+</body>
+</html>
