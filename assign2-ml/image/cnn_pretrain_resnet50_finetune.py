@@ -139,7 +139,7 @@ def build_dataloaders(cfg: CFG):
 from torchvision import models
 
 class PretrainedResNet50FineTune(nn.Module):
-    def __init__(self, num_classes=21, dropout=0.3):
+    def __init__(self, num_classes=33):
         super().__init__()
         # Pre-trained ResNet50 on ImageNet, fine-tuned end-to-end
         self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
@@ -264,6 +264,7 @@ def run_training(cfg: CFG):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
+        torch.cuda.reset_peak_memory_stats(device)
     print(f"Device: {device}")
 
     train_loader, val_loader, test_loader, label2id, id2label, class_counts = build_dataloaders(cfg)
@@ -339,6 +340,7 @@ def run_training(cfg: CFG):
 
     test = evaluate(model, test_loader, device)
     inference = measure_inference_speed(model, test_loader, device)
+    gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
 
     # Render and save Confusion Matrix
     labels = sorted(id2label.keys())
@@ -362,6 +364,7 @@ def run_training(cfg: CFG):
     print(f"Test Balanced Accuracy: {test['balanced_acc']:.4f}")
     print(f"Test Macro F1: {test['macro_f1']:.4f}")
     print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
+    print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 
     report = {
         "best_val_macro_f1": best_f1,
@@ -378,6 +381,7 @@ def run_training(cfg: CFG):
             "macro_f1": test["macro_f1"],
         },
         "inference": inference,
+        "gpu_peak_mb": gpu_peak_mb,
         "timing": {
             "total_train_time_sec": total_train_time,
             "avg_epoch_time_sec": float(np.mean([h["epoch_time_sec"] for h in history])) if history else None,

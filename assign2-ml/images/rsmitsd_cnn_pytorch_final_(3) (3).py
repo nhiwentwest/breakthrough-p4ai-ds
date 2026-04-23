@@ -80,6 +80,9 @@ for param in model.parameters():
 model.fc = nn.Linear(model.fc.in_features, num_classes)
 model = model.to(device)
 
+if device.type == "cuda":
+    torch.cuda.reset_peak_memory_stats()
+
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.AdamW(model.fc.parameters(), lr=0.001, weight_decay=1e-4)
 
@@ -192,7 +195,9 @@ for epoch in range(EPOCHS):
 # 5. INFERENCE SPEED
 print("\nMeasuring inference speed...")
 inference = measure_inference_speed(model, test_loader, device)
+gpu_peak_mb = (torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None
 print(f"Inference Time: {inference['ms_per_batch']:.4f} ms/batch | {inference['images_per_sec']:.4f} images/sec")
+print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 
 # 5. CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
@@ -323,3 +328,9 @@ plt.axis('off')
 
 plt.tight_layout()
 plt.show()
+
+# Save a tiny summary if needed
+summary = {
+    "inference": inference,
+    "gpu_peak_mb": gpu_peak_mb,
+}

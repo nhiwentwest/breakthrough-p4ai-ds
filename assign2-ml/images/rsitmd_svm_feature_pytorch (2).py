@@ -74,6 +74,8 @@ extractor = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
 extractor.fc = nn.Identity() # Remove the final layer!
 extractor = extractor.to(device)
 extractor.eval()
+if device.type == "cuda":
+    torch.cuda.reset_peak_memory_stats()
 
 # 4. EXTRACT FEATURES
 def extract_features(dataloader, model_extractor):
@@ -108,7 +110,9 @@ macro_f1 = f1_score(y_val, y_pred, average='macro', zero_division=0)
 print(f"Overall Accuracy: {overall_acc:.4f}")
 print(f"Balanced Accuracy: {bal_acc:.4f}")
 print(f"Macro F1: {macro_f1:.4f}")
+gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
 print(f"Inference Time: {inference_sec_per_batch * 1000:.4f} ms/batch | {len(X_val) / inference_sec_per_batch:.4f} images/sec")
+print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, digits=4, zero_division=0))
 
 cm = confusion_matrix(y_val, y_pred)
