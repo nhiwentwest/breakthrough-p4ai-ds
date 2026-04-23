@@ -84,7 +84,7 @@ if device.type == "cuda":
     torch.cuda.reset_peak_memory_stats()
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.AdamW(model.fc.parameters(), lr=0.001, weight_decay=1e-4)
+optimizer = optim.AdamW(model.fc.parameters(), lr=0.001, weight_decay=0.0)
 
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
@@ -152,8 +152,11 @@ def evaluate_model(loader, eval_model):
     return acc, bal_acc, macro_f1
 
 # --- Main Loop ---
-EPOCHS = 10
+EPOCHS = 50
+PATIENCE = 8
 best_val_macro_f1 = 0.0
+epochs_no_improve = 0
+best_path = "best_resnet50.pt"
 
 print(f"Starting training for {EPOCHS} epochs...")
 for epoch in range(EPOCHS):
@@ -189,8 +192,14 @@ for epoch in range(EPOCHS):
     # Save checkpoint based on VALIDATION Macro F1
     if val_macro_f1 > best_val_macro_f1:
         best_val_macro_f1 = val_macro_f1
-        torch.save(model.state_dict(), "best_resnet50.pt")
+        epochs_no_improve = 0
+        torch.save(model.state_dict(), best_path)
         print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
+    else:
+        epochs_no_improve += 1
+        if epochs_no_improve >= PATIENCE:
+            print(f"  Early stopping at epoch {epoch+1}")
+            break
 
 # 5. INFERENCE SPEED
 print("\nMeasuring inference speed...")
@@ -201,7 +210,7 @@ print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "
 
 # 5. CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
-model.load_state_dict(torch.load("best_resnet50.pt")) # Load best weights
+model.load_state_dict(torch.load(best_path)) # Load best weights
 model.eval()
 
 all_preds, all_labels = [], []

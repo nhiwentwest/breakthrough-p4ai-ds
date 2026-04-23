@@ -106,10 +106,12 @@ def build_dataloaders(cfg: CFG):
     id2label = {i: c for c, i in label2id.items()}
 
     train_tfm = transforms.Compose([
-        transforms.RandomResizedCrop(cfg.image_size, scale=(0.7, 1.0)),
+        transforms.RandomResizedCrop(cfg.image_size, scale=(0.65, 0.7)),
+        transforms.RandomRotation(10),
+        transforms.RandomPerspective(distortion_scale=0.15, p=0.5),
+        transforms.RandomAffine(degrees=0, translate=(0.05, 0.05), scale=(0.95, 1.05), shear=5),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(12),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.12, hue=0.04),
+        transforms.ColorJitter(brightness=0.18, contrast=0.18, saturation=0.12, hue=0.04),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
@@ -139,7 +141,7 @@ def build_dataloaders(cfg: CFG):
 from torchvision import models
 
 class CNNScratch(nn.Module):
-    def __init__(self, num_classes=21, dropout=0.3):
+    def __init__(self, num_classes):
         super().__init__()
         # Khởi tạo ResNet18 từ đầu (không dùng weights pre-trained)
         self.model = models.resnet18(weights=None)
