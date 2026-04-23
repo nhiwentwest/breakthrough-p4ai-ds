@@ -52,6 +52,10 @@
         .card h3{font-size:.76rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-faint);margin-bottom:10px}
         .card-title{font-size:1rem;font-weight:700;margin-bottom:6px}
         .card p{font-size:.75rem;color:var(--ink-muted);line-height:1.55;margin-bottom:10px}
+        .mini-table{display:grid;grid-template-columns:78px 1fr;gap:6px 10px;margin:10px 0 12px}
+        .mini-k{font-size:.58rem;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-faint)}
+        .mini-v{font-size:.72rem;color:var(--ink);line-height:1.35}
+        .mini-v strong{color:inherit}
         .link{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600}
         .link--accent{color:var(--accent)} .link--teal{color:var(--teal)} .link--blue{color:var(--blue)}
         .link:hover{text-decoration:underline}
@@ -100,19 +104,37 @@
                 <a class="card card--accent" href="./linear-regression.html">
                     <h3>01. Baseline</h3>
                     <div class="card-title">Linear Regression</div>
-                    <p><strong>Input:</strong> insurance records → <strong>Preprocess:</strong> one-hot encoding + scaling → <strong>Head:</strong> linear regressor.</p>
+                    <div class="mini-table">
+                        <div class="mini-k">Input</div><div class="mini-v">Insurance rows with mixed feature types</div>
+                        <div class="mini-k">Preprocess</div><div class="mini-v">One-hot encoding + standard scaling</div>
+                        <div class="mini-k">Head</div><div class="mini-v">Linear regression estimator</div>
+                        <div class="mini-k">Backbone</div><div class="mini-v">Tabular feature matrix</div>
+                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    </div>
                     <span class="link link--accent">Open model details →</span>
                 </a>
                 <a class="card card--teal" href="./random-forest.html">
                     <h3>02. Ensemble</h3>
                     <div class="card-title">Random Forest</div>
-                    <p><strong>Input:</strong> encoded insurance features → <strong>Preprocess:</strong> same standardized table → <strong>Head:</strong> bagged tree ensemble.</p>
+                    <div class="mini-table">
+                        <div class="mini-k">Input</div><div class="mini-v">Encoded insurance features</div>
+                        <div class="mini-k">Preprocess</div><div class="mini-v">Same split + standardized table</div>
+                        <div class="mini-k">Head</div><div class="mini-v">Bagged tree ensemble</div>
+                        <div class="mini-k">Backbone</div><div class="mini-v">Decision trees on tabular data</div>
+                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    </div>
                     <span class="link link--teal">Open model details →</span>
                 </a>
                 <a class="card card--blue" href="./gradient-boosting.html">
                     <h3>03. Boosting</h3>
                     <div class="card-title">Gradient Boosting</div>
-                    <p><strong>Input:</strong> cleaned tabular features → <strong>Preprocess:</strong> same train/test split + scaling → <strong>Head:</strong> boosting regressor.</p>
+                    <div class="mini-table">
+                        <div class="mini-k">Input</div><div class="mini-v">Cleaned tabular features</div>
+                        <div class="mini-k">Preprocess</div><div class="mini-v">Same train/test split + scaling</div>
+                        <div class="mini-k">Head</div><div class="mini-v">Boosting regressor</div>
+                        <div class="mini-k">Backbone</div><div class="mini-v">Sequential tree learners</div>
+                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    </div>
                     <span class="link link--blue">Open model details →</span>
                 </a>
             </div>
@@ -132,9 +154,9 @@
                     <a class="link link--accent" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source</a>
                 </div>
                 <div class="card">
-                    <div class="card-title">Dataset source</div>
-                    <p>Kaggle dataset for the Medical Cost Personal Datasets.</p>
-                    <a class="link link--accent" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source</a>
+                    <div class="card-title">Notebook</div>
+                    <p>Main notebook for the insurance regression pipeline: <strong>ml_tabular_insurance1.ipynb</strong>.</p>
+                    <a class="link link--accent" href="../../ml_tabular_insurance1.ipynb">Open notebook</a>
                 </div>
             </div>
         </section>
