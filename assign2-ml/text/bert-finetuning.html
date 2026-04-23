@@ -24,9 +24,9 @@
         <ul>
             <li><strong>Input:</strong> raw tweet text</li>
             <li><strong>Preprocess:</strong> tokenizer with max length, padding, truncation</li>
-            <li><strong>Head:</strong> BERT backbone + mean pooling + linear classifier</li>
+            <li><strong>Backbone:</strong> BERT-base uncased encoder</li>
+            <li><strong>Head:</strong> mean pooling + linear classifier</li>
             <li><strong>Evaluation:</strong> accuracy, precision, recall, F1, inference time</li>
-            <li><strong>Analysis:</strong> end-to-end fine-tuning with training loop and scheduler</li>
         </ul>
         <h2>Key idea</h2>
         <p>Uses contextual embeddings to model sentiment directly from the token sequence.</p>

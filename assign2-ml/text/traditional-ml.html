@@ -24,9 +24,9 @@
         <ul>
             <li><strong>Input:</strong> Twitter financial news text</li>
             <li><strong>Preprocess:</strong> remove URLs, handle tickers, lowercase, clean punctuation, remove stopwords, drop duplicates and missing values</li>
-            <li><strong>Head:</strong> TF-IDF vectorizer + classical classifier</li>
+            <li><strong>Vectorizer:</strong> TF-IDF with unigrams and bigrams</li>
+            <li><strong>Head:</strong> classical classifier (traditional ML baseline)</li>
             <li><strong>Evaluation:</strong> accuracy, precision, recall, F1, confusion matrix</li>
-            <li><strong>Analysis:</strong> feature extraction statistics and model comparison</li>
         </ul>
         <h2>Key idea</h2>
         <p>A lightweight baseline that converts text into sparse vectors before classification.</p>
