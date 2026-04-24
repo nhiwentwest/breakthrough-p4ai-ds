@@ -443,12 +443,12 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 
 def render_chart(fig):
     panel = st.session_state.get("tab_chart_panel", 0.55)
-    panel = min(max(panel, 0.40), 0.80)
+    panel = min(max(panel, 0.40), 1.0)
     pad = st.session_state.get("tab_panel_pad", 0.08)
-    side = (1 - panel) / 2
-    c1, c2, c3 = st.columns([max(0, side - pad/2), panel, max(0, side - pad/2)])
+    side = max(0.0, (1 - panel) / 2)
+    c1, c2, c3 = st.columns([max(0.01, side - pad/2), panel, max(0.01, side - pad/2)])
     with c2:
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
 
 def bento_table(title, df, **kwargs):
@@ -464,10 +464,20 @@ def bento_table(title, df, **kwargs):
 #  RUNNING — render header + step routing
 # ══════════════════════════════════════════════════════════════════════════════
 if df is not None:
+    if "full_page_mode" not in st.session_state:
+        st.session_state.full_page_mode = False
+        
     st.markdown(f"<p class='eyebrow'>§ Tabular Analysis &nbsp;·&nbsp; World Happiness</p>",
                 unsafe_allow_html=True)
-    st.markdown(f"<h1 style='font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;margin:0 0 0.5rem'>"
-                f"EDA Tabular</h1>", unsafe_allow_html=True)
+                
+    mode_col1, mode_col2 = st.columns([0.26, 0.74])
+    with mode_col1:
+        st.markdown(f"<h1 style='font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;margin:0 0 0.5rem'>"
+                    f"EDA Tabular</h1>", unsafe_allow_html=True)
+    with mode_col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="tab_full_page_mode")
+
     if data_source == "live":
         src_label = "World Happiness Report 2019 · Kaggle"
     else:
@@ -478,18 +488,28 @@ if df is not None:
     with st.expander("🎛️ Visual controls", expanded=False):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.slider("Base width", 1.8, 5.6, 2.8, 0.2, key="tab_chart_w")
+            st.slider("Base width", 1.8, 12.0, 8.0 if full_page_mode else 2.8, 0.2, key="tab_chart_w")
             st.slider("Histogram bins", 8, 50, 24, 1, key="tab_hist_bins")
         with c2:
-            st.slider("Base height", 1.4, 3.6, 1.8, 0.2, key="tab_chart_h")
+            st.slider("Base height", 1.4, 8.0, 4.5 if full_page_mode else 1.8, 0.2, key="tab_chart_h")
             st.slider("Chart alpha", 0.45, 1.0, 0.82, 0.05, key="tab_alpha")
         with c3:
-            st.slider("Panel width", 0.40, 0.80, 0.55, 0.05, key="tab_chart_panel")
+            st.slider("Panel width", 0.40, 1.0, 0.85 if full_page_mode else 0.55, 0.05, key="tab_chart_panel")
             st.slider("Panel padding", 0.0, 0.20, 0.08, 0.01, key="tab_panel_pad")
         with c4:
-            st.slider("Font scale", 0.45, 1.0, 0.70, 0.05, key="tab_font_scale")
-            st.slider("Marker size", 6, 40, 18, 2, key="tab_marker_size")
+            font_scale = st.slider("Font scale", 0.45, 2.0, 1.2 if full_page_mode else 0.70, 0.05, key="tab_font_scale")
+            st.slider("Marker size", 6, 80, 40 if full_page_mode else 18, 2, key="tab_marker_size")
             st.checkbox("Show grid", value=True, key="tab_show_grid")
+
+    sns.set_context("notebook", font_scale=font_scale)
+    plt.rcParams.update({
+        "axes.titlesize": max(10, int(14 * font_scale)),
+        "axes.labelsize": max(9, int(12 * font_scale)),
+        "xtick.labelsize": max(8, int(10 * font_scale)),
+        "ytick.labelsize": max(8, int(10 * font_scale)),
+        "legend.fontsize": max(8, int(10 * font_scale)),
+        "figure.dpi": 200,
+    })
 
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 0: Dataset Overview
@@ -566,7 +586,7 @@ if df is not None:
             fig, ax = make_fig(w_mult=1.25, h_mult=max(0.9, len(has_missing) * 0.11))
             fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
             ax.barh(has_missing["Feature"][::-1], has_missing["Percent"][::-1],
-                    color="#f093fb", edgecolor="none")
+                    color="#B42318", edgecolor="none")
             ax.set_xlabel("Missing %", fontsize=9)
             ax.tick_params(colors=MUT, labelsize=9)
             ax.set_title("Missing Values by Feature (%)", fontsize=11, fontfamily="serif")
@@ -616,7 +636,7 @@ if df is not None:
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
         bins = st.session_state.get("tab_hist_bins", 24)
         alpha = st.session_state.get("tab_alpha", 0.85)
-        ax.hist(vals, bins=bins, color="#667eea", edgecolor=BG, alpha=alpha, rwidth=0.9)
+        ax.hist(vals, bins=bins, color="#3D5A80", edgecolor=BG, alpha=alpha, rwidth=0.9)
         ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2,
                    label=f"Mean = {vals.mean():.3f}")
         ax.axvline(vals.median(), color="#f093fb", linestyle=":", lw=2,
@@ -720,7 +740,7 @@ if df is not None:
         fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
         bins = st.session_state.get("tab_hist_bins", 24)
         alpha = st.session_state.get("tab_alpha", 0.85)
-        ax.hist(vals, bins=bins, color="#f093fb", edgecolor=BG, alpha=alpha, rwidth=0.9)
+        ax.hist(vals, bins=bins, color="#2A7A70", edgecolor=BG, alpha=alpha, rwidth=0.9)
         ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2.5,
                    label=f"Mean = {vals.mean():.2f}")
         ax.axvline(vals.median(), color="#667eea", linestyle=":", lw=2,
