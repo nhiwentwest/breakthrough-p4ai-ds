@@ -348,258 +348,269 @@ def bento_table(title, df, **kwargs):
     st.markdown(f"<div class='bento-card'><div class='bento-title'>{title}</div></div>", unsafe_allow_html=True)
     st.dataframe(df, **kwargs)
 
-if step == 0:
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Training samples", f"{len(df):,}")
-    m2.metric("Number of columns", f"{len(df.columns):,}")
-    m3.metric("Unique labels", f"{df['label'].nunique():,}")
-    m4.metric("Unique words", f"{len(D['word_freq']):,}")
-    st.markdown("### Dataset Samples")
-    c1, c2 = st.columns(2)
-    with c1:
-        full_sample = st.checkbox("Show full sample", value=False, key="text_full_sample")
-    with c2:
-        sample_mode = st.selectbox("Sample mode", ["Sequential", "Random"], index=0, key="text_sample_mode")
-
-    if full_sample:
-        show_n = len(df)
-    else:
-        max_preview = len(df)
-        default_rows = min(120, max_preview if max_preview > 0 else 1)
-        show_n = st.slider("Rows to show", 1, max_preview if max_preview > 0 else 1, default_rows, 1)
-
-    if sample_mode == "Random" and show_n < len(df):
-        seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1, key="text_sample_seed")
-        view_df = df.sample(n=show_n, random_state=int(seed))
-    else:
-        view_df = df.head(show_n)
-    st.caption(f"Showing {len(view_df):,}/{len(df):,} rows")
-    st.dataframe(view_df, use_container_width=True)
-
-elif step == 1:
-    st.write("Duplicate and missing-value check after preprocessing.")
-    c1, c2 = st.columns(2)
-    c1.metric("Duplicates detected", f"{D['duplicate_count']:,}")
-    c2.metric("Rows after cleanup", f"{len(df):,}")
-    if len(D["missing_df"]) > 0:
-        st.dataframe(
-            D["missing_df"], 
-            use_container_width=True, 
-            hide_index=True,
-            column_config={
-                "column": st.column_config.TextColumn("Column 📝"),
-                "count": st.column_config.NumberColumn("Missing ⚠️"),
-                "percentage": st.column_config.ProgressColumn("Missing %", min_value=0.0, max_value=100.0, format="%.2f%%")
-            }
-        )
-    else:
-        st.success("No missing values found.")
-
-elif step == 2:
-    left, right = st.columns([1.1, 1.2])
-    cat_df = D["category_table"].reset_index()
-    left.dataframe(
-        cat_df, 
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "index": st.column_config.TextColumn("Label 🏷️"),
-            "Frequency": st.column_config.ProgressColumn("Count 📈", min_value=0, max_value=int(cat_df["Frequency"].max()), format="%d"),
-            "Ratio (%)": st.column_config.NumberColumn("Ratio %", format="%.1f%%")
-        }
-    )
-    fig, ax = make_fig(w_mult=1.0, h_mult=1.05)
-    ax.pie(
-        D["category_table"]["Ratio (%)"],
-        labels=D["category_table"].index.astype(str),
-        autopct="%1.1f%%",
-        startangle=90,
-        colors=["#7C3AED", "#0EA5E9", "#F59E0B"],
-        radius=0.88,
-        textprops={"fontsize": 8},
-    )
-    ax.set_title("Category Distribution", fontsize=10)
-    render_chart(fig)
-
-elif step == 3:
-    bin_size = st.slider("Word-count bin size", 1, 10, 5)
-    max_wc = int(df["word_count"].max())
-    bins = np.arange(0, max_wc + bin_size, bin_size)
-    fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
-    ax.hist(df["word_count"], bins=bins, color="#4F46E5", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
-    ax.set_title("Word Count Distribution", fontsize=10)
-    ax.set_xlabel("Words per text", fontsize=9)
-    ax.set_ylabel("Samples", fontsize=9)
-    render_chart(fig)
-    st.dataframe(df["word_count"].describe().to_frame("value"), use_container_width=True)
-
-elif step == 4:
-    bin_size = st.slider("Character-count bin size", 5, 40, 20)
-    max_cc = int(df["char_count"].max())
-    bins = np.arange(0, max_cc + bin_size, bin_size)
-    fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
-    ax.hist(df["char_count"], bins=bins, color="#0891B2", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
-    ax.set_title("Character Length Distribution", fontsize=10)
-    ax.set_xlabel("Characters per text", fontsize=9)
-    ax.set_ylabel("Samples", fontsize=9)
-    render_chart(fig)
-    st.dataframe(df["char_count"].describe().to_frame("value"), use_container_width=True)
-
-elif step == 5:
-    top_n = st.slider("Top words", 10, 50, 20)
-    top_words = D["word_freq"].most_common(top_n)
-    wdf = pd.DataFrame(top_words, columns=["Word", "Frequency"])
-    left, right = st.columns(2)
-    left.dataframe(
-        wdf, 
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Word": st.column_config.TextColumn("Word 🔠"),
-            "Frequency": st.column_config.ProgressColumn("Frequency 📊", min_value=0, max_value=int(wdf["Frequency"].max()) if not wdf.empty else 100, format="%d")
-        }
-    )
-    fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
-    ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#B42318", edgecolor="none")
-    ax.set_title(f"Top {top_n} Word Frequency", fontsize=10)
-    ax.set_xlabel("Frequency", fontsize=9)
-    render_chart(fig)
-
-    st.markdown("### Top Mentioned Tickers")
-    top_tickers = D["ticker_freq"].most_common(5)
-    tdf = pd.DataFrame(top_tickers, columns=["Ticker", "Frequency"])
-    st.dataframe(
-        tdf, 
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Ticker": st.column_config.TextColumn("Ticker 📈"),
-            "Frequency": st.column_config.ProgressColumn("Mentions 💬", min_value=0, max_value=int(tdf["Frequency"].max()) if not tdf.empty else 100, format="%d")
-        }
-    )
-    if len(tdf) > 0:
-        fig2, ax2 = make_fig(w_mult=1.1, h_mult=0.9)
-        ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#2A7A70", edgecolor="none")
-        ax2.set_title("Top 5 Most Mentioned Tickers", fontsize=10)
-        ax2.set_xlabel("Ticker", fontsize=9)
-        ax2.set_ylabel("Mentions", fontsize=9)
-        render_chart(fig2)
-
-elif step == 6:
-    if not SKLEARN_AVAILABLE:
-        st.error("scikit-learn is required for TF-IDF views.")
-    else:
-        c1, c2, c3 = st.columns(3)
+def render_text_step(step_idx):
+    if step_idx == 0:
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Training samples", f"{len(df):,}")
+        m2.metric("Number of columns", f"{len(df.columns):,}")
+        m3.metric("Unique labels", f"{df['label'].nunique():,}")
+        m4.metric("Unique words", f"{len(D['word_freq']):,}")
+        st.markdown("### Dataset Samples")
+        c1, c2 = st.columns(2)
         with c1:
-            label = st.selectbox("Label", sorted(df["label"].unique()), index=0)
+            full_sample = st.checkbox("Show full sample", value=False, key="text_full_sample")
         with c2:
-            max_feat = st.slider("Max features", 20, 500, 100, 10, key="tfidf_maxfeat")
-        with c3:
-            top_k = st.slider("Top terms", 5, 30, 20, 1, key="tfidf_topk")
-        ngram_max = st.radio("N-gram range", [1, 2, 3], index=1, horizontal=True, key="tfidf_ngram_max")
-        tfidf_map = compute_tfidf_terms(df, max_feat, 1, int(ngram_max), top_k)
-        table = tfidf_map[int(label)]
-        st.dataframe(
-            table, 
+            sample_mode = st.selectbox("Sample mode", ["Sequential", "Random"], index=0, key="text_sample_mode")
+    
+        if full_sample:
+            show_n = len(df)
+        else:
+            max_preview = len(df)
+            default_rows = min(120, max_preview if max_preview > 0 else 1)
+            show_n = st.slider("Rows to show", 1, max_preview if max_preview > 0 else 1, default_rows, 1)
+    
+        if sample_mode == "Random" and show_n < len(df):
+            seed = st.number_input("Random seed", min_value=0, max_value=99999, value=42, step=1, key="text_sample_seed")
+            view_df = df.sample(n=show_n, random_state=int(seed))
+        else:
+            view_df = df.head(show_n)
+        st.caption(f"Showing {len(view_df):,}/{len(df):,} rows")
+        st.dataframe(view_df, use_container_width=True)
+    
+    elif step_idx == 1:
+        st.write("Duplicate and missing-value check after preprocessing.")
+        c1, c2 = st.columns(2)
+        c1.metric("Duplicates detected", f"{D['duplicate_count']:,}")
+        c2.metric("Rows after cleanup", f"{len(df):,}")
+        if len(D["missing_df"]) > 0:
+            st.dataframe(
+                D["missing_df"], 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "column": st.column_config.TextColumn("Column 📝"),
+                    "count": st.column_config.NumberColumn("Missing ⚠️"),
+                    "percentage": st.column_config.ProgressColumn("Missing %", min_value=0.0, max_value=100.0, format="%.2f%%")
+                }
+            )
+        else:
+            st.success("No missing values found.")
+    
+    elif step_idx == 2:
+        left, right = st.columns([1.1, 1.2])
+        cat_df = D["category_table"].reset_index()
+        left.dataframe(
+            cat_df, 
             use_container_width=True,
             hide_index=True,
             column_config={
-                "term": st.column_config.TextColumn("Term 📝"),
-                "score": st.column_config.ProgressColumn("TF-IDF Score 🎯", min_value=0.0, max_value=float(table["score"].max()) if not table.empty else 1.0, format="%.3f")
+                "index": st.column_config.TextColumn("Label 🏷️"),
+                "Frequency": st.column_config.ProgressColumn("Count 📈", min_value=0, max_value=int(cat_df["Frequency"].max()), format="%d"),
+                "Ratio (%)": st.column_config.NumberColumn("Ratio %", format="%.1f%%")
+            }
+        )
+        fig, ax = make_fig(w_mult=1.0, h_mult=1.05)
+        ax.pie(
+            D["category_table"]["Ratio (%)"],
+            labels=D["category_table"].index.astype(str),
+            autopct="%1.1f%%",
+            startangle=90,
+            colors=["#7C3AED", "#0EA5E9", "#F59E0B"],
+            radius=0.88,
+            textprops={"fontsize": 8},
+        )
+        ax.set_title("Category Distribution", fontsize=10)
+        render_chart(fig)
+    
+    elif step_idx == 3:
+        bin_size = st.slider("Word-count bin size", 1, 10, 5)
+        max_wc = int(df["word_count"].max())
+        bins = np.arange(0, max_wc + bin_size, bin_size)
+        fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
+        ax.hist(df["word_count"], bins=bins, color="#4F46E5", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
+        ax.set_title("Word Count Distribution", fontsize=10)
+        ax.set_xlabel("Words per text", fontsize=9)
+        ax.set_ylabel("Samples", fontsize=9)
+        render_chart(fig)
+        st.dataframe(df["word_count"].describe().to_frame("value"), use_container_width=True)
+    
+    elif step_idx == 4:
+        bin_size = st.slider("Character-count bin size", 5, 40, 20)
+        max_cc = int(df["char_count"].max())
+        bins = np.arange(0, max_cc + bin_size, bin_size)
+        fig, ax = make_fig(w_mult=1.45, h_mult=1.0)
+        ax.hist(df["char_count"], bins=bins, color="#0891B2", edgecolor="#F7F3EB", alpha=0.86, rwidth=0.9)
+        ax.set_title("Character Length Distribution", fontsize=10)
+        ax.set_xlabel("Characters per text", fontsize=9)
+        ax.set_ylabel("Samples", fontsize=9)
+        render_chart(fig)
+        st.dataframe(df["char_count"].describe().to_frame("value"), use_container_width=True)
+    
+    elif step_idx == 5:
+        top_n = st.slider("Top words", 10, 50, 20)
+        top_words = D["word_freq"].most_common(top_n)
+        wdf = pd.DataFrame(top_words, columns=["Word", "Frequency"])
+        left, right = st.columns(2)
+        left.dataframe(
+            wdf, 
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Word": st.column_config.TextColumn("Word 🔠"),
+                "Frequency": st.column_config.ProgressColumn("Frequency 📊", min_value=0, max_value=int(wdf["Frequency"].max()) if not wdf.empty else 100, format="%d")
             }
         )
         fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
-        ax.barh(table["term"][::-1], table["score"][::-1], color="#A06820", edgecolor="none")
-        ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})", fontsize=10)
-        ax.set_xlabel("TF-IDF score", fontsize=9)
+        ax.barh(wdf["Word"][::-1], wdf["Frequency"][::-1], color="#B42318", edgecolor="none")
+        ax.set_title(f"Top {top_n} Word Frequency", fontsize=10)
+        ax.set_xlabel("Frequency", fontsize=9)
         render_chart(fig)
-
-elif step == 7:
-    if not SKLEARN_AVAILABLE:
-        st.error("scikit-learn is required for bigram TF-IDF views.")
-    else:
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            label = st.selectbox("Label", sorted(df["label"].unique()), index=0, key="bigram_label")
-        with c2:
-            max_feat = st.slider("Max bigram features", 20, 500, 120, 10, key="bigram_maxfeat")
-        with c3:
-            top_preset = st.selectbox("Top preset", [10, 15, 20, 30], index=1, key="bigram_top_preset")
-        with c4:
-            custom_top = st.toggle("Custom top-k", value=False, key="bigram_custom_top")
-        if custom_top:
-            top_k = st.slider("Top bigrams", 5, 30, int(top_preset), 1, key="bigram_topk")
-        else:
-            top_k = int(top_preset)
-        bigram_map = compute_bigram_terms(df, max_feat, top_k)
-        table = bigram_map[int(label)]
-        st.dataframe(table, use_container_width=True)
-        if len(table) > 0:
-            fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
-            ax.barh(table["bigram"][::-1], table["score"][::-1], color="#6B4C8E", edgecolor="none")
-            ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})", fontsize=10)
-            ax.set_xlabel("TF-IDF score", fontsize=9)
-            render_chart(fig)
-
-elif step == 8:
-    if not SKLEARN_AVAILABLE:
-        st.error("scikit-learn is required for similarity matrix.")
-    else:
-        c1, c2 = st.columns(2)
-        with c1:
-            max_feat = st.slider("Max TF-IDF features", 100, 10000, 5000, 100, key="sim_maxfeat")
-        with c2:
-            decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
-        sim = compute_similarity(df, max_feat)
-        st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
-        fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
-        cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
-        im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
-        ax.set_xticks(range(len(sim.columns)))
-        ax.set_yticks(range(len(sim.index)))
-        ax.set_xticklabels(sim.columns, fontsize=8)
-        ax.set_yticklabels(sim.index, fontsize=8)
-        ax.set_title("Category Similarity Matrix", fontsize=10)
-        fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
-        render_chart(fig)
-
-elif step == 9:
-    if not SKLEARN_AVAILABLE:
-        st.error("scikit-learn is required for OOV analysis.")
-    else:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            max_feat = st.slider("Reference vocab size", 100, 10000, 5000, 100, key="oov_maxfeat")
-        with c2:
-            ngram_max = st.selectbox("N-gram max", [1, 2, 3], index=1, key="oov_ngrammax")
-        with c3:
-            selected = st.multiselect(
-                "Categories",
-                options=sorted(df["label"].unique()),
-                default=sorted(df["label"].unique()),
-                key="oov_categories",
-            )
-        oov = compute_oov(df, max_feat, 1, int(ngram_max))
-        if selected:
-            oov = oov[oov["Category"].isin(selected)]
+    
+        st.markdown("### Top Mentioned Tickers")
+        top_tickers = D["ticker_freq"].most_common(5)
+        tdf = pd.DataFrame(top_tickers, columns=["Ticker", "Frequency"])
         st.dataframe(
-            oov, 
+            tdf, 
             use_container_width=True,
             hide_index=True,
             column_config={
-                "Category": st.column_config.TextColumn("Label 🏷️"),
-                "Total Bigram Freq": st.column_config.NumberColumn("Total Freq 📚"),
-                "Kept Freq": st.column_config.ProgressColumn("Kept Freq ✔️", min_value=0, max_value=int(oov["Kept Freq"].max()) if not oov.empty else 100, format="%d"),
-                "Retention Rate (%)": st.column_config.NumberColumn("Retention Rate %", format="%.2f%%"),
-                "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
+                "Ticker": st.column_config.TextColumn("Ticker 📈"),
+                "Frequency": st.column_config.ProgressColumn("Mentions 💬", min_value=0, max_value=int(tdf["Frequency"].max()) if not tdf.empty else 100, format="%d")
             }
         )
-        fig, ax = make_fig(w_mult=1.2, h_mult=0.9)
-        ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#B42318", edgecolor="none")
-        ax.set_title("OOV Rate by Category", fontsize=10)
-        ax.set_xlabel("Category", fontsize=9)
-        ax.set_ylabel("OOV Rate (%)", fontsize=9)
-        render_chart(fig)
+        if len(tdf) > 0:
+            fig2, ax2 = make_fig(w_mult=1.1, h_mult=0.9)
+            ax2.bar(tdf["Ticker"], tdf["Frequency"], color="#2A7A70", edgecolor="none")
+            ax2.set_title("Top 5 Most Mentioned Tickers", fontsize=10)
+            ax2.set_xlabel("Ticker", fontsize=9)
+            ax2.set_ylabel("Mentions", fontsize=9)
+            render_chart(fig2)
+    
+    elif step_idx == 6:
+        if not SKLEARN_AVAILABLE:
+            st.error("scikit-learn is required for TF-IDF views.")
+        else:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                label = st.selectbox("Label", sorted(df["label"].unique()), index=0)
+            with c2:
+                max_feat = st.slider("Max features", 20, 500, 100, 10, key="tfidf_maxfeat")
+            with c3:
+                top_k = st.slider("Top terms", 5, 30, 20, 1, key="tfidf_topk")
+            ngram_max = st.radio("N-gram range", [1, 2, 3], index=1, horizontal=True, key="tfidf_ngram_max")
+            tfidf_map = compute_tfidf_terms(df, max_feat, 1, int(ngram_max), top_k)
+            table = tfidf_map[int(label)]
+            st.dataframe(
+                table, 
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "term": st.column_config.TextColumn("Term 📝"),
+                    "score": st.column_config.ProgressColumn("TF-IDF Score 🎯", min_value=0.0, max_value=float(table["score"].max()) if not table.empty else 1.0, format="%.3f")
+                }
+            )
+            fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
+            ax.barh(table["term"][::-1], table["score"][::-1], color="#A06820", edgecolor="none")
+            ax.set_title(f"Top {len(table)} TF-IDF Terms (Label {label})", fontsize=10)
+            ax.set_xlabel("TF-IDF score", fontsize=9)
+            render_chart(fig)
+    
+    elif step_idx == 7:
+        if not SKLEARN_AVAILABLE:
+            st.error("scikit-learn is required for bigram TF-IDF views.")
+        else:
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                label = st.selectbox("Label", sorted(df["label"].unique()), index=0, key="bigram_label")
+            with c2:
+                max_feat = st.slider("Max bigram features", 20, 500, 120, 10, key="bigram_maxfeat")
+            with c3:
+                top_preset = st.selectbox("Top preset", [10, 15, 20, 30], index=1, key="bigram_top_preset")
+            with c4:
+                custom_top = st.toggle("Custom top-k", value=False, key="bigram_custom_top")
+            if custom_top:
+                top_k = st.slider("Top bigrams", 5, 30, int(top_preset), 1, key="bigram_topk")
+            else:
+                top_k = int(top_preset)
+            bigram_map = compute_bigram_terms(df, max_feat, top_k)
+            table = bigram_map[int(label)]
+            st.dataframe(table, use_container_width=True)
+            if len(table) > 0:
+                fig, ax = make_fig(w_mult=1.35, h_mult=1.25)
+                ax.barh(table["bigram"][::-1], table["score"][::-1], color="#6B4C8E", edgecolor="none")
+                ax.set_title(f"Top {len(table)} Bigrams by TF-IDF (Label {label})", fontsize=10)
+                ax.set_xlabel("TF-IDF score", fontsize=9)
+                render_chart(fig)
+    
+    elif step_idx == 8:
+        if not SKLEARN_AVAILABLE:
+            st.error("scikit-learn is required for similarity matrix.")
+        else:
+            c1, c2 = st.columns(2)
+            with c1:
+                max_feat = st.slider("Max TF-IDF features", 100, 10000, 5000, 100, key="sim_maxfeat")
+            with c2:
+                decimals = st.slider("Table decimals", 2, 6, 4, 1, key="sim_decimals")
+            sim = compute_similarity(df, max_feat)
+            st.dataframe(sim.round(decimals).style.background_gradient(cmap='Greens'), use_container_width=True)
+            fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
+            cmap = st.selectbox("Colormap", ["YlGnBu", "viridis", "magma", "coolwarm"], index=0, key="sim_cmap")
+            im = ax.imshow(sim.values, cmap=cmap, vmin=0, vmax=1)
+            ax.set_xticks(range(len(sim.columns)))
+            ax.set_yticks(range(len(sim.index)))
+            ax.set_xticklabels(sim.columns, fontsize=8)
+            ax.set_yticklabels(sim.index, fontsize=8)
+            ax.set_title("Category Similarity Matrix", fontsize=10)
+            fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
+            render_chart(fig)
+    
+    elif step_idx == 9:
+        if not SKLEARN_AVAILABLE:
+            st.error("scikit-learn is required for OOV analysis.")
+        else:
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                max_feat = st.slider("Reference vocab size", 100, 10000, 5000, 100, key="oov_maxfeat")
+            with c2:
+                ngram_max = st.selectbox("N-gram max", [1, 2, 3], index=1, key="oov_ngrammax")
+            with c3:
+                selected = st.multiselect(
+                    "Categories",
+                    options=sorted(df["label"].unique()),
+                    default=sorted(df["label"].unique()),
+                    key="oov_categories",
+                )
+            oov = compute_oov(df, max_feat, 1, int(ngram_max))
+            if selected:
+                oov = oov[oov["Category"].isin(selected)]
+            st.dataframe(
+                oov, 
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Category": st.column_config.TextColumn("Label 🏷️"),
+                    "Total Bigram Freq": st.column_config.NumberColumn("Total Freq 📚"),
+                    "Kept Freq": st.column_config.ProgressColumn("Kept Freq ✔️", min_value=0, max_value=int(oov["Kept Freq"].max()) if not oov.empty else 100, format="%d"),
+                    "Retention Rate (%)": st.column_config.NumberColumn("Retention Rate %", format="%.2f%%"),
+                    "OOV Rate (%)": st.column_config.ProgressColumn("OOV Rate ❌", min_value=0.0, max_value=100.0, format="%.2f%%")
+                }
+            )
+            fig, ax = make_fig(w_mult=1.2, h_mult=0.9)
+            ax.bar(oov["Category"].astype(str), oov["OOV Rate (%)"], color="#B42318", edgecolor="none")
+            ax.set_title("OOV Rate by Category", fontsize=10)
+            ax.set_xlabel("Category", fontsize=9)
+            ax.set_ylabel("OOV Rate (%)", fontsize=9)
+            render_chart(fig)
+    
+
+if full_page_mode:
+    for s in range(TOTAL_STEPS):
+        st.markdown(f"### {s+1}. {STEP_LABELS[s]}")
+        render_text_step(s)
+        if s < TOTAL_STEPS - 1:
+            st.markdown("---")
+else:
+    render_text_step(step)
 
 col1, col2 = st.columns(2)
 with col1:
