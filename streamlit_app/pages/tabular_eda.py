@@ -514,502 +514,512 @@ if df is not None:
     # ══════════════════════════════════════════════════════════════════════════
     #  STEP 0: Dataset Overview
     # ══════════════════════════════════════════════════════════════════════════
-    if st.session_state.step == 0:
-        st.markdown("<p class='section-head'>Step 1 of 9 — Dataset Overview</p>",
-                    unsafe_allow_html=True)
-
-        n_num = len(df.select_dtypes(include='number').columns)
-        n_cat = len(df.select_dtypes(exclude='number').columns)
-
-        st.markdown(f"""
-        **World Happiness Report 2019** ranks 156 countries by how happy their
-        inhabitants perceive themselves to be, based on the Gallup World Poll.
-        The score is the average of three Gallup measures: positive affect,
-        negative affect, and the Cantril Ladder life-satisfaction question.
-        """)
-        if data_source == "synthetic":
-            st.info("ℹ️  Live dataset not reachable — using synthetic data that mirrors "
-                    "the real-world structure (156 countries, 9 features, GDP→Score correlation ≈ 0.79).")
-
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("Countries", f"{len(df):,}")
-        k2.metric("Features", str(len(df.columns)))
-        k3.metric("Numerical", str(n_num))
-        k4.metric("Categorical", str(n_cat))
-
-
-        # Feature description table
-        feat_rows = []
-        for col in df.columns:
-            dtype = "Numerical" if df[col].dtype in ['int64', 'float64'] else "Categorical"
-            feat_rows.append({
-                "Feature": col,
-                "Type": dtype,
-                "Description": FEAT_DESCRIPTIONS.get(col, "—"),
-            })
-        bento_table("Feature schema", pd.DataFrame(feat_rows), use_container_width=True, hide_index=True)
-
-        st.markdown("")
-        if st.button("Next: Missing Values →"):
-            n_missing = df.isnull().sum().sum()
-            st.session_state.log.append(
-                f"[{time.strftime('%H:%M:%S')}] ✓ "
-                f"Overview: {len(df)} rows · {len(df.columns)} cols"
-            )
-            st.session_state.step = 1
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 1: Missing Values
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 1:
-        st.markdown("<p class='section-head'>Step 2 of 9 — Data Quality: Missing Values</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#E65100;'>
-          Clean data means reliable analysis. Let's check whether any features
-          are missing values — and how to handle them if so.
-        </div>""", unsafe_allow_html=True)
-
-        missing_counts = df.isnull().sum()
-        missing_pct     = (missing_counts / len(df) * 100).round(2)
-        missing_df      = pd.DataFrame({
-            "Feature":  missing_counts.index,
-            "Missing":   missing_counts.values,
-            "Percent":   missing_pct.values,
-        })
-        has_missing = missing_df[missing_df["Missing"] > 0]
-
-        if len(has_missing) == 0:
-            st.success("✅  Dataset is clean — no missing values detected.")
-        else:
-            fig, ax = make_fig(w_mult=1.25, h_mult=max(0.9, len(has_missing) * 0.11))
-            fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-            ax.barh(has_missing["Feature"][::-1], has_missing["Percent"][::-1],
-                    color="#B42318", edgecolor="none")
-            ax.set_xlabel("Missing %", fontsize=9)
-            ax.tick_params(colors=MUT, labelsize=9)
-            ax.set_title("Missing Values by Feature (%)", fontsize=11, fontfamily="serif")
-            for s in ax.spines.values(): s.set_visible(False)
-            ax.xaxis.set_visible(False)
-            ax.grid(axis="x", linewidth=0.5, color=BOR, zorder=0)
-            xlim_m = max(has_missing["Percent"]) * 1.2
-            for bar, val in zip(ax.patches, has_missing["Percent"][::-1]):
-                ax.text(xlim_m, bar.get_y() + bar.get_height()/2,
-                        f" {val:.1f}%", va="center", ha="left", fontsize=9, color=TEXT)
-            ax.set_xlim(0, xlim_m)
-            plt.tight_layout()
-            render_chart(fig)
-
-            bento_table("Missing value summary", has_missing.set_index("Feature"), use_container_width=True)
-            st.markdown("""
-            **Recommendations:**
-            - > 50% missing → consider dropping the column
-            - 5–50% missing → advanced imputation (KNN, IterativeImputer)
-            - < 5% missing → simple imputation (mean/median/mode)
+    def render_tabular_step(step_idx):
+        if step_idx == 0:
+            st.markdown("<p class='section-head'>Step 1 of 9 — Dataset Overview</p>",
+                        unsafe_allow_html=True)
+    
+            n_num = len(df.select_dtypes(include='number').columns)
+            n_cat = len(df.select_dtypes(exclude='number').columns)
+    
+            st.markdown(f"""
+            **World Happiness Report 2019** ranks 156 countries by how happy their
+            inhabitants perceive themselves to be, based on the Gallup World Poll.
+            The score is the average of three Gallup measures: positive affect,
+            negative affect, and the Cantril Ladder life-satisfaction question.
             """)
-
-        st.markdown("")
-        if st.button("Next: Numerical Distributions →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Missing Values: {len(has_missing)} cols affected")
-            st.session_state.step = 2
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 2: Numerical Distributions
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 2:
-        st.markdown("<p class='section-head'>Step 3 of 9 — Numerical Features Distribution</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#2E7D32;'>
-          How is each numerical feature distributed? Are they normal, skewed,
-          or uniform? Shape tells us which statistical tools are appropriate.
-        </div>""", unsafe_allow_html=True)
-
-        feat_options = [c for c in NUMERICAL_COLS if c in df.columns]
-        chosen_feat  = st.selectbox("Select a feature to visualize", feat_options)
-
-        vals = df[chosen_feat].dropna()
-        fig, ax = make_fig(w_mult=1.2, h_mult=1.0)
-        fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-        bins = st.session_state.get("tab_hist_bins", 24)
-        alpha = st.session_state.get("tab_alpha", 0.85)
-        ax.hist(vals, bins=bins, color="#3D5A80", edgecolor=BG, alpha=alpha, rwidth=0.9)
-        ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2,
-                   label=f"Mean = {vals.mean():.3f}")
-        ax.axvline(vals.median(), color="#f093fb", linestyle=":", lw=2,
-                   label=f"Median = {vals.median():.3f}")
-        ax.legend(facecolor=BG, labelcolor=TEXT, fontsize=9)
-        ax.set_xlabel(chosen_feat, fontsize=9)
-        ax.set_ylabel("Count", fontsize=9)
-        ax.set_title(f"{chosen_feat} — Distribution", fontsize=11, fontfamily="serif")
-        ax.tick_params(colors=MUT, labelsize=9)
-        for s in ax.spines.values(): s.set_edgecolor(BOR)
-        ax.yaxis.set_visible(False)
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        # Stats table
-        stat_rows = []
-        for col in feat_options:
-            v = df[col].dropna()
-            stat_rows.append({
-                "Feature":   col,
-                "Mean":      f"{v.mean():.3f}",
-                "Median":    f"{v.median():.3f}",
-                "Std":       f"{v.std():.3f}",
-                "Min":       f"{v.min():.3f}",
-                "Max":       f"{v.max():.3f}",
+            if data_source == "synthetic":
+                st.info("ℹ️  Live dataset not reachable — using synthetic data that mirrors "
+                        "the real-world structure (156 countries, 9 features, GDP→Score correlation ≈ 0.79).")
+    
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Countries", f"{len(df):,}")
+            k2.metric("Features", str(len(df.columns)))
+            k3.metric("Numerical", str(n_num))
+            k4.metric("Categorical", str(n_cat))
+    
+    
+            # Feature description table
+            feat_rows = []
+            for col in df.columns:
+                dtype = "Numerical" if df[col].dtype in ['int64', 'float64'] else "Categorical"
+                feat_rows.append({
+                    "Feature": col,
+                    "Type": dtype,
+                    "Description": FEAT_DESCRIPTIONS.get(col, "—"),
+                })
+            bento_table("Feature schema", pd.DataFrame(feat_rows), use_container_width=True, hide_index=True)
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Missing Values →"):
+                n_missing = df.isnull().sum().sum()
+                st.session_state.log.append(
+                    f"[{time.strftime('%H:%M:%S')}] ✓ "
+                    f"Overview: {len(df)} rows · {len(df.columns)} cols"
+                )
+                st.session_state.step = 1
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 1: Missing Values
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 1:
+            st.markdown("<p class='section-head'>Step 2 of 9 — Data Quality: Missing Values</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#E65100;'>
+              Clean data means reliable analysis. Let's check whether any features
+              are missing values — and how to handle them if so.
+            </div>""", unsafe_allow_html=True)
+    
+            missing_counts = df.isnull().sum()
+            missing_pct     = (missing_counts / len(df) * 100).round(2)
+            missing_df      = pd.DataFrame({
+                "Feature":  missing_counts.index,
+                "Missing":   missing_counts.values,
+                "Percent":   missing_pct.values,
             })
-        st.dataframe(pd.DataFrame(stat_rows).set_index("Feature"))
-
-        st.markdown("")
-        if st.button("Next: GDP Level (Categorical) →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Numerical: {len(feat_options)} features analyzed")
-            st.session_state.step = 3
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 3: Categorical — GDP Level
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 3:
-        st.markdown("<p class='section-head'>Step 4 of 9 — Categorical Feature: GDP Level</p>",
-                    unsafe_allow_html=True)
-
-        feat = "GDP_Level"
-        if feat not in df.columns:
-            st.warning(f"'{feat}' not found. Make sure the dataset has this engineered column.")
-        else:
-            vc = df[feat].value_counts()
-
-            fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
+            has_missing = missing_df[missing_df["Missing"] > 0]
+    
+            if len(has_missing) == 0:
+                st.success("✅  Dataset is clean — no missing values detected.")
+            else:
+                fig, ax = make_fig(w_mult=1.25, h_mult=max(0.9, len(has_missing) * 0.11))
+                fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+                ax.barh(has_missing["Feature"][::-1], has_missing["Percent"][::-1],
+                        color="#B42318", edgecolor="none")
+                ax.set_xlabel("Missing %", fontsize=9)
+                ax.tick_params(colors=MUT, labelsize=9)
+                ax.set_title("Missing Values by Feature (%)", fontsize=11, fontfamily="serif")
+                for s in ax.spines.values(): s.set_visible(False)
+                ax.xaxis.set_visible(False)
+                ax.grid(axis="x", linewidth=0.5, color=BOR, zorder=0)
+                xlim_m = max(has_missing["Percent"]) * 1.2
+                for bar, val in zip(ax.patches, has_missing["Percent"][::-1]):
+                    ax.text(xlim_m, bar.get_y() + bar.get_height()/2,
+                            f" {val:.1f}%", va="center", ha="left", fontsize=9, color=TEXT)
+                ax.set_xlim(0, xlim_m)
+                plt.tight_layout()
+                render_chart(fig)
+    
+                bento_table("Missing value summary", has_missing.set_index("Feature"), use_container_width=True)
+                st.markdown("""
+                **Recommendations:**
+                - > 50% missing → consider dropping the column
+                - 5–50% missing → advanced imputation (KNN, IterativeImputer)
+                - < 5% missing → simple imputation (mean/median/mode)
+                """)
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Numerical Distributions →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Missing Values: {len(has_missing)} cols affected")
+                st.session_state.step = 2
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 2: Numerical Distributions
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 2:
+            st.markdown("<p class='section-head'>Step 3 of 9 — Numerical Features Distribution</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#2E7D32;'>
+              How is each numerical feature distributed? Are they normal, skewed,
+              or uniform? Shape tells us which statistical tools are appropriate.
+            </div>""", unsafe_allow_html=True)
+    
+            feat_options = [c for c in NUMERICAL_COLS if c in df.columns]
+            chosen_feat  = st.selectbox("Select a feature to visualize", feat_options)
+    
+            vals = df[chosen_feat].dropna()
+            fig, ax = make_fig(w_mult=1.2, h_mult=1.0)
             fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-            order = [x for x in ["Low", "Medium", "High"] if x in vc.index]
-            vc_plot = vc.reindex(order)
-            colors = ["#B8C5D6", "#7A90A8", "#314E6E"]
-            bars = ax.bar(vc_plot.index.astype(str), vc_plot.values, color=colors[:len(vc_plot)], edgecolor=BG, linewidth=0.8)
-            ax.set_xlabel("GDP Level", fontsize=8.5, color=MUT)
-            ax.set_ylabel("Countries", fontsize=8.5, color=MUT)
-            ax.set_title("GDP Level Distribution", fontsize=10.5, fontfamily="serif", color=TEXT)
-            fs = st.session_state.get("tab_font_scale", 0.70)
-            ax.tick_params(colors=MUT, labelsize=max(7, int(8 * fs)))
+            bins = st.session_state.get("tab_hist_bins", 24)
+            alpha = st.session_state.get("tab_alpha", 0.85)
+            ax.hist(vals, bins=bins, color="#3D5A80", edgecolor=BG, alpha=alpha, rwidth=0.9)
+            ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2,
+                       label=f"Mean = {vals.mean():.3f}")
+            ax.axvline(vals.median(), color="#f093fb", linestyle=":", lw=2,
+                       label=f"Median = {vals.median():.3f}")
+            ax.legend(facecolor=BG, labelcolor=TEXT, fontsize=9)
+            ax.set_xlabel(chosen_feat, fontsize=9)
+            ax.set_ylabel("Count", fontsize=9)
+            ax.set_title(f"{chosen_feat} — Distribution", fontsize=11, fontfamily="serif")
+            ax.tick_params(colors=MUT, labelsize=9)
             for s in ax.spines.values(): s.set_edgecolor(BOR)
-            ax.grid(axis="y", linewidth=0.5, color=BOR, alpha=0.28, zorder=0)
-            ylim_top = max(vc_plot.values) * 1.18
-            ax.set_ylim(0, ylim_top)
-            for bar, val in zip(bars, vc_plot.values):
-                ax.text(bar.get_x() + bar.get_width()/2, val + ylim_top * 0.02,
-                        f"{int(val)}", ha="center", va="bottom", fontsize=8.5, color=TEXT)
-            plt.tight_layout()
-            render_chart(fig)
-
-            st.markdown(f"**GDP_Level Statistics**")
-            cat_rows = []
-            for cat in ["High", "Medium", "Low"]:
-                sub = df[df[feat] == cat]
-                if len(sub) > 0:
-                    cat_rows.append({
-                        "GDP_Level":    cat,
-                        "Countries":    str(len(sub)),
-                        "% of Total":   f"{len(sub)/len(df)*100:.1f}%",
-                        "Mean GDP":     f"{sub['GDP per capita'].mean():.3f}" if "GDP per capita" in df.columns else "—",
-                    })
-            st.dataframe(pd.DataFrame(cat_rows).set_index("GDP_Level"))
-
-        st.markdown("")
-        if st.button("Next: Target Distribution →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Categorical: GDP_Level distribution shown")
-            st.session_state.step = 4
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 4: Target Distribution
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 4:
-        st.markdown("<p class='section-head'>Step 5 of 9 — Target Variable: Happiness Score</p>",
-                    unsafe_allow_html=True)
-
-        target = "Score"
-        vals   = df[target].dropna()
-
-        fig, ax = make_fig(w_mult=1.25, h_mult=1.0)
-        fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-        bins = st.session_state.get("tab_hist_bins", 24)
-        alpha = st.session_state.get("tab_alpha", 0.85)
-        ax.hist(vals, bins=bins, color="#2A7A70", edgecolor=BG, alpha=alpha, rwidth=0.9)
-        ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2.5,
-                   label=f"Mean = {vals.mean():.2f}")
-        ax.axvline(vals.median(), color="#667eea", linestyle=":", lw=2,
-                   label=f"Median = {vals.median():.2f}")
-        ax.legend(facecolor=BG, labelcolor=TEXT, fontsize=9)
-        ax.set_xlabel("Happiness Score", fontsize=9)
-        ax.set_ylabel("Countries", fontsize=9)
-        ax.set_title("Happiness Score Distribution", fontsize=11, fontfamily="serif")
-        ax.tick_params(colors=MUT, labelsize=9)
-        for s in ax.spines.values(): s.set_edgecolor(BOR)
-        ax.yaxis.set_visible(False)
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        t1, t2, t3, t4 = st.columns(4)
-        t1.metric("Mean",   f"{vals.mean():.2f}")
-        t2.metric("Median", f"{vals.median():.2f}")
-        t3.metric("Min",    f"{vals.min():.2f}")
-        t4.metric("Max",    f"{vals.max():.2f}")
-
-        st.markdown("")
-        if st.button("Next: Correlation Analysis →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Target: Score μ={vals.mean():.2f} [{vals.min():.1f}–{vals.max():.1f}]")
-            st.session_state.step = 5
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 5: Correlation Analysis
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 5:
-        st.markdown("<p class='section-head'>Step 6 of 9 — Correlation Analysis</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
-          Which features are most strongly correlated with the Happiness Score?
-          The heatmap reveals both expected and surprising relationships.
-        </div>""", unsafe_allow_html=True)
-
-        corr_cols = [c for c in NUMERICAL_COLS if c in df.columns]
-        corr_mat  = get_or_compute("corr_mat", lambda: df[corr_cols].corr())
-
-        fig, ax = plt.subplots(figsize=(6.2, 5.4))
-        fig.patch.set_facecolor(BG)
-        im = ax.imshow(corr_mat.values, cmap="RdBu_r", vmin=-1, vmax=1)
-        ax.set_xticks(range(len(corr_cols)))
-        ax.set_yticks(range(len(corr_cols)))
-        short_labels = {
-            "Score": "Score", "GDP per capita": "GDP/cap",
-            "Social support": "Soc.Sup", "Healthy life expectancy": "Life Exp",
-            "Freedom to make life choices": "Freedom", "Generosity": "Generos.",
-            "Perceptions of corruption": "Corrupt.",
-        }
-        ax.set_xticklabels([short_labels.get(c, c) for c in corr_cols],
-                           color=TEXT, fontsize=8.5, rotation=30, ha="right")
-        ax.set_yticklabels([short_labels.get(c, c) for c in corr_cols],
-                           color=TEXT, fontsize=8.5)
-        ax.set_title("Correlation Matrix — Numerical Features", fontsize=11, fontfamily="serif")
-        for spine in ax.spines.values(): spine.set_edgecolor(BOR)
-        for i in range(len(corr_cols)):
-            for j in range(len(corr_cols)):
-                val = corr_mat.iloc[i, j]
-                ax.text(j, i, f"{val:.2f}",
-                        ha="center", va="center",
-                        color=TEXT if abs(val) < 0.75 else "#F7F3EB",
-                        fontsize=8.5, fontweight="bold")
-        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Correlation")
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        # High correlations
-        st.markdown("**Feature Pairs with |r| > 0.5**")
-        high_corr_rows = []
-        for i in range(len(corr_cols)):
-            for j in range(i + 1, len(corr_cols)):
-                r = corr_mat.iloc[i, j]
-                if abs(r) > 0.5:
-                    high_corr_rows.append({
-                        "Feature A": corr_cols[i],
-                        "Feature B": corr_cols[j],
-                        "Correlation (r)": f"{r:.3f}",
-                        "Strength": "Strong +" if r > 0 else "Strong −",
-                    })
-        if high_corr_rows:
-            st.dataframe(pd.DataFrame(high_corr_rows).set_index("Feature A"))
-        else:
-            st.info("No pairs with |r| > 0.5.")
-
-        st.markdown("")
-        if st.button("Next: Outlier Detection →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Correlation: top predictor analyzed")
-            st.session_state.step = 6
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 6: Outlier Detection (IQR Method)
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 6:
-        st.markdown("<p class='section-head'>Step 7 of 9 — Outlier Detection (IQR Method)</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#795548;'>
-          The IQR (Interquartile Range) method flags values outside
-          [Q1 − 1.5·IQR, Q3 + 1.5·IQR] as outliers. Which features have the most?
-        </div>""", unsafe_allow_html=True)
-
-        out_features = [c for c in NUMERICAL_COLS if c in df.columns]
-
-        # Box plots — 5 per row
-        n_cols_box = 3
-        n_rows_box = (len(out_features) + n_cols_box - 1) // n_cols_box
-        fig, axes = plt.subplots(n_rows_box, n_cols_box, figsize=(13, 3.8 * n_rows_box))
-        fig.patch.set_facecolor(BG)
-        axes = np.atleast_1d(axes).flatten()
-        for idx, (feat, color) in enumerate(zip(out_features, CHART_COLORS)):
-            vals = df[feat].dropna()
-            axes[idx].set_facecolor(BG)
-            bp = axes[idx].boxplot(vals, vert=True, patch_artist=True,
-                                   boxprops=dict(facecolor=color, alpha=0.7, edgecolor=BOR),
-                                   medianprops=dict(color=ACC, lw=2),
-                                   whiskerprops=dict(color=BOR),
-                                   capprops=dict(color=BOR),
-                                   flierprops=dict(marker='o', markerfacecolor=ACC,
-                                                   markersize=4, alpha=0.6))
-            axes[idx].set_title(feat, fontsize=8.5, fontfamily="serif", color=TEXT)
-            axes[idx].tick_params(colors=MUT, labelsize=8)
-            axes[idx].yaxis.set_visible(False)
-            for s in axes[idx].spines.values():
-                s.set_edgecolor(BOR)
-        # hide unused axes
-        for idx in range(len(out_features), len(axes)):
-            axes[idx].set_visible(False)
-        plt.tight_layout()
-        st.pyplot(fig)
-
-        # IQR stats table
-        st.markdown("**IQR Outlier Statistics**")
-        iqr_rows = get_or_compute(
-            "iqr_rows",
-            lambda: [
-                {
-                    "Feature": feat,
-                    "Q1": f"{df[feat].dropna().quantile(0.25):.3f}",
-                    "Q3": f"{df[feat].dropna().quantile(0.75):.3f}",
-                    "IQR": f"{(df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)):.3f}",
-                    "Lower Bound": f"{(df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
-                    "Upper Bound": f"{(df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
-                    "Outliers": str(len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))])),
-                    "% Outliers": f"{len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))]) / len(df) * 100:.1f}%",
-                }
-                for feat in out_features
-            ]
-        )
-        bento_table("IQR outlier summary", pd.DataFrame(iqr_rows).set_index("Feature"), use_container_width=True)
-
-        st.markdown("")
-        if st.button("Next: GDP Level vs Score →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Outliers: IQR analysis complete")
-            st.session_state.step = 7
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 7: GDP Level vs Score (Target vs Categorical)
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 7:
-        st.markdown("<p class='section-head'>Step 8 of 9 — GDP Level vs Happiness Score</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
-          Does economic tier predict happiness? Grouping countries by GDP_Level
-          reveals how strongly wealth correlates with perceived well-being.
-        </div>""", unsafe_allow_html=True)
-
-        feat = "GDP_Level"
-        if feat not in df.columns:
-            st.warning(f"'{feat}' not found.")
-        else:
-            # Box plot: Score by GDP_Level
-            groups = []
-            colors_box = []
-            for tier, col in [("High",   "#f093fb"),
-                              ("Medium",  "#667eea"),
-                              ("Low",    "#4facfe")]:
-                sub = df[df[feat] == tier]["Score"].dropna()
-                if len(sub) > 0:
-                    groups.append(sub.values)
-                    colors_box.append(col)
-
-            fig, ax = plt.subplots(figsize=(9, 5))
-            fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
-            bp = ax.boxplot(groups, patch_artist=True, widths=0.55,
-                            labels=["High GDP", "Medium GDP", "Low GDP"][:len(groups)])
-            palette = colors_box[:len(groups)]
-            for patch, color in zip(bp["boxes"], palette):
-                patch.set_facecolor(color)
-                patch.set_alpha(0.75)
-                patch.set_edgecolor(BOR)
-            for el in ["medians", "whiskers", "caps"]:
-                for line in bp[el]:
-                    line.set_color(ACC)
-                    line.set_linewidth(1.5)
-            for flier in bp["fliers"]:
-                flier.set(marker="o", markerfacecolor=ACC, markersize=4, alpha=0.5)
-            ax.set_ylabel("Happiness Score", fontsize=10)
-            ax.set_title("Happiness Score by GDP Level", fontsize=11, fontfamily="serif")
-            ax.tick_params(colors=MUT, labelsize=10)
-            for s in ax.spines.values(): s.set_edgecolor(BOR)
-            ax.grid(axis="y", linewidth=0.5, color=BOR, zorder=0)
+            ax.yaxis.set_visible(False)
             plt.tight_layout()
             st.pyplot(fig)
-
-            # Grouped stats
-            st.markdown("**Grouped Statistics**")
-            grp_rows = []
-            for tier in ["High", "Medium", "Low"]:
-                sub = df[df[feat] == tier]["Score"]
-                if len(sub) > 0:
-                    grp_rows.append({
-                        "GDP_Level": tier,
-                        "Countries": str(len(sub)),
-                        "Mean Score": f"{sub.mean():.3f}",
-                        "Median Score": f"{sub.median():.3f}",
-                        "Std Dev": f"{sub.std():.3f}",
-                        "Min": f"{sub.min():.3f}",
-                        "Max": f"{sub.max():.3f}",
-                    })
-            st.dataframe(pd.DataFrame(grp_rows).set_index("GDP_Level"))
-
-        st.markdown("")
-        if st.button("Next: Sample Data →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"GDP vs Score: tier analysis complete")
-            st.session_state.step = 8
-            safe_rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    #  STEP 8: Sample Data
-    # ══════════════════════════════════════════════════════════════════════════
-    elif st.session_state.step == 8:
-        st.markdown("<p class='section-head'>Step 9 of 9 — Sample Data</p>",
-                    unsafe_allow_html=True)
-        st.markdown("""
-        <div class='insight' style='font-style:normal;border-left-color:#6A1B9A;'>
-          A look at the raw data: top-ranked and bottom-ranked countries,
-          along with a random sample to appreciate the full spread.
-        </div>""", unsafe_allow_html=True)
-
-        t1, t2 = st.tabs(["🏆  Top 10 Happiest", "😔  Bottom 10"])
-        with t1:
-            st.dataframe(df.sort_values("Overall rank").head(10).reset_index(drop=True),
+    
+            # Stats table
+            stat_rows = []
+            for col in feat_options:
+                v = df[col].dropna()
+                stat_rows.append({
+                    "Feature":   col,
+                    "Mean":      f"{v.mean():.3f}",
+                    "Median":    f"{v.median():.3f}",
+                    "Std":       f"{v.std():.3f}",
+                    "Min":       f"{v.min():.3f}",
+                    "Max":       f"{v.max():.3f}",
+                })
+            st.dataframe(pd.DataFrame(stat_rows).set_index("Feature"))
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: GDP Level (Categorical) →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Numerical: {len(feat_options)} features analyzed")
+                st.session_state.step = 3
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 3: Categorical — GDP Level
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 3:
+            st.markdown("<p class='section-head'>Step 4 of 9 — Categorical Feature: GDP Level</p>",
+                        unsafe_allow_html=True)
+    
+            feat = "GDP_Level"
+            if feat not in df.columns:
+                st.warning(f"'{feat}' not found. Make sure the dataset has this engineered column.")
+            else:
+                vc = df[feat].value_counts()
+    
+                fig, ax = make_fig(w_mult=1.05, h_mult=1.0)
+                fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+                order = [x for x in ["Low", "Medium", "High"] if x in vc.index]
+                vc_plot = vc.reindex(order)
+                colors = ["#B8C5D6", "#7A90A8", "#314E6E"]
+                bars = ax.bar(vc_plot.index.astype(str), vc_plot.values, color=colors[:len(vc_plot)], edgecolor=BG, linewidth=0.8)
+                ax.set_xlabel("GDP Level", fontsize=8.5, color=MUT)
+                ax.set_ylabel("Countries", fontsize=8.5, color=MUT)
+                ax.set_title("GDP Level Distribution", fontsize=10.5, fontfamily="serif", color=TEXT)
+                fs = st.session_state.get("tab_font_scale", 0.70)
+                ax.tick_params(colors=MUT, labelsize=max(7, int(8 * fs)))
+                for s in ax.spines.values(): s.set_edgecolor(BOR)
+                ax.grid(axis="y", linewidth=0.5, color=BOR, alpha=0.28, zorder=0)
+                ylim_top = max(vc_plot.values) * 1.18
+                ax.set_ylim(0, ylim_top)
+                for bar, val in zip(bars, vc_plot.values):
+                    ax.text(bar.get_x() + bar.get_width()/2, val + ylim_top * 0.02,
+                            f"{int(val)}", ha="center", va="bottom", fontsize=8.5, color=TEXT)
+                plt.tight_layout()
+                render_chart(fig)
+    
+                st.markdown(f"**GDP_Level Statistics**")
+                cat_rows = []
+                for cat in ["High", "Medium", "Low"]:
+                    sub = df[df[feat] == cat]
+                    if len(sub) > 0:
+                        cat_rows.append({
+                            "GDP_Level":    cat,
+                            "Countries":    str(len(sub)),
+                            "% of Total":   f"{len(sub)/len(df)*100:.1f}%",
+                            "Mean GDP":     f"{sub['GDP per capita'].mean():.3f}" if "GDP per capita" in df.columns else "—",
+                        })
+                st.dataframe(pd.DataFrame(cat_rows).set_index("GDP_Level"))
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Target Distribution →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Categorical: GDP_Level distribution shown")
+                st.session_state.step = 4
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 4: Target Distribution
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 4:
+            st.markdown("<p class='section-head'>Step 5 of 9 — Target Variable: Happiness Score</p>",
+                        unsafe_allow_html=True)
+    
+            target = "Score"
+            vals   = df[target].dropna()
+    
+            fig, ax = make_fig(w_mult=1.25, h_mult=1.0)
+            fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+            bins = st.session_state.get("tab_hist_bins", 24)
+            alpha = st.session_state.get("tab_alpha", 0.85)
+            ax.hist(vals, bins=bins, color="#2A7A70", edgecolor=BG, alpha=alpha, rwidth=0.9)
+            ax.axvline(vals.mean(), color=ACC, linestyle="--", lw=2.5,
+                       label=f"Mean = {vals.mean():.2f}")
+            ax.axvline(vals.median(), color="#667eea", linestyle=":", lw=2,
+                       label=f"Median = {vals.median():.2f}")
+            ax.legend(facecolor=BG, labelcolor=TEXT, fontsize=9)
+            ax.set_xlabel("Happiness Score", fontsize=9)
+            ax.set_ylabel("Countries", fontsize=9)
+            ax.set_title("Happiness Score Distribution", fontsize=11, fontfamily="serif")
+            ax.tick_params(colors=MUT, labelsize=9)
+            for s in ax.spines.values(): s.set_edgecolor(BOR)
+            ax.yaxis.set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig)
+    
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric("Mean",   f"{vals.mean():.2f}")
+            t2.metric("Median", f"{vals.median():.2f}")
+            t3.metric("Min",    f"{vals.min():.2f}")
+            t4.metric("Max",    f"{vals.max():.2f}")
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Correlation Analysis →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Target: Score μ={vals.mean():.2f} [{vals.min():.1f}–{vals.max():.1f}]")
+                st.session_state.step = 5
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 5: Correlation Analysis
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 5:
+            st.markdown("<p class='section-head'>Step 6 of 9 — Correlation Analysis</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
+              Which features are most strongly correlated with the Happiness Score?
+              The heatmap reveals both expected and surprising relationships.
+            </div>""", unsafe_allow_html=True)
+    
+            corr_cols = [c for c in NUMERICAL_COLS if c in df.columns]
+            corr_mat  = get_or_compute("corr_mat", lambda: df[corr_cols].corr())
+    
+            fig, ax = plt.subplots(figsize=(6.2, 5.4))
+            fig.patch.set_facecolor(BG)
+            im = ax.imshow(corr_mat.values, cmap="RdBu_r", vmin=-1, vmax=1)
+            ax.set_xticks(range(len(corr_cols)))
+            ax.set_yticks(range(len(corr_cols)))
+            short_labels = {
+                "Score": "Score", "GDP per capita": "GDP/cap",
+                "Social support": "Soc.Sup", "Healthy life expectancy": "Life Exp",
+                "Freedom to make life choices": "Freedom", "Generosity": "Generos.",
+                "Perceptions of corruption": "Corrupt.",
+            }
+            ax.set_xticklabels([short_labels.get(c, c) for c in corr_cols],
+                               color=TEXT, fontsize=8.5, rotation=30, ha="right")
+            ax.set_yticklabels([short_labels.get(c, c) for c in corr_cols],
+                               color=TEXT, fontsize=8.5)
+            ax.set_title("Correlation Matrix — Numerical Features", fontsize=11, fontfamily="serif")
+            for spine in ax.spines.values(): spine.set_edgecolor(BOR)
+            for i in range(len(corr_cols)):
+                for j in range(len(corr_cols)):
+                    val = corr_mat.iloc[i, j]
+                    ax.text(j, i, f"{val:.2f}",
+                            ha="center", va="center",
+                            color=TEXT if abs(val) < 0.75 else "#F7F3EB",
+                            fontsize=8.5, fontweight="bold")
+            plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Correlation")
+            plt.tight_layout()
+            st.pyplot(fig)
+    
+            # High correlations
+            st.markdown("**Feature Pairs with |r| > 0.5**")
+            high_corr_rows = []
+            for i in range(len(corr_cols)):
+                for j in range(i + 1, len(corr_cols)):
+                    r = corr_mat.iloc[i, j]
+                    if abs(r) > 0.5:
+                        high_corr_rows.append({
+                            "Feature A": corr_cols[i],
+                            "Feature B": corr_cols[j],
+                            "Correlation (r)": f"{r:.3f}",
+                            "Strength": "Strong +" if r > 0 else "Strong −",
+                        })
+            if high_corr_rows:
+                st.dataframe(pd.DataFrame(high_corr_rows).set_index("Feature A"))
+            else:
+                st.info("No pairs with |r| > 0.5.")
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Outlier Detection →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Correlation: top predictor analyzed")
+                st.session_state.step = 6
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 6: Outlier Detection (IQR Method)
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 6:
+            st.markdown("<p class='section-head'>Step 7 of 9 — Outlier Detection (IQR Method)</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#795548;'>
+              The IQR (Interquartile Range) method flags values outside
+              [Q1 − 1.5·IQR, Q3 + 1.5·IQR] as outliers. Which features have the most?
+            </div>""", unsafe_allow_html=True)
+    
+            out_features = [c for c in NUMERICAL_COLS if c in df.columns]
+    
+            # Box plots — 5 per row
+            n_cols_box = 3
+            n_rows_box = (len(out_features) + n_cols_box - 1) // n_cols_box
+            fig, axes = plt.subplots(n_rows_box, n_cols_box, figsize=(13, 3.8 * n_rows_box))
+            fig.patch.set_facecolor(BG)
+            axes = np.atleast_1d(axes).flatten()
+            for idx, (feat, color) in enumerate(zip(out_features, CHART_COLORS)):
+                vals = df[feat].dropna()
+                axes[idx].set_facecolor(BG)
+                bp = axes[idx].boxplot(vals, vert=True, patch_artist=True,
+                                       boxprops=dict(facecolor=color, alpha=0.7, edgecolor=BOR),
+                                       medianprops=dict(color=ACC, lw=2),
+                                       whiskerprops=dict(color=BOR),
+                                       capprops=dict(color=BOR),
+                                       flierprops=dict(marker='o', markerfacecolor=ACC,
+                                                       markersize=4, alpha=0.6))
+                axes[idx].set_title(feat, fontsize=8.5, fontfamily="serif", color=TEXT)
+                axes[idx].tick_params(colors=MUT, labelsize=8)
+                axes[idx].yaxis.set_visible(False)
+                for s in axes[idx].spines.values():
+                    s.set_edgecolor(BOR)
+            # hide unused axes
+            for idx in range(len(out_features), len(axes)):
+                axes[idx].set_visible(False)
+            plt.tight_layout()
+            st.pyplot(fig)
+    
+            # IQR stats table
+            st.markdown("**IQR Outlier Statistics**")
+            iqr_rows = get_or_compute(
+                "iqr_rows",
+                lambda: [
+                    {
+                        "Feature": feat,
+                        "Q1": f"{df[feat].dropna().quantile(0.25):.3f}",
+                        "Q3": f"{df[feat].dropna().quantile(0.75):.3f}",
+                        "IQR": f"{(df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)):.3f}",
+                        "Lower Bound": f"{(df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
+                        "Upper Bound": f"{(df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))):.3f}",
+                        "Outliers": str(len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))])),
+                        "% Outliers": f"{len(df[(df[feat] < (df[feat].dropna().quantile(0.25) - 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25)))) | (df[feat] > (df[feat].dropna().quantile(0.75) + 1.5 * (df[feat].dropna().quantile(0.75) - df[feat].dropna().quantile(0.25))))]) / len(df) * 100:.1f}%",
+                    }
+                    for feat in out_features
+                ]
+            )
+            bento_table("IQR outlier summary", pd.DataFrame(iqr_rows).set_index("Feature"), use_container_width=True)
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: GDP Level vs Score →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Outliers: IQR analysis complete")
+                st.session_state.step = 7
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 7: GDP Level vs Score (Target vs Categorical)
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 7:
+            st.markdown("<p class='section-head'>Step 8 of 9 — GDP Level vs Happiness Score</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#1565C0;'>
+              Does economic tier predict happiness? Grouping countries by GDP_Level
+              reveals how strongly wealth correlates with perceived well-being.
+            </div>""", unsafe_allow_html=True)
+    
+            feat = "GDP_Level"
+            if feat not in df.columns:
+                st.warning(f"'{feat}' not found.")
+            else:
+                # Box plot: Score by GDP_Level
+                groups = []
+                colors_box = []
+                for tier, col in [("High",   "#f093fb"),
+                                  ("Medium",  "#667eea"),
+                                  ("Low",    "#4facfe")]:
+                    sub = df[df[feat] == tier]["Score"].dropna()
+                    if len(sub) > 0:
+                        groups.append(sub.values)
+                        colors_box.append(col)
+    
+                fig, ax = plt.subplots(figsize=(9, 5))
+                fig.patch.set_facecolor(BG); ax.set_facecolor(BG)
+                bp = ax.boxplot(groups, patch_artist=True, widths=0.55,
+                                labels=["High GDP", "Medium GDP", "Low GDP"][:len(groups)])
+                palette = colors_box[:len(groups)]
+                for patch, color in zip(bp["boxes"], palette):
+                    patch.set_facecolor(color)
+                    patch.set_alpha(0.75)
+                    patch.set_edgecolor(BOR)
+                for el in ["medians", "whiskers", "caps"]:
+                    for line in bp[el]:
+                        line.set_color(ACC)
+                        line.set_linewidth(1.5)
+                for flier in bp["fliers"]:
+                    flier.set(marker="o", markerfacecolor=ACC, markersize=4, alpha=0.5)
+                ax.set_ylabel("Happiness Score", fontsize=10)
+                ax.set_title("Happiness Score by GDP Level", fontsize=11, fontfamily="serif")
+                ax.tick_params(colors=MUT, labelsize=10)
+                for s in ax.spines.values(): s.set_edgecolor(BOR)
+                ax.grid(axis="y", linewidth=0.5, color=BOR, zorder=0)
+                plt.tight_layout()
+                st.pyplot(fig)
+    
+                # Grouped stats
+                st.markdown("**Grouped Statistics**")
+                grp_rows = []
+                for tier in ["High", "Medium", "Low"]:
+                    sub = df[df[feat] == tier]["Score"]
+                    if len(sub) > 0:
+                        grp_rows.append({
+                            "GDP_Level": tier,
+                            "Countries": str(len(sub)),
+                            "Mean Score": f"{sub.mean():.3f}",
+                            "Median Score": f"{sub.median():.3f}",
+                            "Std Dev": f"{sub.std():.3f}",
+                            "Min": f"{sub.min():.3f}",
+                            "Max": f"{sub.max():.3f}",
+                        })
+                st.dataframe(pd.DataFrame(grp_rows).set_index("GDP_Level"))
+    
+            st.markdown("")
+            if not full_page_mode and st.button("Next: Sample Data →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"GDP vs Score: tier analysis complete")
+                st.session_state.step = 8
+                safe_rerun()
+    
+        # ══════════════════════════════════════════════════════════════════════════
+        #  STEP 8: Sample Data
+        # ══════════════════════════════════════════════════════════════════════════
+        elif step_idx == 8:
+            st.markdown("<p class='section-head'>Step 9 of 9 — Sample Data</p>",
+                        unsafe_allow_html=True)
+            st.markdown("""
+            <div class='insight' style='font-style:normal;border-left-color:#6A1B9A;'>
+              A look at the raw data: top-ranked and bottom-ranked countries,
+              along with a random sample to appreciate the full spread.
+            </div>""", unsafe_allow_html=True)
+    
+            t1, t2 = st.tabs(["🏆  Top 10 Happiest", "😔  Bottom 10"])
+            with t1:
+                st.dataframe(df.sort_values("Overall rank").head(10).reset_index(drop=True),
+                             )
+            with t2:
+                st.dataframe(df.sort_values("Overall rank", ascending=False).head(10).reset_index(drop=True),
+                             )
+    
+            st.markdown("")
+            st.markdown("**Random Sample (seed=42)**")
+            st.dataframe(df.sample(min(15, len(df)), random_state=42).reset_index(drop=True),
                          )
-        with t2:
-            st.dataframe(df.sort_values("Overall rank", ascending=False).head(10).reset_index(drop=True),
-                         )
+    
+            st.markdown("")
+            if not full_page_mode and st.button("✅  View Full Dashboard →"):
+                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
+                                            f"Sample: top/bottom/random rows viewed")
+                st.session_state.phase = "done"
+                safe_rerun()
+    
 
-        st.markdown("")
-        st.markdown("**Random Sample (seed=42)**")
-        st.dataframe(df.sample(min(15, len(df)), random_state=42).reset_index(drop=True),
-                     )
-
-        st.markdown("")
-        if st.button("✅  View Full Dashboard →"):
-            st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                        f"Sample: top/bottom/random rows viewed")
-            st.session_state.phase = "done"
-            safe_rerun()
-
+    if full_page_mode:
+        for s in range(TOTAL_STEPS):
+            st.markdown(f"### {s+1}. {STEP_LABELS.get(s, '')}")
+            render_tabular_step(s)
+            if s < TOTAL_STEPS - 1:
+                st.markdown("---")
+    else:
+        render_tabular_step(st.session_state.step)
 # ══════════════════════════════════════════════════════════════════════════════
 #  DONE STATE — Full Dashboard
 # ══════════════════════════════════════════════════════════════════════════════
