@@ -581,28 +581,29 @@ if full_page_mode:
 with st.expander("🎛️ Chart controls", expanded=False):
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
-        chart_w = st.slider("Base width", 2.0, 6.5, 3.2, 0.2, key="chart_w")
+        chart_w = st.slider("Base width", 2.0, 12.0, 8.0 if full_page_mode else 4.5, 0.2, key="chart_w")
     with c2:
-        chart_h = st.slider("Base height", 1.6, 4.2, 2.2, 0.2, key="chart_h")
+        chart_h = st.slider("Base height", 1.6, 8.0, 4.5 if full_page_mode else 3.0, 0.2, key="chart_h")
     with c3:
-        chart_scale = st.slider("Global scale", 0.4, 1.0, 0.58, 0.02, key="chart_scale")
+        chart_scale = st.slider("Global scale", 0.4, 2.0, 1.2 if full_page_mode else 0.8, 0.02, key="chart_scale")
     with c4:
-        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.62, 0.05, key="chart_panel")
+        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.85 if full_page_mode else 0.7, 0.05, key="chart_panel")
     with c5:
-        diagram_text_scale = st.slider("Chart text size", 0.75, 1.35, 1.00, 0.05, key="chart_font_scale")
+        diagram_text_scale = st.slider("Chart text size", 0.75, 2.0, 1.3 if full_page_mode else 1.0, 0.05, key="chart_font_scale")
     with c6:
-        marker_size = st.slider("Marker size", 6, 40, 18, 2, key="chart_marker_size")
+        marker_size = st.slider("Marker size", 6, 80, 40 if full_page_mode else 20, 2, key="chart_marker_size")
 
-# Keep titles slightly smaller than axis labels for a cleaner chart hierarchy.
-label_scale = 0.94 * diagram_text_scale
-text_scale = 0.86 * diagram_text_scale
-sns.set_context("paper", font_scale=label_scale)
+# Adjust text scaling for better legibility on large screens.
+label_scale = 1.1 * diagram_text_scale
+text_scale = 1.0 * diagram_text_scale
+sns.set_context("notebook", font_scale=label_scale)
 plt.rcParams.update({
-    "axes.titlesize": max(8, 10.5 * text_scale),
-    "axes.labelsize": max(7, 8.5 * label_scale),
-    "xtick.labelsize": max(6.5, 7.4 * text_scale),
-    "ytick.labelsize": max(6.5, 7.4 * text_scale),
-    "legend.fontsize": max(6.5, 7.4 * text_scale),
+    "axes.titlesize": max(10, 14 * text_scale),
+    "axes.labelsize": max(9, 12 * label_scale),
+    "xtick.labelsize": max(8, 10 * text_scale),
+    "ytick.labelsize": max(8, 10 * text_scale),
+    "legend.fontsize": max(8, 10 * text_scale),
+    "figure.dpi": 200, # Crisp rendering
 })
 
 if "mm_step_cache" not in st.session_state:
@@ -629,7 +630,7 @@ def make_fig(w_mult=1.0, h_mult=1.0):
 def render_chart(fig):
     col_l, col_m, col_r = st.columns([(1 - chart_panel) / 2, chart_panel, (1 - chart_panel) / 2])
     with col_m:
-        st.pyplot(fig)
+        st.pyplot(fig, use_container_width=True)
 
 
 def render_bento_table(title, icon, df, **kwargs):
@@ -670,8 +671,7 @@ def render_step(step_idx):
         top_w = D["word_freq"].most_common(wn)
         words, counts = zip(*top_w)
         fig360, ax = make_fig()
-        colors_words = sns.color_palette("rocket", len(words))
-        ax.barh(words[::-1], counts[::-1], color=colors_words)
+        ax.barh(words[::-1], counts[::-1], color="#3D5A80")
         ax.set_title(f"Top {wn} words (train)", color=TEXT, pad=10)
         ax.set_xlabel("Frequency")
         render_chart(fig360)
@@ -679,8 +679,7 @@ def render_step(step_idx):
         top_b = D["bigram_freq"].most_common(bn)
         bl, bc = zip(*[(" ".join(k), v) for k,v in top_b])
         fig365, ax2 = make_fig()
-        colors_bigrams = sns.color_palette("mako", len(bl))
-        ax2.barh(bl[::-1], bc[::-1], color=colors_bigrams)
+        ax2.barh(bl[::-1], bc[::-1], color="#2A7A70")
         ax2.set_title(f"Top {bn} bigrams (train)", color=TEXT, pad=10)
         ax2.set_xlabel("Frequency")
         render_chart(fig365)
@@ -703,8 +702,7 @@ def render_step(step_idx):
         if ctop:
             cl, cv = zip(*ctop)
             fig371, ax = make_fig()
-            colors_cat = sns.color_palette("crest", len(cl))
-            ax.barh(cl[::-1], cv[::-1], color=colors_cat)
+            ax.barh(cl[::-1], cv[::-1], color="#B42318")
             ax.set_title(f"Category distribution ({split_img})", color=TEXT, pad=10)
             ax.set_xlabel("Count")
             ax.tick_params(axis='y', labelsize=max(5.0, 7.0 * diagram_text_scale))
@@ -719,7 +717,7 @@ def render_step(step_idx):
 
         if not px_df.empty and x_metric != y_metric:
             fig375, ax2 = make_fig(w_mult=1.0, h_mult=0.85)
-            ax2.scatter(px_df[x_metric], px_df[y_metric], c=px_df["blur"], cmap="magma", s=marker_size, alpha=0.75)
+            ax2.scatter(px_df[x_metric], px_df[y_metric], c=px_df["blur"], cmap="viridis", s=marker_size, alpha=0.85)
             ax2.set_xlabel(x_metric.replace("_", " ").title())
             ax2.set_ylabel(y_metric.replace("_", " ").title())
             ax2.set_title(f"{x_metric.title()} vs {y_metric.title()} ({split_img})", color=TEXT, pad=10)
@@ -734,7 +732,7 @@ def render_step(step_idx):
 
         bins_n = st.slider("Variability bins", 15, 60, 30, key="var_bins")
         fig386, ax = make_fig(w_mult=1.0, h_mult=0.85)
-        ax.hist(vars_split, bins=bins_n, color="#8b5cf6", edgecolor="white", alpha=0.9)
+        ax.hist(vars_split, bins=bins_n, color="#3D5A80", edgecolor="white", alpha=0.9)
         if len(vars_split) > 0:
             ax.axvline(np.mean(vars_split), color=ACC, linestyle="--", linewidth=2, label=f"Mean={np.mean(vars_split):.2f}")
             ax.legend(frameon=False)
@@ -776,7 +774,7 @@ def render_step(step_idx):
             top = sim.mean(axis=1).sort_values(ascending=False).head(n).index
             view = sim.loc[top, top]
             fig423, ax = make_fig(w_mult=1.0, h_mult=1.2)
-            im = ax.imshow(view.values, cmap="YlOrRd", vmin=0, vmax=1, aspect='auto')
+            im = ax.imshow(view.values, cmap="Blues", vmin=0, vmax=1, aspect='auto')
             ax.set_xticks(range(len(view.columns)))
             ax.set_yticks(range(len(view.index)))
             ax.set_xticklabels(view.columns, rotation=90, fontsize=max(4.5, 6.2 * diagram_text_scale))
