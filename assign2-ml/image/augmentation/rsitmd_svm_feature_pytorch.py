@@ -145,8 +145,9 @@ print("Classification Report:\n", classification_report(y_val, y_pred, target_na
 
 print("Evaluating on test set for final confusion matrix...")
 y_test_pred = svm.predict(X_test)
-print("Test Classification Report:\n", classification_report(y_test, y_test_pred, target_names=class_names, zero_division=0, digits=4))
-cm = confusion_matrix(y_test, y_test_pred)
+label_ids = list(range(len(class_names)))
+print("Test Classification Report:\n", classification_report(y_test, y_test_pred, labels=label_ids, target_names=class_names, zero_division=0, digits=4))
+cm = confusion_matrix(y_test, y_test_pred, labels=label_ids)
 plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=class_names, yticklabels=class_names)
 plt.title('SVM Test Confusion Matrix')
