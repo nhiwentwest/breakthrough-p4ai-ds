@@ -143,14 +143,46 @@ gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.
 print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0, digits=4))
 
-cm = confusion_matrix(y_val, y_pred)
+print("Evaluating on test set for final confusion matrix...")
+y_test_pred = svm.predict(X_test)
+print("Test Classification Report:\n", classification_report(y_test, y_test_pred, target_names=class_names, zero_division=0, digits=4))
+cm = confusion_matrix(y_test, y_test_pred)
 plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=class_names, yticklabels=class_names)
-plt.title('SVM Validation Confusion Matrix')
+plt.title('SVM Test Confusion Matrix')
 plt.xlabel('SVM Predicted'); plt.ylabel('Actual')
 plt.xticks(rotation=45, ha='right'); plt.tight_layout()
 cm_path = os.path.join(output_dir, 'confusion_matrix.png')
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+# 6b. LEARNING CURVE FOR SVM
+print("Generating learning curves...")
+train_sizes, train_scores, val_scores = learning_curve(
+    svm,
+    X_train,
+    y_train,
+    train_sizes=np.linspace(0.1, 1.0, 5),
+    cv=3,
+    scoring='f1_macro',
+    n_jobs=-1,
+)
+train_mean = np.mean(train_scores, axis=1)
+train_std = np.std(train_scores, axis=1)
+val_mean = np.mean(val_scores, axis=1)
+val_std = np.std(val_scores, axis=1)
+plt.figure(figsize=(8, 5))
+plt.plot(train_sizes, train_mean, marker='o', label='Training macro F1')
+plt.fill_between(train_sizes, train_mean-train_std, train_mean+train_std, alpha=0.15)
+plt.plot(train_sizes, val_mean, marker='o', label='Cross-val macro F1')
+plt.fill_between(train_sizes, val_mean-val_std, val_mean+val_std, alpha=0.15)
+plt.xlabel('Training samples')
+plt.ylabel('Macro F1')
+plt.title('SVM Learning Curves')
+plt.legend()
+plt.tight_layout()
+learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
+plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
 plt.show()
 
 # 6b. LEARNING CURVE FOR SVM
