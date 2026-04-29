@@ -34,6 +34,8 @@ print(f"Using device: {device}")
 
 print("Downloading dataset...")
 path = kagglehub.dataset_download("phantrntngvyk64cntt/processed-rsitmd-256-clean")
+output_dir = "outputs_cnn_frozen_au"
+os.makedirs(output_dir, exist_ok=True)
 
 print("Path to dataset files:", path)
 hf_dataset = load_from_disk(path)
@@ -131,9 +133,11 @@ def evaluate_model(loader, eval_model):
 # --- Main Loop ---
 EPOCHS = 10
 best_val_macro_f1 = 0.0
+train_log = []
 
 print(f"Starting training for {EPOCHS} epochs...")
 for epoch in range(EPOCHS):
+    epoch_start = time.time()
     # --- TRAINING PHASE ---
     model.train()
     running_loss = 0.0
@@ -157,8 +161,17 @@ for epoch in range(EPOCHS):
     # 3. Evaluate on Test Data (Test on seen data)
     test_acc, test_bal_acc, test_macro_f1 = evaluate_model(test_loader, model)
 
+    epoch_time = time.time() - epoch_start
+    train_log.append({
+        "epoch": epoch + 1,
+        "train_macro_f1": float(train_macro_f1),
+        "val_macro_f1": float(val_macro_f1),
+        "test_macro_f1": float(test_macro_f1),
+        "epoch_time_sec": float(epoch_time),
+    })
+
     # Print the detailed epoch report side-by-side
-    print(f"\nEpoch {epoch+1}/{EPOCHS} Summary | Loss: {running_loss/len(train_loader):.4f}")
+    print(f"\nEpoch {epoch+1}/{EPOCHS} Summary | Loss: {running_loss/len(train_loader):.4f} | Time: {epoch_time:.1f}s")
     print(f"  [TRAIN] Acc: {train_acc:.4f} | Bal Acc: {train_bal_acc:.4f} | Macro F1: {train_macro_f1:.4f}")
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
     print(f"  [TEST]  Acc: {test_acc:.4f} | Bal Acc: {test_bal_acc:.4f} | Macro F1: {test_macro_f1:.4f}")
@@ -169,26 +182,61 @@ for epoch in range(EPOCHS):
         torch.save(model.state_dict(), "best_resnet50.pt")
         print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
 
+train_time_sec = float(sum(item["epoch_time_sec"] for item in train_log))
+train_time_min = train_time_sec / 60.0
+
 # 5. CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
 model.load_state_dict(torch.load("best_resnet50.pt")) # Load best weights
 model.eval()
 
-all_preds, all_labels = [], []
+test_preds, test_labels = [], []
 with torch.no_grad():
-    for batch in val_loader:
+    for batch in test_loader:
         inputs, labels = batch["pixel_values"].to(device), batch["label"].to(device)
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
-        all_preds.extend(preds.cpu().numpy())
-        all_labels.extend(labels.cpu().numpy())
+        test_preds.extend(preds.cpu().numpy())
+        test_labels.extend(labels.cpu().numpy())
 
-cm = confusion_matrix(all_labels, all_preds)
+cm = confusion_matrix(test_labels, test_preds)
 plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
-plt.title('End-to-End Validation Confusion Matrix')
+plt.title('End-to-End Test Confusion Matrix')
 plt.xlabel('Predicted'); plt.ylabel('Actual')
-plt.xticks(rotation=45, ha='right'); plt.tight_layout(); plt.show()
+plt.xticks(rotation=45, ha='right'); plt.tight_layout()
+cm_path = os.path.join(output_dir, "confusion_matrix.png")
+plt.savefig(cm_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+learning_curve_path = os.path.join(output_dir, "learning_curves.png")
+plt.figure(figsize=(8, 5))
+plt.plot([item["epoch"] for item in train_log], [item["train_macro_f1"] for item in train_log], marker='o', label='Train Macro F1')
+plt.plot([item["epoch"] for item in train_log], [item["val_macro_f1"] for item in train_log], marker='o', label='Val Macro F1')
+plt.xlabel('Epoch')
+plt.ylabel('Macro F1')
+plt.title('End-to-End Learning Curves')
+plt.legend()
+plt.tight_layout()
+plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+report = {
+    "metrics": {
+        "best_val_macro_f1": float(best_val_macro_f1),
+        "test_macro_f1": float(f1_score(test_labels, test_preds, average='macro')),
+    },
+    "training_time_sec": train_time_sec,
+    "training_time_min": train_time_min,
+    "inference": measure_inference_speed(model, test_loader, device),
+    "gpu_peak_mb": float(torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None,
+    "artifacts": {
+        "confusion_matrix": cm_path,
+        "learning_curves": learning_curve_path,
+    },
+}
+with open(os.path.join(output_dir, "cnn_frozen_report.json"), "w") as f:
+    json.dump(report, f, indent=2)
 
 import torch.nn.functional as F
 
