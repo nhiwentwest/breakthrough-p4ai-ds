@@ -157,29 +157,25 @@ cm_path = os.path.join(output_dir, 'confusion_matrix.png')
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
 plt.show()
 
-# 6b. LEARNING CURVE FOR SVM
+# 6b. LEARNING CURVE FOR SVM (TRAIN vs TEST)
 print("Generating learning curves...")
-train_sizes, train_scores, val_scores = learning_curve(
-    svm,
-    X_train,
-    y_train,
-    train_sizes=np.linspace(0.1, 1.0, 5),
-    cv=3,
-    scoring='f1_macro',
-    n_jobs=-1,
-)
-train_mean = np.mean(train_scores, axis=1)
-train_std = np.std(train_scores, axis=1)
-val_mean = np.mean(val_scores, axis=1)
-val_std = np.std(val_scores, axis=1)
+train_sizes = np.linspace(0.1, 1.0, 5)
+train_scores, test_scores = [], []
+for frac in train_sizes:
+    n_samples = max(1, int(len(X_train) * frac))
+    idx = np.linspace(0, len(X_train) - 1, n_samples, dtype=int)
+    X_sub = X_train[idx]
+    y_sub = y_train[idx]
+    clf = SVC(kernel='rbf', probability=True, random_state=42)
+    clf.fit(X_sub, y_sub)
+    train_scores.append(f1_score(y_sub, clf.predict(X_sub), average='macro', zero_division=0))
+    test_scores.append(f1_score(y_test, clf.predict(X_test), average='macro', zero_division=0))
 plt.figure(figsize=(8, 5))
-plt.plot(train_sizes, train_mean, marker='o', label='Training macro F1')
-plt.fill_between(train_sizes, train_mean-train_std, train_mean+train_std, alpha=0.15)
-plt.plot(train_sizes, val_mean, marker='o', label='Cross-val macro F1')
-plt.fill_between(train_sizes, val_mean-val_std, val_mean+val_std, alpha=0.15)
+plt.plot((train_sizes * len(X_train)).astype(int), train_scores, marker='o', label='Training macro F1')
+plt.plot((train_sizes * len(X_train)).astype(int), test_scores, marker='o', label='Test macro F1')
 plt.xlabel('Training samples')
 plt.ylabel('Macro F1')
-plt.title('SVM Learning Curves')
+plt.title('SVM Learning Curves (Train vs Test)')
 plt.legend()
 plt.tight_layout()
 learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
