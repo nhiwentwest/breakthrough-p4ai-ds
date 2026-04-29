@@ -47,6 +47,7 @@
             <tr><td>Best validation macro F1</td><td>78.17%</td></tr>
             <tr><td>Test loss</td><td>0.4665</td></tr>
             <tr><td>Training time</td><td>889.83 sec</td></tr>
+            <tr><td>Early stopping</td><td>Not triggered; ran full 50 epochs</td></tr>
             <tr><td>GPU peak memory</td><td>1093.79 MB</td></tr>
           </tbody>
         </table>
@@ -66,7 +67,16 @@
           </tbody>
         </table>
       </div>
-      <div class="table-card"><div class="table-title">Result Preview</div><table class="tbl"><thead><tr><th>Variant</th><th>Classification report</th><th>Confusion matrix</th><th>Learning curves</th></tr></thead><tbody><tr><td>Non-augmentation</td><td>See metrics above</td><td>`outputs_cnn_scratch/confusion_matrix.png`</td><td>`outputs_cnn_scratch/learning_curves.png`</td></tr><tr><td>Augmentation</td><td>See metrics above</td><td>`outputs_cnn_scratch-2/confusion_matrix.png`</td><td>`outputs_cnn_scratch-2/learning_curves.png`</td></tr></tbody></table></div>
+      <div class="table-card">
+        <div class="table-title">Result Preview</div>
+        <table class="tbl">
+          <thead><tr><th>Variant</th><th>Classification report</th><th>Confusion matrix</th><th>Learning curves</th></tr></thead>
+          <tbody>
+            <tr><td>Non-augmentation</td><td>See metrics above</td><td><img src="https://drive.google.com/uc?export=view&id=14J-q2TddbRlmiESERS7KcedWp4HJ0lgh" alt="CNN scratch non-augmentation confusion matrix" style="max-width:100%;height:auto;border-radius:8px;display:block;" /></td><td><img src="https://drive.google.com/uc?export=view&id=1No2kY_DLmgeMdWEky9ofN57-6X0MfxgQ" alt="CNN scratch non-augmentation learning curves" style="max-width:100%;height:auto;border-radius:8px;display:block;" /></td></tr>
+            <tr><td>Augmentation</td><td>See metrics above</td><td><img src="https://drive.google.com/uc?export=view&id=1u1iax7KJG4_1IVbEF2P1E82W4rJ0JJEp" alt="CNN scratch augmentation confusion matrix" style="max-width:100%;height:auto;border-radius:8px;display:block;" /></td><td><img src="https://drive.google.com/uc?export=view&id=1No2kY_DLmgeMdWEky9ofN57-6X0MfxgQ" alt="CNN scratch augmentation learning curves" style="max-width:100%;height:auto;border-radius:8px;display:block;" /></td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div><div class="k">Scratch baseline</div><div class="s">A pure baseline for comparison against pretrained and attention-based variants.</div><div class="chips"><span class="chip">ResNet18</span><span class="chip">weights=None</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div><div class="label" style="margin-top:16px">Source links</div><div class="links"><a class="link" href="../cnn_scratch.py"><div class="k" style="font-size:.72rem;margin-bottom:2px">GitHub file</div><div class="u">assign2-ml/image/cnn_scratch.py</div></a></div></aside>
