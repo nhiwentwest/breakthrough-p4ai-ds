@@ -27,14 +27,14 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Preprocessing</div>
   <h1 class="title">RSITMD Preprocess</h1>
-  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. It explains how raw RSITMD samples are filtered, how captions and images are checked for quality, and how the final dataset is split into train, validation, and test sets.</p>
+  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. The raw JSON already contains only `train` and `test` samples; the script then creates the validation split by stratified sampling from the training pool, after caption cleaning, blank-image filtering, and high-noise removal.</p>
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">Raw RSITMD dataset</div><div class="rdesc">The original multimodal RSITMD source is loaded from disk, then cleaned and converted into a structured Hugging Face dataset.</div></div></div>
       <div class="row"><div class="rlabel">Cleaning</div><div><div class="rval">Caption normalization + duplicate filtering</div><div class="rdesc">Captions are lowercased, whitespace-normalized, tokenized, and scored to detect weak or noisy textual samples.</div></div></div>
       <div class="row"><div class="rlabel">Image checks</div><div><div class="rval">Blank-image / pixel statistics</div><div class="rdesc">The script inspects images for empty samples and measures brightness, texture, and channel balance to support quality filtering.</div></div></div>
-      <div class="row"><div class="rlabel">Split</div><div><div class="rval">Train / validation / test</div><div class="rdesc">The script first stratifies the raw RSITMD samples into train, validation, and test partitions so class balance is preserved across all splits. The processed output is stored as a Hugging Face `DatasetDict` for downstream training.</div></div></div>
+      <div class="row"><div class="rlabel">Split</div><div><div class="rval">Train / validation / test</div><div class="rdesc">The input JSON provides only `train` and `test`. The script stratifies the surviving training samples to create the validation split, while the original test split stays separate. The processed output is stored as a Hugging Face `DatasetDict`.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">processed_rsitmd_256_clean</div><div class="rdesc">A cleaned 256×256 image dataset with labels and captions normalized for downstream image and multimodal tasks.</div></div></div>
     </section>
     <aside class="card">
@@ -48,7 +48,7 @@
   </div>
   <div class="metric-grid">
     <div class="metric"><div class="l">Splits</div><div class="v">Train / Validation / Test</div><div class="d">The processed dataset is stored as a three-way split with preserved class balance.</div></div>
-    <div class="metric"><div class="l">Rows</div><div class="v">4739 total</div><div class="d">3644 train, 644 validation, 451 test.</div></div>
+    <div class="metric"><div class="l">Rows</div><div class="v">4739 total</div><div class="d">3644 original train, 644 validation, 451 original test.</div></div>
     <div class="metric"><div class="l">Image size</div><div class="v">256 × 256</div><div class="d">All samples are resized and stored at a consistent resolution.</div></div>
     <div class="metric"><div class="l">Classes</div><div class="v">33 labels</div><div class="d">RSITMD scene classes such as airport, forest, bridge, and river.</div></div>
   </div>
