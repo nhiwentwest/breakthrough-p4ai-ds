@@ -32,12 +32,14 @@ import joblib
 import json
 
 # 1. SETUP & DATA LOADING
-device = torch.device("cuda" if torch.cuda.is_available() else "gpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 print("Downloading dataset...")
 path = kagglehub.dataset_download("phantrntngvyk64cntt/processed-rsitmd-256-clean")
 hf_dataset = load_from_disk(path)
+output_dir = "outputs_svm_au"
+os.makedirs(output_dir, exist_ok=True)
 
 try:
     class_names = hf_dataset['train'].features['label'].names
@@ -125,20 +127,60 @@ svm.fit(X_train, y_train)
 
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
+start_eval = time.time()
 y_pred = svm.predict(X_val)
+eval_sec = time.time() - start_eval
 svm_acc = accuracy_score(y_val, y_pred)
 svm_bal_acc = balanced_accuracy_score(y_val, y_pred)
 svm_macro_f1 = f1_score(y_val, y_pred, average='macro', zero_division=0)
+ms_per_batch = 1000.0 * eval_sec
+images_per_sec = (len(X_val) / eval_sec) if eval_sec > 0 else None
 print(f"SVM Accuracy: {svm_acc:.4f}")
 print(f"SVM Balanced Accuracy: {svm_bal_acc:.4f}")
 print(f"SVM Macro F1: {svm_macro_f1:.4f}")
+print(f"Inference Time: {ms_per_batch:.4f} ms/batch | {images_per_sec:.4f} images/sec")
+gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
+print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0, digits=4))
 
 cm = confusion_matrix(y_val, y_pred)
+plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=class_names, yticklabels=class_names)
 plt.title('SVM Validation Confusion Matrix')
 plt.xlabel('SVM Predicted'); plt.ylabel('Actual')
-plt.xticks(rotation=45, ha='right'); plt.tight_layout(); plt.show()
+plt.xticks(rotation=45, ha='right'); plt.tight_layout()
+cm_path = os.path.join(output_dir, 'confusion_matrix.png')
+plt.savefig(cm_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+# 6b. LEARNING CURVE FOR SVM
+print("Generating learning curves...")
+train_sizes, train_scores, val_scores = learning_curve(
+    svm,
+    X_train,
+    y_train,
+    train_sizes=np.linspace(0.1, 1.0, 5),
+    cv=3,
+    scoring='f1_macro',
+    n_jobs=-1,
+)
+train_mean = np.mean(train_scores, axis=1)
+train_std = np.std(train_scores, axis=1)
+val_mean = np.mean(val_scores, axis=1)
+val_std = np.std(val_scores, axis=1)
+plt.figure(figsize=(8, 5))
+plt.plot(train_sizes, train_mean, marker='o', label='Training macro F1')
+plt.fill_between(train_sizes, train_mean-train_std, train_mean+train_std, alpha=0.15)
+plt.plot(train_sizes, val_mean, marker='o', label='Cross-val macro F1')
+plt.fill_between(train_sizes, val_mean-val_std, val_mean+val_std, alpha=0.15)
+plt.xlabel('Training samples')
+plt.ylabel('Macro F1')
+plt.title('SVM Learning Curves')
+plt.legend()
+plt.tight_layout()
+learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
+plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
+plt.show()
 
 # 7. SAVE MODELS & METADATA
 print("\nSaving deployable files...")
@@ -147,7 +189,30 @@ torch.save(extractor.state_dict(), "resnet50_extractor.pt")
 
 with open("label_mapping.json", "w") as f:
     json.dump({"id2label": {int(i): name for i, name in enumerate(class_names)}}, f, indent=4)
-print("✅ Saved: svm_model.joblib, resnet50_extractor.pt, label_mapping.json")
+
+report = {
+    "model": "SVM + ResNet50 Features (augmentation)",
+    "metrics": {
+        "accuracy": float(svm_acc),
+        "balanced_accuracy": float(svm_bal_acc),
+        "macro_f1": float(svm_macro_f1),
+    },
+    "timing": {
+        "inference": {
+            "ms_per_batch": float(ms_per_batch),
+            "images_per_sec": float(images_per_sec) if images_per_sec is not None else None,
+        },
+        "training_time_sec": None,
+    },
+    "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
+    "artifacts": {
+        "confusion_matrix": cm_path,
+        "learning_curves": learning_curve_path,
+    },
+}
+with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
+    json.dump(report, f, indent=2)
+print("✅ Saved: svm_model.joblib, resnet50_extractor.pt, label_mapping.json, svm_report.json")
 
 import torch.nn.functional as F
 
