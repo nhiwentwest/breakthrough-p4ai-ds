@@ -27,15 +27,15 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Preprocessing</div>
   <h1 class="title">RSITMD Preprocess</h1>
-  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. It summarizes the script’s steps, the processed dataset splits, and a compact snapshot of the dataset structure after preprocessing.</p>
+  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. It explains how raw RSITMD samples are filtered, how captions and images are checked for quality, and how the final dataset is split into train, validation, and test sets.</p>
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">Raw RSITMD dataset</div><div class="rdesc">The original multimodal RSITMD source is loaded from disk, then cleaned and converted into a structured Hugging Face dataset.</div></div></div>
       <div class="row"><div class="rlabel">Cleaning</div><div><div class="rval">Caption normalization + duplicate filtering</div><div class="rdesc">Captions are lowercased, whitespace-normalized, tokenized, and scored to detect weak or noisy textual samples.</div></div></div>
       <div class="row"><div class="rlabel">Image checks</div><div><div class="rval">Blank-image / pixel statistics</div><div class="rdesc">The script inspects images for empty samples and measures brightness, texture, and channel balance to support quality filtering.</div></div></div>
-      <div class="row"><div class="rlabel">Split</div><div><div class="rval">Train / validation / test</div><div class="rdesc">The final dataset is stratified into three splits and stored as a Hugging Face `DatasetDict`.</div></div></div>
-      <div class="row"><div class="rlabel">Output</div><div><div class="rval">processed_rsitmd_256_clean</div><div class="rdesc">A cleaned 256×256 image dataset with label metadata, filenames, and captions ready for downstream image and multimodal tasks.</div></div></div>
+      <div class="row"><div class="rlabel">Split</div><div><div class="rval">Train / validation / test</div><div class="rdesc">The script first stratifies the raw RSITMD samples into train, validation, and test partitions so class balance is preserved across all splits. The processed output is stored as a Hugging Face `DatasetDict` for downstream training.</div></div></div>
+      <div class="row"><div class="rlabel">Output</div><div><div class="rval">processed_rsitmd_256_clean</div><div class="rdesc">A cleaned 256×256 image dataset with labels and captions normalized for downstream image and multimodal tasks.</div></div></div>
     </section>
     <aside class="card">
       <div class="label">Source links</div>
@@ -47,23 +47,16 @@
     </aside>
   </div>
   <div class="metric-grid">
-    <div class="metric"><div class="l">Splits</div><div class="v">Train / Validation / Test</div><div class="d">The processed dataset is stored as a three-way split.</div></div>
+    <div class="metric"><div class="l">Splits</div><div class="v">Train / Validation / Test</div><div class="d">The processed dataset is stored as a three-way split with preserved class balance.</div></div>
     <div class="metric"><div class="l">Rows</div><div class="v">4739 total</div><div class="d">3644 train, 644 validation, 451 test.</div></div>
     <div class="metric"><div class="l">Image size</div><div class="v">256 × 256</div><div class="d">All samples are resized and stored at a consistent resolution.</div></div>
     <div class="metric"><div class="l">Classes</div><div class="v">33 labels</div><div class="d">RSITMD scene classes such as airport, forest, bridge, and river.</div></div>
   </div>
   <div class="table-card">
     <div class="table-title">Processed dataset summary</div>
-    <table class="tbl"><thead><tr><th>Split</th><th>Rows</th><th>Most common labels</th><th>Notes</th></tr></thead><tbody><tr><td>Train</td><td>3644</td><td>class 31 (193), class 22 (172), class 13 (159)</td><td>Largest split used for fitting preprocessing-aware models.</td></tr><tr><td>Validation</td><td>644</td><td>class 31 (34), class 22 (30), class 13 (28)</td><td>Used for model selection and early stopping.</td></tr><tr><td>Test</td><td>451</td><td>class 31 (24), class 22 (22), class 13 (20)</td><td>Held out for final evaluation.</td></tr></tbody></table>
+    <table class="tbl"><thead><tr><th>Split</th><th>Rows</th><th>Role</th><th>Notes</th></tr></thead><tbody><tr><td>Train</td><td>3644</td><td>Fit models</td><td>Largest split used to train downstream models.</td></tr><tr><td>Validation</td><td>644</td><td>Select checkpoints</td><td>Used for model selection and early stopping.</td></tr><tr><td>Test</td><td>451</td><td>Final evaluation</td><td>Held out for final reporting.</td></tr></tbody></table>
   </div>
-  <div class="table-card">
-    <div class="table-title">Preprocessing statistics snapshot</div>
-    <table class="tbl"><thead><tr><th>Split</th><th>Brightness</th><th>Texture</th><th>Channel mean order</th></tr></thead><tbody><tr><td>Train</td><td>0.3839</td><td>0.1531</td><td>G &gt; R &gt; B</td></tr><tr><td>Validation</td><td>0.3926</td><td>0.1561</td><td>G &gt; R &gt; B</td></tr><tr><td>Test</td><td>0.4144</td><td>0.1490</td><td>G &gt; R &gt; B</td></tr></tbody></table>
-  </div>
-  <div class="result-stack">
-    <div class="image-card"><div class="table-title">Output structure</div><img src="https://placehold.co/1200x720/F8F5EF/3D5A80?text=processed_rsitmd_256_clean+%7C+DatasetDict+splits+%28train%2Fvalidation%2Ftest%29" alt="Processed RSITMD dataset structure preview" /></div>
-    <div class="image-card"><div class="table-title">Quality overview</div><img src="https://placehold.co/1200x720/F8F5EF/A06820?text=Preprocessing+quality+snapshot+%28captions%2C+images%2C+splits%29" alt="Preprocessing quality overview" /></div>
-  </div>
+
 </main>
 <footer>Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026</footer>
 </body>
