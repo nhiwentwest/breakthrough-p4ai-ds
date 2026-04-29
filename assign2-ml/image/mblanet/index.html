@@ -32,9 +32,10 @@
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Image-only branch used for evaluation on the test split.</div></div></div>
       <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + normalize</div><div class="rdesc">Standard image transform pipeline compatible with the model backbone.</div></div></div>
-      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">MBLANet</div><div class="rdesc">Attention-based convolutional network trained for scene classification.</div></div></div>
-      <div class="row"><div class="rlabel">Head</div><div><div class="rval">Classification head</div><div class="rdesc">Final logits over all RSITMD classes with checkpointing by validation macro F1.</div></div></div>
-      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predictions + metrics</div><div class="rdesc">Test accuracy, balanced accuracy, macro F1, confusion matrix, and learning curves.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 + MBLANet attention blocks</div><div class="rdesc">A pretrained ResNet50 is used as the feature extractor, then each residual stage is upgraded with CLAM modules so the network can focus on both global cues and local discriminative regions.</div></div></div>
+      <div class="row"><div class="rlabel">Attention</div><div><div class="rval">CCAM + LSAM inside CLAM</div><div class="rdesc">CCAM learns channel importance from pooled feature summaries, while LSAM builds a spatial attention map from local patches. Their outputs are multiplied with the feature map before the residual skip connection is added back.</div></div></div>
+      <div class="row"><div class="rlabel">Head</div><div><div class="rval">Classification head</div><div class="rdesc">A final linear layer produces logits over all RSITMD classes. Training tracks macro F1 on validation data for checkpointing and early stopping.</div></div></div>
+      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predictions + metrics</div><div class="rdesc">Reports test accuracy, balanced accuracy, macro F1, confusion matrix, learning curves, and inference speed / GPU peak memory.</div></div></div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div>
