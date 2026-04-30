@@ -26,14 +26,13 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Model Child Page</div>
   <h1 class="title">MBLANet</h1>
-  <p class="sub">Multi-branch lightweight attention network for RSITMD image classification. This page follows the same layout pattern as the fine-tune page: pipeline and source information on top, then each result table followed by its two images.</p>
+  <p class="sub">Multi-branch lightweight attention network for RSITMD image classification. The pipeline is presented in order from input to output, with the attention modules folded into the backbone description rather than split out as a separate stage.</p>
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Image-only branch used for evaluation on the test split.</div></div></div>
       <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + normalize</div><div class="rdesc">Standard image transform pipeline compatible with the model backbone.</div></div></div>
-      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 + MBLANet attention blocks</div><div class="rdesc">A pretrained ResNet50 is used as the feature extractor, then each residual stage is upgraded with CLAM modules so the network can focus on both global cues and local discriminative regions.</div></div></div>
-      <div class="row"><div class="rlabel">Attention</div><div><div class="rval">CCAM + LSAM inside CLAM</div><div class="rdesc">CCAM learns channel importance from pooled feature summaries, while LSAM builds a spatial attention map from local patches. Their outputs are multiplied with the feature map before the residual skip connection is added back.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 + CLAM attention blocks</div><div class="rdesc">A pretrained ResNet50 acts as the feature extractor, and each residual stage is upgraded with CLAM modules. Inside CLAM, CCAM learns channel importance from pooled feature summaries and LSAM builds a spatial attention map from local patches before the residual output is passed onward.</div></div></div>
       <div class="row"><div class="rlabel">Head</div><div><div class="rval">Classification head</div><div class="rdesc">A final linear layer produces logits over all RSITMD classes. Training tracks macro F1 on validation data for checkpointing and early stopping.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predictions + metrics</div><div class="rdesc">Reports test accuracy, balanced accuracy, macro F1, confusion matrix, learning curves, and inference speed / GPU peak memory.</div></div></div>
     </section>
