@@ -171,7 +171,7 @@ with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
 # 6b. LEARNING CURVE FOR SVM
 print("Generating learning curves...")
 train_sizes = np.linspace(0.1, 1.0, 5)
-train_scores, test_scores = [], []
+train_scores, val_scores = [], []
 for frac in train_sizes:
     n_samples = max(1, int(len(X_train) * frac))
     idx = np.linspace(0, len(X_train) - 1, n_samples, dtype=int)
@@ -180,13 +180,13 @@ for frac in train_sizes:
     clf = SVC(kernel='rbf', probability=True, random_state=42)
     clf.fit(X_sub, y_sub)
     train_scores.append(f1_score(y_sub, clf.predict(X_sub), average='macro', zero_division=0))
-    test_scores.append(f1_score(y_test, clf.predict(X_test), average='macro', zero_division=0))
+    val_scores.append(f1_score(y_val, clf.predict(X_val), average='macro', zero_division=0))
 plt.figure(figsize=(8, 5))
 plt.plot((train_sizes * len(X_train)).astype(int), train_scores, marker='o', label='Training macro F1')
-plt.plot((train_sizes * len(X_train)).astype(int), test_scores, marker='o', label='Test macro F1')
+plt.plot((train_sizes * len(X_train)).astype(int), val_scores, marker='o', label='Validation macro F1')
 plt.xlabel('Training samples')
 plt.ylabel('Macro F1')
-plt.title('SVM Learning Curves (Train vs Test)')
+plt.title('SVM Learning Curves (Train vs Val)')
 plt.legend()
 plt.tight_layout()
 learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
