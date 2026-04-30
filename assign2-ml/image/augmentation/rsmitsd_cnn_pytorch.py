@@ -168,7 +168,7 @@ def evaluate_model(loader, eval_model):
     return acc, bal_acc, macro_f1
 
 # --- Main Loop ---
-EPOCHS = 10
+EPOCHS = 50
 best_val_macro_f1 = 0.0
 train_log = []
 
@@ -192,18 +192,14 @@ for epoch in range(EPOCHS):
     # 1. Evaluate on Training Data (Snapshot of current knowledge)
     train_acc, train_bal_acc, train_macro_f1 = evaluate_model(train_loader, model)
 
-    # 2. Evaluate on Validation Data (Test on unseen data)
+    # 2. Evaluate on Validation Data (used for checkpoint selection)
     val_acc, val_bal_acc, val_macro_f1 = evaluate_model(val_loader, model)
-
-    # 3. Evaluate on Test Data (Test on seen data)
-    test_acc, test_bal_acc, test_macro_f1 = evaluate_model(test_loader, model)
 
     epoch_time = time.time() - epoch_start
     train_log.append({
         "epoch": epoch + 1,
         "train_macro_f1": float(train_macro_f1),
         "val_macro_f1": float(val_macro_f1),
-        "test_macro_f1": float(test_macro_f1),
         "epoch_time_sec": float(epoch_time),
     })
 
@@ -211,7 +207,6 @@ for epoch in range(EPOCHS):
     print(f"\nEpoch {epoch+1}/{EPOCHS} Summary | Loss: {running_loss/len(train_loader):.4f} | Time: {epoch_time:.1f}s")
     print(f"  [TRAIN] Acc: {train_acc:.4f} | Bal Acc: {train_bal_acc:.4f} | Macro F1: {train_macro_f1:.4f}")
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
-    print(f"  [TEST]  Acc: {test_acc:.4f} | Bal Acc: {test_bal_acc:.4f} | Macro F1: {test_macro_f1:.4f}")
 
     # Save checkpoint based on VALIDATION Macro F1
     if val_macro_f1 > best_val_macro_f1:
@@ -223,7 +218,7 @@ train_time_sec = float(sum(item["epoch_time_sec"] for item in train_log))
 train_time_min = train_time_sec / 60.0
 print(f"\nTotal Training Time: {train_time_sec:.1f} sec ({train_time_min:.1f} min)")
 
-# 5. CONFUSION MATRIX
+# 5. FINAL TEST EVALUATION + CONFUSION MATRIX
 print("\nGenerating Confusion Matrix...")
 model.load_state_dict(torch.load("best_resnet50.pt")) # Load best weights
 model.eval()
@@ -261,15 +256,15 @@ plt.show()
 
 # 5b. LEARNING CURVES
 train_f1s = [item["train_macro_f1"] for item in train_log]
-test_f1s = [item["test_macro_f1"] for item in train_log]
+val_f1s = [item["val_macro_f1"] for item in train_log]
 epochs = [item["epoch"] for item in train_log]
 learning_curve_path = os.path.join(output_dir, "learning_curves.png")
 plt.figure(figsize=(8, 5))
 plt.plot(epochs, train_f1s, marker='o', label='Train Macro F1')
-plt.plot(epochs, test_f1s, marker='o', label='Test Macro F1')
+plt.plot(epochs, val_f1s, marker='o', label='Val Macro F1')
 plt.xlabel('Epoch')
 plt.ylabel('Macro F1')
-plt.title('End-to-End Learning Curves (Train vs Test)')
+plt.title('End-to-End Learning Curves (Train vs Val)')
 plt.legend()
 plt.tight_layout()
 plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
