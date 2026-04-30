@@ -136,30 +136,7 @@ cm_path = os.path.join(output_dir, 'confusion_matrix.png')
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
 plt.show()
 
-# 6b. LEARNING CURVE FOR SVM
-print("Generating learning curves...")
-train_sizes = np.linspace(0.1, 1.0, 5)
-train_scores, test_scores = [], []
-for frac in train_sizes:
-    n_samples = max(1, int(len(X_train) * frac))
-    idx = np.linspace(0, len(X_train) - 1, n_samples, dtype=int)
-    X_sub = X_train[idx]
-    y_sub = y_train[idx]
-    clf = SVC(kernel='rbf', probability=True, random_state=42)
-    clf.fit(X_sub, y_sub)
-    train_scores.append(f1_score(y_sub, clf.predict(X_sub), average='macro', zero_division=0))
-    test_scores.append(f1_score(y_test, clf.predict(X_test), average='macro', zero_division=0))
-plt.figure(figsize=(8, 5))
-plt.plot((train_sizes * len(X_train)).astype(int), train_scores, marker='o', label='Training macro F1')
-plt.plot((train_sizes * len(X_train)).astype(int), test_scores, marker='o', label='Test macro F1')
-plt.xlabel('Training samples')
-plt.ylabel('Macro F1')
-plt.title('SVM Learning Curves (Train vs Test)')
-plt.legend()
-plt.tight_layout()
-learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
-plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
-plt.show()
+
 
 # 7. SAVE MODELS & METADATA
 print("\nSaving deployable files...")
@@ -191,11 +168,7 @@ report = {
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
     json.dump(report, f, indent=2)
-print("✅ Saved: svm_model.joblib, resnet50_extractor.pt, label_mapping.json, svm_report.json")
-
-import torch.nn.functional as F
-
-# 6b. LEARNING CURVE FOR SVM (TRAIN vs TEST)
+# 6b. LEARNING CURVE FOR SVM
 print("Generating learning curves...")
 train_sizes = np.linspace(0.1, 1.0, 5)
 train_scores, test_scores = [], []
@@ -220,68 +193,8 @@ learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
 plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
 plt.show()
 
-# ==========================================
-# 8. TEST ON SINGLE IMAGE + FEATURE ATTENTION
-# ==========================================
-sample = hf_dataset['test'][450]
-img_tensor = sample['pixel_values'].unsqueeze(0).to(device)
-true_label_text = class_names[sample['label']]
-
-# 1. Setup a Hook to eavesdrop on ResNet50's final layer
-activations = []
-def forward_hook(module, input, output):
-    activations.append(output)
-
-# Attach hook to the final convolutional block
-target_layer = extractor.layer4[-1]
-f_hook = target_layer.register_forward_hook(forward_hook)
-
-# 2. Extract feature and predict with SVM
-with torch.no_grad(): # No gradients needed!
-    single_feature = extractor(img_tensor).cpu().numpy()
-
-pred_idx = svm.predict(single_feature)[0]
-pred_prob = np.max(svm.predict_proba(single_feature)) * 100
-pred_class = class_names[pred_idx]
-
-# 3. Process the generalized Feature Attention Map
-# Take the mean of the feature maps across all channels to see general attention
-captured_acts = activations[0]
-heatmap = torch.mean(captured_acts, dim=1, keepdim=True)
-heatmap = F.relu(heatmap) # Keep only positive attention
-
-# Resize heatmap to match the 224x224 image
-heatmap = F.interpolate(heatmap, size=(224, 224), mode='bilinear', align_corners=False)
-heatmap = heatmap.squeeze().cpu().numpy()
-heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min()) # Normalize
-
-f_hook.remove() # Clean up the hook
-
-# 4. Un-normalize the tensor to restore the true colors of the original image
-mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-unnormalized_tensor = sample['pixel_values'].cpu() * std + mean
-unnormalized_tensor = torch.clamp(unnormalized_tensor, 0, 1)
-raw_image = transforms.ToPILImage()(unnormalized_tensor)
-
-# ==========================================
-# VISUALIZE BOTH IMAGES
-# ==========================================
-plt.figure(figsize=(12, 5))
-
-# Plot 1: True Original Image
-plt.subplot(1, 2, 1)
-plt.imshow(raw_image)
-plt.title(f"SVM Predicted: {pred_class} ({pred_prob:.2f}%)\nActual: {true_label_text}",
-          color='green' if pred_class == true_label_text else 'red', fontsize=14)
-plt.axis('off')
-
-# Plot 2: Extractor Attention Map
-plt.subplot(1, 2, 2)
-plt.imshow(raw_image)
-plt.imshow(heatmap, cmap='jet', alpha=0.5) # Overlay the heatmap
-plt.title("ResNet50 Attention Map\n(What the Extractor focuses on)", fontsize=14)
-plt.axis('off')
-
-plt.tight_layout()
+# 7. SAVE MODELS & METADATA
+print("\nSaving deployable files...")
+joblib.dump(svm, 'svm_model.joblib')
+torch.save(extractor.state_dict(), "resnet50_extractor.pt")
 plt.show()
