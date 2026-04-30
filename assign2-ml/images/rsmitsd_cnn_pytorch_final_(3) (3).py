@@ -261,7 +261,7 @@ with torch.no_grad():
 print("\n" + "="*50)
 print("FINAL EVALUATION ON TEST SET (BEST MODEL)")
 print("="*50)
-print(classification_report(test_labels, test_preds, target_names=class_names, digits=4))
+print(classification_report(test_labels, test_preds, target_names=class_names, labels=range(len(class_names)), digits=4, zero_division=0))
 test_final_acc = accuracy_score(test_labels, test_preds)
 test_final_bal_acc = balanced_accuracy_score(test_labels, test_preds)
 test_final_macro_f1 = f1_score(test_labels, test_preds, average='macro')
