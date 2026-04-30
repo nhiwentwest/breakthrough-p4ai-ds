@@ -209,13 +209,17 @@ cm_path = os.path.join(output_dir, "confusion_matrix.png")
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
 plt.show()
 
+# 5b. LEARNING CURVES
+train_f1s = [item["train_macro_f1"] for item in train_log]
+test_f1s = [item["test_macro_f1"] for item in train_log]
+epochs = [item["epoch"] for item in train_log]
 learning_curve_path = os.path.join(output_dir, "learning_curves.png")
 plt.figure(figsize=(8, 5))
-plt.plot([item["epoch"] for item in train_log], [item["train_macro_f1"] for item in train_log], marker='o', label='Train Macro F1')
-plt.plot([item["epoch"] for item in train_log], [item["val_macro_f1"] for item in train_log], marker='o', label='Val Macro F1')
+plt.plot(epochs, train_f1s, marker='o', label='Train Macro F1')
+plt.plot(epochs, test_f1s, marker='o', label='Test Macro F1')
 plt.xlabel('Epoch')
 plt.ylabel('Macro F1')
-plt.title('End-to-End Learning Curves')
+plt.title('End-to-End Learning Curves (Train vs Test)')
 plt.legend()
 plt.tight_layout()
 plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
