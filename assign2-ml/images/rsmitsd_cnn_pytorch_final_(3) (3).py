@@ -22,7 +22,7 @@ from datasets import load_from_disk
 import kagglehub
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
@@ -257,6 +257,18 @@ with torch.no_grad():
         _, preds = torch.max(outputs, 1)
         test_preds.extend(preds.cpu().numpy())
         test_labels.extend(labels.cpu().numpy())
+
+print("\n" + "="*50)
+print("FINAL EVALUATION ON TEST SET (BEST MODEL)")
+print("="*50)
+print(classification_report(test_labels, test_preds, target_names=class_names, digits=4))
+test_final_acc = accuracy_score(test_labels, test_preds)
+test_final_bal_acc = balanced_accuracy_score(test_labels, test_preds)
+test_final_macro_f1 = f1_score(test_labels, test_preds, average='macro')
+print(f"Test Accuracy:          {test_final_acc:.4f}")
+print(f"Test Balanced Accuracy: {test_final_bal_acc:.4f}")
+print(f"Test Macro F1:          {test_final_macro_f1:.4f}")
+print("="*50)
 
 cm = confusion_matrix(test_labels, test_preds)
 plt.figure(figsize=(10, 8))
