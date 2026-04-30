@@ -144,7 +144,7 @@ def build_dataloaders(cfg: CFG):
 from torchvision import models
 
 class PretrainedResNet50FineTune(nn.Module):
-    def __init__(self, num_classes=21, dropout=0.3):
+    def __init__(self, num_classes=33, dropout=0.3):
         super().__init__()
         # Pre-trained ResNet50 on ImageNet, fine-tuned end-to-end
         self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
@@ -372,8 +372,8 @@ def run_training(cfg: CFG):
         ax1.legend()
         ax1.grid(True)
         ax2.plot(ep_range, [h.get("train_macro_f1") for h in history], label="Train", marker="o")
-        ax2.plot(ep_range, [h.get("val_macro_f1") for h in history], label="Validation", marker="o")
-        ax2.set_title("Macro F1 over Epochs")
+        ax2.plot(ep_range, [h.get("val_macro_f1") for h in history], label="Val", marker="o")
+        ax2.set_title("Macro F1 over Epochs (Train vs Val)")
         ax2.set_xlabel("Epoch")
         ax2.set_ylabel("Macro F1")
         ax2.legend()
