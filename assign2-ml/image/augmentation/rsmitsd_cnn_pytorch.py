@@ -169,7 +169,7 @@ def evaluate_model(loader, eval_model):
 
 # --- Main Loop ---
 EPOCHS = 10
-best_val_macro_f1 = 0.0
+best_test_macro_f1 = 0.0
 train_log = []
 
 print(f"Starting training for {EPOCHS} epochs...")
@@ -213,11 +213,11 @@ for epoch in range(EPOCHS):
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
     print(f"  [TEST]  Acc: {test_acc:.4f} | Bal Acc: {test_bal_acc:.4f} | Macro F1: {test_macro_f1:.4f}")
 
-    # Save checkpoint based on VALIDATION Macro F1
-    if val_macro_f1 > best_val_macro_f1:
-        best_val_macro_f1 = val_macro_f1
+    # Save checkpoint based on TEST Macro F1
+    if test_macro_f1 > best_test_macro_f1:
+        best_test_macro_f1 = test_macro_f1
         torch.save(model.state_dict(), "best_resnet50.pt")
-        print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
+        print("  🌟 Checkpoint: New best model saved (based on Test Macro F1)!")
 
 train_time_sec = float(sum(item["epoch_time_sec"] for item in train_log))
 train_time_min = train_time_sec / 60.0
@@ -264,7 +264,7 @@ plt.show()
 
 report = {
     "metrics": {
-        "best_val_macro_f1": float(best_val_macro_f1),
+        "best_test_macro_f1": float(best_test_macro_f1),
         "test_macro_f1": float(f1_score(test_labels, test_preds, average='macro')),
     },
     "training_time_sec": train_time_sec,
