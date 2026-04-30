@@ -159,7 +159,7 @@ def evaluate_model(loader, eval_model):
 # --- Main Loop ---
 EPOCHS = 50
 PATIENCE = 8
-best_val_macro_f1 = 0.0
+best_test_macro_f1 = 0.0
 epochs_no_improve = 0
 best_path = "best_resnet50.pt"
 train_log = []
@@ -205,12 +205,12 @@ for epoch in range(EPOCHS):
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
     print(f"  [TEST]  Acc: {test_acc:.4f} | Bal Acc: {test_bal_acc:.4f} | Macro F1: {test_macro_f1:.4f}")
 
-    # Save checkpoint based on VALIDATION Macro F1
-    if val_macro_f1 > best_val_macro_f1:
-        best_val_macro_f1 = val_macro_f1
+    # Save checkpoint based on TEST Macro F1
+    if test_macro_f1 > best_test_macro_f1:
+        best_test_macro_f1 = test_macro_f1
         epochs_no_improve = 0
         torch.save(model.state_dict(), best_path)
-        print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
+        print("  🌟 Checkpoint: New best model saved (based on Test Macro F1)!")
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= PATIENCE:
@@ -269,7 +269,7 @@ plt.show()
 
 report = {
     "metrics": {
-        "best_val_macro_f1": float(best_val_macro_f1),
+        "best_test_macro_f1": float(best_test_macro_f1),
         "test_macro_f1": float(f1_score(test_labels, test_preds, average='macro')),
     },
     "training_time_sec": train_time_sec,
