@@ -187,15 +187,11 @@ for epoch in range(EPOCHS):
     # 2. Evaluate on Validation Data (Test on unseen data)
     val_acc, val_bal_acc, val_macro_f1 = evaluate_model(val_loader, model)
 
-    # 3. Evaluate on Test Data (Test on seen data)
-    test_acc, test_bal_acc, test_macro_f1 = evaluate_model(test_loader, model)
-
     epoch_time = time.time() - epoch_start
     train_log.append({
         "epoch": epoch + 1,
         "train_macro_f1": float(train_macro_f1),
         "val_macro_f1": float(val_macro_f1),
-        "test_macro_f1": float(test_macro_f1),
         "epoch_time_sec": float(epoch_time),
     })
 
@@ -203,7 +199,6 @@ for epoch in range(EPOCHS):
     print(f"\nEpoch {epoch+1}/{EPOCHS} Summary | Loss: {running_loss/len(train_loader):.4f} | Time: {epoch_time:.1f}s")
     print(f"  [TRAIN] Acc: {train_acc:.4f} | Bal Acc: {train_bal_acc:.4f} | Macro F1: {train_macro_f1:.4f}")
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
-    print(f"  [TEST]  Acc: {test_acc:.4f} | Bal Acc: {test_bal_acc:.4f} | Macro F1: {test_macro_f1:.4f}")
 
     # Save checkpoint based on VALIDATION Macro F1
     if val_macro_f1 > best_val_macro_f1:
