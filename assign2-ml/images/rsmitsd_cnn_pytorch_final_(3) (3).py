@@ -229,14 +229,14 @@ print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "
 
 # 5b. LEARNING CURVES
 train_f1s = [item["train_macro_f1"] for item in train_log]
-val_f1s = [item["val_macro_f1"] for item in train_log]
+test_f1s = [item["test_macro_f1"] for item in train_log]
 epochs = [item["epoch"] for item in train_log]
 plt.figure(figsize=(8, 5))
 plt.plot(epochs, train_f1s, marker='o', label='Train Macro F1')
-plt.plot(epochs, val_f1s, marker='o', label='Val Macro F1')
+plt.plot(epochs, test_f1s, marker='o', label='Test Macro F1')
 plt.xlabel('Epoch')
 plt.ylabel('Macro F1')
-plt.title('Frozen CNN Learning Curves')
+plt.title('Frozen CNN Learning Curves (Train vs Test)')
 plt.legend()
 plt.tight_layout()
 learning_curve_path = os.path.join(output_dir, "learning_curves.png")
