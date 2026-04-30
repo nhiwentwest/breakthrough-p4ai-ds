@@ -229,14 +229,14 @@ print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "
 
 # 5b. LEARNING CURVES
 train_f1s = [item["train_macro_f1"] for item in train_log]
-test_f1s = [item["test_macro_f1"] for item in train_log]
+val_f1s = [item["val_macro_f1"] for item in train_log]
 epochs = [item["epoch"] for item in train_log]
 plt.figure(figsize=(8, 5))
 plt.plot(epochs, train_f1s, marker='o', label='Train Macro F1')
-plt.plot(epochs, test_f1s, marker='o', label='Test Macro F1')
+plt.plot(epochs, val_f1s, marker='o', label='Val Macro F1')
 plt.xlabel('Epoch')
 plt.ylabel('Macro F1')
-plt.title('Frozen CNN Learning Curves (Train vs Test)')
+plt.title('Frozen CNN Learning Curves')
 plt.legend()
 plt.tight_layout()
 learning_curve_path = os.path.join(output_dir, "learning_curves.png")
@@ -284,3 +284,117 @@ report = {
 with open(os.path.join(output_dir, "cnn_frozen_report.json"), "w") as f:
     json.dump(report, f, indent=2)
 
+import torch.nn.functional as F
+
+# ==========================================
+# STEP 6: TEST ON SINGLE IMAGE + SALIENCY + GRAD-CAM
+# ==========================================
+print("\nGenerating Prediction, Saliency, and Grad-CAM...")
+
+# 1. Grab a single example
+sample_idx = 24
+sample = hf_dataset['test'][sample_idx]
+true_label_text = class_names[sample['label']]
+
+# 2. Prepare the image and track gradients
+img_tensor = sample['pixel_values'].unsqueeze(0).to(device)
+img_tensor.requires_grad_()
+
+# 3. Setup PyTorch Hooks for Grad-CAM
+activations = []
+gradients = []
+
+def forward_hook(module, input, output):
+    activations.append(output)
+
+def backward_hook(module, grad_input, grad_output):
+    gradients.append(grad_output[0])
+
+# Attach the hooks to the final convolutional block in ResNet50
+target_layer = model.layer4[-1]
+f_hook = target_layer.register_forward_hook(forward_hook)
+b_hook = target_layer.register_full_backward_hook(backward_hook)
+
+# 4. Forward Pass
+model.eval()
+model.zero_grad()
+outputs = model(img_tensor)
+
+probabilities = F.softmax(outputs[0], dim=0)
+pred_prob, pred_idx = torch.max(probabilities, 0)
+pred_class = class_names[pred_idx.item()]
+
+# 5. Backward Pass
+score = outputs[0][pred_idx]
+score.backward()
+
+# ==========================================
+# PROCESS SALIENCY MAP
+# ==========================================
+saliency_map, _ = torch.max(img_tensor.grad.data.abs(), dim=1)
+saliency_map = saliency_map.squeeze().cpu().numpy()
+
+# ==========================================
+# PROCESS GRAD-CAM
+# ==========================================
+captured_grads = gradients[0]
+captured_acts = activations[0]
+
+weights = torch.mean(captured_grads, dim=[2, 3], keepdim=True)
+cam = torch.sum(weights * captured_acts, dim=1, keepdim=True)
+cam = F.relu(cam)
+
+cam = F.interpolate(cam, size=(224, 224), mode='bilinear', align_corners=False)
+cam = cam.squeeze().cpu().detach().numpy()
+cam = (cam - cam.min()) / (cam.max() - cam.min())
+
+f_hook.remove()
+b_hook.remove()
+
+# ==========================================
+# PROCESS ORIGINAL IMAGE (FIX COLORS)
+# ==========================================
+# Un-normalize the tensor to restore the true colors
+mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+
+# Reverse the math and clamp values between 0 and 1
+unnormalized_tensor = sample['pixel_values'].cpu() * std + mean
+unnormalized_tensor = torch.clamp(unnormalized_tensor, 0, 1)
+
+# Convert to a human-readable image
+raw_image = transforms.ToPILImage()(unnormalized_tensor)
+
+# ==========================================
+# VISUALIZE EVERYTHING
+# ==========================================
+plt.figure(figsize=(18, 5))
+
+# Plot 1: True Original Image
+plt.subplot(1, 3, 1)
+plt.imshow(raw_image)
+plt.title(f"Predicted: {pred_class} ({pred_prob.item()*100:.2f}%)\nActual: {true_label_text}",
+          color='green' if pred_class == true_label_text else 'red', fontsize=14)
+plt.axis('off')
+
+# Plot 2: Saliency Map
+plt.subplot(1, 3, 2)
+plt.imshow(saliency_map, cmap='hot')
+plt.title("Saliency Map\n(Pixel-Level Importance)", fontsize=14)
+plt.axis('off')
+
+# Plot 3: Grad-CAM Overlay
+plt.subplot(1, 3, 3)
+plt.imshow(raw_image)
+plt.imshow(cam, cmap='jet', alpha=0.5)
+plt.title("Grad-CAM\n(Regional Feature Importance)", fontsize=14)
+plt.axis('off')
+
+plt.tight_layout()
+plt.show()
+
+# Save a tiny summary if needed
+summary = {
+    "inference": inference,
+    "gpu_peak_mb": gpu_peak_mb,
+}
