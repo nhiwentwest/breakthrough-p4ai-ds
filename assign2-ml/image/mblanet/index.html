@@ -51,7 +51,7 @@
   </div>
 
   <div class="table-card">
-    <div class="table-title">Training Configuration</div>
+    <div class="table-title">Light Augmentation TRAINING Configuration</div>
     <table class="tbl">
       <thead>
         <tr>
@@ -69,6 +69,10 @@
           <td>Full model fine-tuning (All parameters are trainable)</td>
         </tr>
         <tr>
+          <td>Data Augmentation</td>
+          <td>RandomResizedCrop (scale 0.8-1.0), HorizontalFlip, ColorJitter (B:0.15, C:0.15, S:0.1, H:0.03)</td>
+        </tr>
+        <tr>
           <td>Optimization</td>
           <td>SGD (LR: 0.01, Momentum: 0.9, Weight Decay: 1e-4) with Cosine Annealing</td>
         </tr>
@@ -82,7 +86,11 @@
         </tr>
         <tr>
           <td>Early Stopping</td>
-          <td>Patience = 8 epochs, monitoring Validation Macro F1</td>
+          <td>Patience = 8 epochs, monitor Validation Macro F1 (Min Delta: 1e-4)</td>
+        </tr>
+        <tr>
+          <td>Mixed Precision</td>
+          <td>Enabled (torch.amp.GradScaler) for training efficiency</td>
         </tr>
         <tr>
           <td>Loss Function</td>
