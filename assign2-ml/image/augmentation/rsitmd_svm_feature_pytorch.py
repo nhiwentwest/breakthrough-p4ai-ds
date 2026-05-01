@@ -157,8 +157,6 @@ cm_path = os.path.join(output_dir, 'confusion_matrix.png')
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
 plt.show()
 
-
-
 # 7. SAVE MODELS & METADATA
 print("\nSaving deployable files...")
 joblib.dump(svm, 'svm_model.joblib')
@@ -184,7 +182,6 @@ report = {
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
         "confusion_matrix": cm_path,
-        "learning_curves": learning_curve_path,
     },
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
