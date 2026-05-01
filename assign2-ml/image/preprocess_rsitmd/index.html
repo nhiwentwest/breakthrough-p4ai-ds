@@ -27,12 +27,12 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Preprocessing</div>
   <h1 class="title">RSITMD Preprocess</h1>
-  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. The raw JSON already contains only `train` and `test` samples; the script then creates the validation split by stratified sampling from the training pool, after caption cleaning, blank-image filtering, and high-noise removal.</p>
+  <p class="sub">This page documents the RSITMD preprocessing pipeline used to build the cleaned 256×256 dataset. The raw JSON already contains only `train` and `test` samples; the script then creates the validation split by stratified sampling from the training pool, after caption cleaning and blank-image filtering.</p>
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">Raw RSITMD dataset</div><div class="rdesc">The original multimodal RSITMD source is loaded from disk, then cleaned and converted into a structured Hugging Face dataset.</div></div></div>
-      <div class="row"><div class="rlabel">Cleaning</div><div><div class="rval">Caption normalization + duplicate filtering</div><div class="rdesc">Captions are lowercased, whitespace-normalized, tokenized, and scored to detect weak or noisy textual samples.</div></div></div>
+      <div class="row"><div class="rlabel">Cleaning</div><div><div class="rval">Caption normalization + duplicate filtering</div><div class="rdesc">Captions are lowercased, whitespace-normalized, and tokenized to ensure consistency across the dataset.</div></div></div>
       <div class="row"><div class="rlabel">Image checks</div><div><div class="rval">Blank-image / pixel statistics</div><div class="rdesc">The script inspects images for empty samples and measures brightness, texture, and channel balance to support quality filtering.</div></div></div>
       <div class="row"><div class="rlabel">Split</div><div><div class="rval">Train / validation / test</div><div class="rdesc">The input JSON provides only `train` and `test`. The script stratifies the surviving training samples to create the validation split, while the original test split stays separate. The processed output is stored as a Hugging Face `DatasetDict`.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">processed_rsitmd_256_clean</div><div class="rdesc">A cleaned 256×256 image dataset with labels and captions normalized for downstream image and multimodal tasks.</div></div></div>
@@ -52,9 +52,15 @@
     <div class="metric"><div class="l">Image size</div><div class="v">256 × 256</div><div class="d">All samples are resized and stored at a consistent resolution.</div></div>
     <div class="metric"><div class="l">Classes</div><div class="v">33 labels</div><div class="d">RSITMD scene classes such as airport, forest, bridge, and river.</div></div>
   </div>
-  <div class="table-card">
-    <div class="table-title">Processed dataset summary</div>
-    <table class="tbl"><thead><tr><th>Split</th><th>Rows</th><th>Role</th><th>Notes</th></tr></thead><tbody><tr><td>Train</td><td>3644</td><td>Fit models</td><td>Largest split used to train downstream models.</td></tr><tr><td>Validation</td><td>644</td><td>Select checkpoints</td><td>Used for model selection and early stopping.</td></tr><tr><td>Test</td><td>451</td><td>Final evaluation</td><td>Held out for final reporting.</td></tr></tbody></table>
+  <div class="result-stack">
+    <div class="image-card">
+      <div class="table-title">Stratified Split Distribution</div>
+      <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777665239/stratified_split_distribution_lrdpjx.png" alt="Stratified Split Distribution" />
+    </div>
+    <div class="image-card">
+      <div class="table-title">Dataset Evolution</div>
+      <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777665238/dataset_evolution_nyopxw.png" alt="Dataset Evolution" />
+    </div>
   </div>
 
 </main>
