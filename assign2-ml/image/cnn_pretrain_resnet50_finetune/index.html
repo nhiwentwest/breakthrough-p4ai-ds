@@ -31,15 +31,15 @@
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Image branch only, treated as an image classification dataset.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + normalize</div><div class="rdesc">224×224 transform stack matching ImageNet-style training.</div></div></div>
-      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 pretrained</div><div class="rdesc">ImageNet weights loaded and all layers trainable.</div></div></div>
-      <div class="row"><div class="rlabel">Head</div><div><div class="rval">Dropout + Linear classifier</div><div class="rdesc">Final classification head replaces the ImageNet FC layer.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224×224 and normalized using ImageNet statistics. During training, light random crops and flips are applied to enhance the model's robustness to orientation and position.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 (Pre-trained)</div><div class="rdesc">Uses the ResNet50_Weights.IMAGENET1K_V2 weights. Unlike frozen configurations, all backbone parameters are unlocked (requires_grad=True) to allow end-to-end fine-tuning on the RSITMD domain.</div></div></div>
+      <div class="row"><div class="rlabel">Head</div><div><div class="rval">Linear Classifier</div><div class="rdesc">The final 2048-feature layer is replaced with a single linear layer mapping to 33 classes. This allows the model to adapt its high-level decision boundary to the specific categories of the remote sensing dataset.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">Fine-tuned logits</div><div class="rdesc">Validation confusion matrix and macro-F1 driven checkpointing.</div></div></div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div>
-      <div class="k">Transfer learning</div>
-      <div class="s">Best for comparing against the scratch baseline and measuring the benefit of ImageNet initialization.</div>
+      <div class="k">End-to-End Fine-Tuning</div>
+      <div class="s">Leverages high-quality pre-trained weights from ImageNet-1K V2, but adapts the entire network's parameters to the target domain. This configuration typically yields the best balance of speed and accuracy compared to training from scratch.</div>
       <div class="chips"><span class="chip">ResNet50</span><span class="chip">ImageNet</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
       <div class="label" style="margin-top:16px">Source links</div>
       <div class="links">
