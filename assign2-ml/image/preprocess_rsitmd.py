@@ -322,21 +322,6 @@ def create_rsitmd_dataset(json_path: str, img_dir: str, out_dir: str, target_siz
         caps = sentences_info['sentences'][:5]
         layers = compute_layer_scores(caps, label, image_stats)
         noise_score = layers['noise_score']
-
-        if filename in high_noise_files:
-            dropped['noise_high'] += 1
-            noise_rows.append({
-                'filename': filename,
-                'split': split,
-                'label': label,
-                'noise_score': noise_score,
-                'layer_a': layers['layer_a'],
-                'layer_b': layers['layer_b'],
-                'layer_c': layers['layer_c'],
-                'confidence': 'HIGH',
-            })
-            continue
-
         record = {
             'image': img_path,
             'label': label,
