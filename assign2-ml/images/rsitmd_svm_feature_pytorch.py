@@ -163,7 +163,6 @@ report = {
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
         "confusion_matrix": cm_path,
-        "learning_curves": learning_curve_path,
     },
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
