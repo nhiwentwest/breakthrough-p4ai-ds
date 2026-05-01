@@ -50,6 +50,56 @@
       </div>
     </aside>
   </div>
+
+  <div class="table-card">
+    <div class="table-title">Light Augmentation TRAINING Configuration</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Hyperparameter</th>
+          <th>Configuration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Backbone & Weights</td>
+          <td>ResNet18 (weights=None, Random Initialization)</td>
+        </tr>
+        <tr>
+          <td>Trainable Setup</td>
+          <td>Full model training from scratch</td>
+        </tr>
+        <tr>
+          <td>Data Augmentation</td>
+          <td>RandomResizedCrop (scale 0.8-1.0), HorizontalFlip, ColorJitter (B:0.15, C:0.15, S:0.1, H:0.03)</td>
+        </tr>
+        <tr>
+          <td>Optimization</td>
+          <td>AdamW (LR: 3e-4, Weight Decay: 1e-4) with Cosine Annealing</td>
+        </tr>
+        <tr>
+          <td>Batch Size</td>
+          <td>32</td>
+        </tr>
+        <tr>
+          <td>Max Epochs</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <td>Early Stopping</td>
+          <td>Patience = 8 epochs, monitor Validation Macro F1 (Min Delta: 1e-4)</td>
+        </tr>
+        <tr>
+          <td>Mixed Precision</td>
+          <td>Enabled (torch.amp.GradScaler) for training efficiency</td>
+        </tr>
+        <tr>
+          <td>Loss Function</td>
+          <td>Cross-Entropy Loss</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
   <div class="table-card">
     <div class="table-title">Light Augmentation result</div>
     <table class="tbl">
@@ -69,6 +119,55 @@
   <div class="result-stack">
     <div class="image-card"><div class="table-title">Learning curves</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777481224/learning_curves_pliqwn.png" alt="CNN scratch non-augmentation learning curves" /></div>
     <div class="image-card"><div class="table-title">Confusion matrix</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777481240/confusion_matrix_hxgnvd.png" alt="CNN scratch non-augmentation confusion matrix" /></div>
+  </div>
+  <div class="table-card">
+    <div class="table-title">Heavy Augmentation TRAINING Configuration</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Hyperparameter</th>
+          <th>Configuration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Backbone & Weights</td>
+          <td>ResNet18 (weights=None, Random Initialization)</td>
+        </tr>
+        <tr>
+          <td>Trainable Setup</td>
+          <td>Full model training from scratch</td>
+        </tr>
+        <tr>
+          <td>Data Augmentation</td>
+          <td>Crop (0.65-0.7), Rotation (10°), Perspective, Affine (shear 5, trans 0.05), Flip, ColorJitter</td>
+        </tr>
+        <tr>
+          <td>Optimization</td>
+          <td>AdamW (LR: 3e-4, Weight Decay: 1e-4) with Cosine Annealing</td>
+        </tr>
+        <tr>
+          <td>Batch Size</td>
+          <td>32</td>
+        </tr>
+        <tr>
+          <td>Max Epochs</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <td>Early Stopping</td>
+          <td>Patience = 8 epochs, monitor Validation Macro F1 (Min Delta: 1e-4)</td>
+        </tr>
+        <tr>
+          <td>Mixed Precision</td>
+          <td>Enabled (torch.amp.GradScaler) for training efficiency</td>
+        </tr>
+        <tr>
+          <td>Loss Function</td>
+          <td>Cross-Entropy Loss</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
   <div class="table-card">
     <div class="table-title">Heavy Augmentation result</div>
