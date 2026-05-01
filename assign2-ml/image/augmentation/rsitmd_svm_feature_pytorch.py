@@ -136,24 +136,29 @@ train_loss = log_loss(y_train, y_train_prob)
 print(f"SVM Training Time: {train_time_sec:.2f} sec ({train_time_min:.2f} min)")
 print(f"SVM Training Loss (Log Loss): {train_loss:.4f}")
 
-# 6. LEARNING CURVES (Performance vs. Dataset Size)
+# 6. LEARNING CURVES (Train vs. Val on Dataset Size)
 print("\nGenerating Learning Curves...")
-from sklearn.model_selection import learning_curve
+train_sizes = np.linspace(0.1, 1.0, 10)
+train_scores, val_scores = [], []
 
-# Use a smaller number of cross-validation folds for speed
-train_sizes, train_scores, test_scores = learning_curve(
-    svm, X_train, y_train, cv=3, n_jobs=-1, 
-    train_sizes=np.linspace(0.1, 1.0, 5), scoring='accuracy'
-)
-
-train_mean = np.mean(train_scores, axis=1)
-test_mean = np.mean(test_scores, axis=1)
+for size in train_sizes:
+    n_samples = int(size * len(X_train))
+    X_subset = X_train[:n_samples]
+    y_subset = y_train[:n_samples]
+    
+    # Train on subset
+    svm_sub = SVC(kernel='rbf', probability=True, random_state=42)
+    svm_sub.fit(X_subset, y_subset)
+    
+    # Evaluate
+    train_scores.append(accuracy_score(y_subset, svm_sub.predict(X_subset)))
+    val_scores.append(accuracy_score(y_val, svm_sub.predict(X_val)))
 
 plt.figure(figsize=(8, 5))
-plt.plot(train_sizes, train_mean, 'o-', color="r", label="Training score")
-plt.plot(train_sizes, test_mean, 'o-', color="g", label="Cross-validation score")
-plt.title("SVM Learning Curves (Accuracy vs. Training Size)")
-plt.xlabel("Training Examples")
+plt.plot(train_sizes * 100, train_scores, 'o-', color="r", label="Train Accuracy")
+plt.plot(train_sizes * 100, val_scores, 'o-', color="g", label="Val Accuracy")
+plt.title("SVM Learning Curves (Train vs. Val)")
+plt.xlabel("Training Data Used (%)")
 plt.ylabel("Accuracy Score")
 plt.legend(loc="best")
 plt.grid(True)
