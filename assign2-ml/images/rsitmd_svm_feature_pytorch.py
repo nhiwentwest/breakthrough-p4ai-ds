@@ -107,8 +107,19 @@ X_test, y_test = extract_features(test_loader, extractor)
 
 # 5. TRAIN SVM
 print("Training SVM...")
+t_start = time.time()
 svm = SVC(kernel='rbf', probability=True, random_state=42)
 svm.fit(X_train, y_train)
+train_time_sec = time.time() - t_start
+train_time_min = train_time_sec / 60.0
+
+# Calculate training loss (Log Loss)
+from sklearn.metrics import log_loss
+y_train_prob = svm.predict_proba(X_train)
+train_loss = log_loss(y_train, y_train_prob)
+
+print(f"SVM Training Time: {train_time_sec:.2f} sec ({train_time_min:.2f} min)")
+print(f"SVM Training Loss (Log Loss): {train_loss:.4f}")
 
 # 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
@@ -158,13 +169,14 @@ report = {
         "accuracy": float(overall_acc),
         "balanced_accuracy": float(bal_acc),
         "macro_f1": float(macro_f1),
+        "train_loss": float(train_loss),
     },
     "timing": {
         "inference": {
             "ms_per_batch": float(ms_per_batch),
             "images_per_sec": float(images_per_sec) if images_per_sec is not None else None,
         },
-        "training_time_sec": None,
+        "training_time_sec": float(train_time_sec),
     },
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
