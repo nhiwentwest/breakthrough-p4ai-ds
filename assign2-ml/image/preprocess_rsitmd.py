@@ -105,11 +105,6 @@ def caption_tokens(text: str):
     return WORD_RE.findall(normalize_caption(text))
 
 
-def is_blank_image(image: Image.Image) -> bool:
-    arr = np.asarray(image)
-    return arr.size == 0 or np.sum(arr) == 0
-
-
 def extract_label(filename: str) -> str:
     parts = filename.replace(".tif", "").rsplit("_", 1)
     return parts[0] if len(parts) == 2 else "unknown"
@@ -320,16 +315,9 @@ def create_rsitmd_dataset(json_path: str, img_dir: str, out_dir: str, target_siz
 
         split = img.get('split', 'train')
 
-        try:
-            with Image.open(img_path) as raw_img:
-                raw_img = raw_img.convert('RGB')
-                if is_blank_image(raw_img):
-                    dropped['blank_image'] += 1
-                    continue
-                image_stats = compute_image_statistics(raw_img)
-        except Exception:
-            dropped['corrupt'] += 1
-            continue
+        with Image.open(img_path) as raw_img:
+            raw_img = raw_img.convert('RGB')
+            image_stats = compute_image_statistics(raw_img)
 
         caps = sentences_info['sentences'][:5]
         layers = compute_layer_scores(caps, label, image_stats)
@@ -387,9 +375,6 @@ def create_rsitmd_dataset(json_path: str, img_dir: str, out_dir: str, target_siz
             try:
                 with Image.open(r['image']) as img:
                     img = img.convert('RGB')
-                    if is_blank_image(img):
-                        continue
-                    img = img.resize(target_size, Image.Resampling.LANCZOS)
                     yield {
                         'image': img,
                         'label': r['label'],
