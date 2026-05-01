@@ -45,28 +45,34 @@ except AttributeError:
     class_names = [str(label) for label in sorted(unique_labels)]
 
 # 2. PREPROCESSING
-preprocess = transforms.Compose([
+train_preprocess = transforms.Compose([
+    transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+    transforms.RandomHorizontalFlip(),
+    transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.1, hue=0.03),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+eval_preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-def transform_dataset(examples):
-    # 1. Create the tensor versions of the images
-    examples["pixel_values"] = [preprocess(img.convert("RGB")) for img in examples["image"]]
-
-    # 2. Delete the raw PIL images so the DataLoader doesn't try to batch them
+def train_transform(examples):
+    examples["pixel_values"] = [train_preprocess(img.convert("RGB")) for img in examples["image"]]
     del examples["image"]
-
     return examples
 
-# Apply it exactly as before
-hf_dataset.set_transform(transform_dataset)
+def eval_transform(examples):
+    examples["pixel_values"] = [eval_preprocess(img.convert("RGB")) for img in examples["image"]]
+    del examples["image"]
+    return examples
 
-print("Applying transformations dynamically...")
-
-# Replace .map() and .set_format() with .set_transform()
-hf_dataset.set_transform(transform_dataset)
+# Apply transformations dynamically
+hf_dataset["train"].set_transform(train_transform)
+hf_dataset["validation"].set_transform(eval_transform)
+hf_dataset["test"].set_transform(eval_transform)
 
 # Your DataLoaders remain exactly the same
 train_loader = DataLoader(hf_dataset["train"], batch_size=32, shuffle=True)
