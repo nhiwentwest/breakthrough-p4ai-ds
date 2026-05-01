@@ -40,7 +40,7 @@
       <div class="label">What makes it different</div>
       <div class="k">ResNet50 + CLAM (CCAM/LSAM)</div>
       <div class="s">Combines the deep ResNet50 architecture with custom Cross-channel and Local Spatial Attention Modules (CLAM). This dual-branch attention mechanism focuses on identifying high-impact features and their spatial locations within remote sensing imagery.</div>
-      <div class="chips"><span class="chip">MBLANet</span><span class="chip">Attention</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
+      <div class="chips"><span class="chip">MBLANet</span><span class="chip">Attention</span><span class="chip">SGD</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
       <div class="label" style="margin-top:16px">Source links</div>
       <div class="links">
         <a class="link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/image/mblanet.py" target="_blank" rel="noopener"><div class="k" style="font-size:.72rem;margin-bottom:2px">Light Augmentation</div><div class="u">assign2-ml/image/mblanet.py</div></a>
@@ -48,6 +48,48 @@
         <a class="link" href="https://link.springer.com/chapter/10.1007/978-981-95-3729-7_37" target="_blank" rel="noopener"><div class="k" style="font-size:.72rem;margin-bottom:2px">MBLANet Paper (Chen et al.)</div><div class="u">DOI: 10.1007/978-981-95-3729-7_37</div></a>
       </div>
     </aside>
+  </div>
+
+  <div class="table-card">
+    <div class="table-title">Training Configuration</div>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Hyperparameter</th>
+          <th>Configuration</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Backbone & Weights</td>
+          <td>ResNet50 (Pretrained ImageNet-1K V1) + CLAM (CCAM/LSAM)</td>
+        </tr>
+        <tr>
+          <td>Trainable Setup</td>
+          <td>Full model fine-tuning (All parameters are trainable)</td>
+        </tr>
+        <tr>
+          <td>Optimization</td>
+          <td>SGD (LR: 0.01, Momentum: 0.9, Weight Decay: 1e-4) with Cosine Annealing</td>
+        </tr>
+        <tr>
+          <td>Batch Size</td>
+          <td>32</td>
+        </tr>
+        <tr>
+          <td>Max Epochs</td>
+          <td>50</td>
+        </tr>
+        <tr>
+          <td>Early Stopping</td>
+          <td>Patience = 8 epochs, monitoring Validation Macro F1</td>
+        </tr>
+        <tr>
+          <td>Loss Function</td>
+          <td>Cross-Entropy Loss</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
   <div class="table-card">
     <div class="table-title">Light Augmentation result</div>
