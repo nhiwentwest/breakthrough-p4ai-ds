@@ -26,15 +26,15 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Model Child Page</div>
   <h1 class="title">ResNet50-SVM</h1>
-  <p class="sub">A two-stage classifier: first extract image embeddings using a pretrained ResNet50 backbone, then train an SVM on the fixed feature vectors. The page follows the same visual pattern as the MBLANet child page, with the pipeline on top and separate result blocks for non-augmentation and augmentation.</p>
+  <p class="sub">A two-stage classifier: first extract image embeddings using a pretrained ResNet50 backbone, then train an SVM on the fixed feature vectors.</p>
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">The image branch is processed as a classification dataset, not a captioning task.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + normalize + cache</div><div class="rdesc">Images are transformed to 224×224 tensors before feature extraction.</div></div></div>
-      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 extractor</div><div class="rdesc">The FC head is replaced with Identity to produce dense features for every image.</div></div></div>
-      <div class="row"><div class="rlabel">Classifier</div><div><div class="rval">RBF SVM</div><div class="rdesc">A classical classifier consumes the fixed embeddings from the extractor and produces class predictions.</div></div></div>
-      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Test predictions + report</div><div class="rdesc">Reports accuracy, balanced accuracy, macro F1, test confusion matrix, learning curves, and saved artifacts.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224&times;224 and normalized. Features are extracted once and cached for SVM training.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 (Fixed)</div><div class="rdesc">Acts as a frozen feature extractor using ImageNet-1K V1 weights. The final fully connected layer is replaced with an Identity mapping to produce raw 2048-dimensional embeddings.</div></div></div>
+      <div class="row"><div class="rlabel">Classifier</div><div><div class="rval">RBF SVM</div><div class="rdesc">A classical Support Vector Machine with a Radial Basis Function kernel is trained on the extracted features. This separates representation learning from classification.</div></div></div>
+      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Class predictions</div><div class="rdesc">Accuracy, balanced accuracy, macro F1, and confusion matrix on the RSITMD test split.</div></div></div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div>
