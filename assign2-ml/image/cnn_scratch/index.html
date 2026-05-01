@@ -32,7 +32,7 @@
       <div class="label">Pipeline</div>
       <div class="pipe">
         <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Source data is multimodal RSITMD, but this model uses the image branch only.</div></div></div>
-        <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224×224, augmented with random crops, flips, and color jitter to prevent overfitting, then normalized using ImageNet stats.</div></div></div>
+        <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Light Augmentation + Tensors</div><div class="rdesc">Applies basic transforms (Resize 224×224, light crops, and horizontal flips) to provide minimal regularization while preparing tensors for the model.</div></div></div>
         <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet18 (weights=None)</div><div class="rdesc">A standard ResNet18 architecture where every layer is initialized with random values, requiring the model to learn all features (edges, textures) from the RSITMD data alone.</div></div></div>
         <div class="row"><div class="rlabel">Head</div><div><div class="rval">Fully Connected Layer</div><div class="rdesc">A single linear layer with dropout that maps the 512 backbone features to the 33 target classes, optimized using Cross Entropy Loss.</div></div></div>
         <div class="row"><div class="rlabel">Output</div><div><div class="rval">Class logits + metrics</div><div class="rdesc">Accuracy, balanced accuracy, macro F1, confusion matrix, and learning curves.</div></div></div>
