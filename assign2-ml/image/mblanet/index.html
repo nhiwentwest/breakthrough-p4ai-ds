@@ -31,15 +31,15 @@
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Image-only branch used for evaluation on the test split.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + normalize</div><div class="rdesc">Standard image transform pipeline compatible with the model backbone.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224&times;224 and normalized using ImageNet statistics. The pipeline includes light random cropping and horizontal flips during training to improve generalizability.</div></div></div>
       <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 + CLAM attention blocks</div><div class="rdesc">A pretrained ResNet50 acts as the feature extractor, and each residual stage is upgraded with CLAM modules. Inside CLAM, CCAM learns channel importance from pooled feature summaries and LSAM builds a spatial attention map from local patches before the residual output is passed onward.</div></div></div>
       <div class="row"><div class="rlabel">Head</div><div><div class="rval">Classification head</div><div class="rdesc">A final linear layer produces logits over all RSITMD classes. Training tracks macro F1 on validation data for checkpointing and early stopping.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predictions + metrics</div><div class="rdesc">Reports test accuracy, balanced accuracy, macro F1, confusion matrix, learning curves, and inference speed / GPU peak memory.</div></div></div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div>
-      <div class="k">Attention-based image model</div>
-      <div class="s">A compact alternative to ResNet-style baselines, useful for comparing representation quality and training behavior.</div>
+      <div class="k">ResNet50 + CLAM (CCAM/LSAM)</div>
+      <div class="s">Combines the deep ResNet50 architecture with custom Cross-channel and Local Spatial Attention Modules (CLAM). This dual-branch attention mechanism focuses on identifying high-impact features and their spatial locations within remote sensing imagery.</div>
       <div class="chips"><span class="chip">MBLANet</span><span class="chip">Attention</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
       <div class="label" style="margin-top:16px">Source links</div>
       <div class="links">
