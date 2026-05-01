@@ -32,16 +32,16 @@
       <div class="label">Pipeline</div>
       <div class="pipe">
         <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">Source data is multimodal RSITMD, but this model uses the image branch only.</div></div></div>
-        <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Resize + crop + normalize</div><div class="rdesc">RandomResizedCrop, flip, jitter, then tensor normalization to 224×224.</div></div></div>
-        <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet18 from scratch</div><div class="rdesc">No ImageNet weights; the full network is initialized with weights=None.</div></div></div>
-        <div class="row"><div class="rlabel">Head</div><div><div class="rval">Dropout + Linear classifier</div><div class="rdesc">Final FC layer maps features to all RSITMD classes.</div></div></div>
+        <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224×224, augmented with random crops, flips, and color jitter to prevent overfitting, then normalized using ImageNet stats.</div></div></div>
+        <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet18 (weights=None)</div><div class="rdesc">A standard ResNet18 architecture where every layer is initialized with random values, requiring the model to learn all features (edges, textures) from the RSITMD data alone.</div></div></div>
+        <div class="row"><div class="rlabel">Head</div><div><div class="rval">Fully Connected Layer</div><div class="rdesc">A single linear layer with dropout that maps the 512 backbone features to the 33 target classes, optimized using Cross Entropy Loss.</div></div></div>
         <div class="row"><div class="rlabel">Output</div><div><div class="rval">Class logits + metrics</div><div class="rdesc">Accuracy, balanced accuracy, macro F1, confusion matrix, and learning curves.</div></div></div>
       </div>
     </section>
     <aside class="card">
       <div class="label">What makes it different</div>
-      <div class="k">Scratch baseline</div>
-      <div class="s">A pure baseline for comparison against pretrained and attention-based variants.</div>
+      <div class="k">Random Weight Initialization</div>
+      <div class="s">Trained entirely from scratch without any external pre-training (no ImageNet). This serves as the fundamental baseline to measure how much value pre-trained weights and attention-based architectures add to the RSITMD dataset.</div>
       <div class="chips"><span class="chip">ResNet18</span><span class="chip">weights=None</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
       <div class="label" style="margin-top:16px">Source links</div>
       <div class="links">
