@@ -121,37 +121,7 @@ train_loss = log_loss(y_train, y_train_prob)
 print(f"SVM Training Time: {train_time_sec:.2f} sec ({train_time_min:.2f} min)")
 print(f"SVM Training Loss (Log Loss): {train_loss:.4f}")
 
-# 6. LEARNING CURVES (Train vs. Val on Dataset Size)
-print("\nGenerating Learning Curves...")
-train_sizes = np.linspace(0.1, 1.0, 10)
-train_scores, val_scores = [], []
-
-for size in train_sizes:
-    n_samples = int(size * len(X_train))
-    X_subset = X_train[:n_samples]
-    y_subset = y_train[:n_samples]
-    
-    # Train on subset
-    svm_sub = SVC(kernel='rbf', probability=True, random_state=42)
-    svm_sub.fit(X_subset, y_subset)
-    
-    # Evaluate
-    train_scores.append(accuracy_score(y_subset, svm_sub.predict(X_subset)))
-    val_scores.append(accuracy_score(y_val, svm_sub.predict(X_val)))
-
-plt.figure(figsize=(8, 5))
-plt.plot(train_sizes * 100, train_scores, 'o-', color="r", label="Train Accuracy")
-plt.plot(train_sizes * 100, val_scores, 'o-', color="g", label="Val Accuracy")
-plt.title("SVM Learning Curves (Train vs. Val)")
-plt.xlabel("Training Data Used (%)")
-plt.ylabel("Accuracy Score")
-plt.legend(loc="best")
-plt.grid(True)
-lc_path = os.path.join(output_dir, "learning_curves.png")
-plt.savefig(lc_path, dpi=200, bbox_inches='tight')
-plt.show()
-
-# 7. FINAL EVALUATION & CONFUSION MATRIX
+# 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 start_inf = time.time()
 y_pred = svm.predict(X_val)
@@ -161,20 +131,18 @@ bal_acc = balanced_accuracy_score(y_val, y_pred)
 macro_f1 = f1_score(y_val, y_pred, average='macro', zero_division=0)
 ms_per_batch = 1000.0 * inference_sec_per_batch
 images_per_sec = (len(X_val) / inference_sec_per_batch) if inference_sec_per_batch > 0 else None
-
 print(f"Overall Accuracy: {overall_acc:.4f}")
 print(f"Balanced Accuracy: {bal_acc:.4f}")
 print(f"Macro F1: {macro_f1:.4f}")
+gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
 print(f"Inference Time: {ms_per_batch:.4f} ms/batch | {images_per_sec:.4f} images/sec")
-gpu_peak_mb = (torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None
 print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
-
-print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0, digits=4))
+print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, digits=4, zero_division=0))
 
 print("Evaluating on test set for final confusion matrix...")
 y_test_pred = svm.predict(X_test)
 label_ids = list(range(len(class_names)))
-print("Test Classification Report:\n", classification_report(y_test, y_test_pred, labels=label_ids, target_names=class_names, zero_division=0, digits=4))
+print("Test Classification Report:\n", classification_report(y_test, y_test_pred, labels=label_ids, target_names=class_names, digits=4, zero_division=0))
 cm = confusion_matrix(y_test, y_test_pred, labels=label_ids)
 plt.figure(figsize=(10, 8))
 sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=class_names, yticklabels=class_names)
@@ -213,7 +181,6 @@ report = {
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
         "confusion_matrix": cm_path,
-        "learning_curves": lc_path,
     },
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment 02 — Tabular | Breakthrough</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -13,10 +14,11 @@
             --accent:#A06820; --accent-light:rgba(160,104,32,.10); --accent-soft:rgba(160,104,32,.20);
             --teal:#2A7A70; --teal-light:rgba(42,122,112,.10); --teal-soft:rgba(42,122,112,.20);
             --blue:#3D5A80; --blue-light:rgba(61,90,128,.10); --blue-soft:rgba(61,90,128,.20);
-            --border:rgba(28,26,22,.09); --border-md:rgba(28,26,22,.14);
+            --green:#2D6A4F; --border:rgba(28,26,22,.09); --border-md:rgba(28,26,22,.14);
             --r:16px; --r-sm:10px;
             --shadow-sm:0 1px 3px rgba(28,26,22,.06),0 2px 8px rgba(28,26,22,.04);
             --shadow-md:0 2px 6px rgba(28,26,22,.08),0 6px 20px rgba(28,26,22,.06);
+            --shadow-lg:0 4px 12px rgba(28,26,22,.10),0 12px 32px rgba(28,26,22,.08);
         }
         *{margin:0;padding:0;box-sizing:border-box}
         body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
@@ -24,7 +26,7 @@
         .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
         .brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08rem;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
         .brand-icon{width:18px;height:18px;border-radius:999px;background:var(--accent-light);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
-        .topbar-right{display:flex;align-items:center;gap:10px}
+        .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
         .badge{font-size:.62rem;padding:3px 9px;border-radius:999px;background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
         .tag{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
         .workspace{flex:1;max-width:1180px;margin:0 auto;padding:28px 40px 44px;width:100%}
@@ -39,29 +41,54 @@
         .chips{display:flex;flex-wrap:wrap;gap:8px}
         .chip{font-size:.67rem;padding:5px 13px;border-radius:999px;border:1px solid var(--border-md);background:var(--bg-card);color:var(--ink-muted);letter-spacing:.04em}
         .chip--accent{background:var(--accent-light);border-color:var(--accent-soft);color:var(--accent);font-weight:500}
+        .chip--ok{background:rgba(45,106,79,.09);border-color:rgba(45,106,79,.24);color:var(--green);font-weight:500}
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         .stat{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:14px 16px;box-shadow:var(--shadow-sm)}
         .stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-faint);margin-bottom:4px}
         .stat-val{font-size:1.35rem;font-weight:700;color:var(--accent);line-height:1}
         .stat-sub{font-size:.62rem;color:var(--ink-faint);margin-top:2px}
-        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-        .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm)}
+        .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+        .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}
+        .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
         .card--accent{border-color:var(--accent-soft)}
         .card--teal{border-color:var(--teal-soft)}
         .card--blue{border-color:var(--blue-soft)}
-        .card h3{font-size:.76rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-faint);margin-bottom:10px}
-        .card-title{font-size:1rem;font-weight:700;margin-bottom:6px}
-        .card p{font-size:.75rem;color:var(--ink-muted);line-height:1.55;margin-bottom:10px}
-        .mini-table{display:grid;grid-template-columns:78px 1fr;gap:6px 10px;margin:10px 0 12px}
-        .mini-k{font-size:.58rem;letter-spacing:.10em;text-transform:uppercase;color:var(--ink-faint)}
-        .mini-v{font-size:.72rem;color:var(--ink);line-height:1.35}
-        .mini-v strong{color:inherit}
-        .link{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600}
-        .link--accent{color:var(--accent)} .link--teal{color:var(--teal)} .link--blue{color:var(--blue)}
-        .link:hover{text-decoration:underline}
+        .card--green{border-color:rgba(45,106,79,.24)}
+        .card-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+        .card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0}
+        .card--accent .card-icon{background:var(--accent-light);color:var(--accent)}
+        .card--teal .card-icon{background:var(--teal-light);color:var(--teal)}
+        .card--blue .card-icon{background:var(--blue-light);color:var(--blue)}
+        .card--green .card-icon{background:rgba(45,106,79,.10);color:var(--green)}
+        .card-meta{flex:1;min-width:0}
+        .card-kicker{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-faint);margin-bottom:3px}
+        .card-title{font-size:1rem;font-weight:700;line-height:1.15;margin-bottom:4px}
+        .card-sub{font-size:.72rem;color:var(--ink-muted);line-height:1.55}
+        .card-body{margin-top:10px}
+        .stat-row{display:flex;justify-content:space-between;gap:8px;padding:5px 0}
+        .stat-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);flex-shrink:0}
+        .stat-val{font-size:.86rem;font-weight:700;text-align:right;line-height:1.2}
+        .card--accent .stat-val{color:var(--accent)}
+        .card--teal .stat-val{color:var(--teal)}
+        .card--blue .stat-val{color:var(--blue)}
+        .card--green .stat-val{color:var(--green)}
+        .stat-desc{font-size:.58rem;color:var(--ink-muted);text-align:right;margin-top:1px}
+        .pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:9px}
+        .pill{font-size:.57rem;padding:3px 8px;border-radius:999px;border:1px solid}
+        .card--accent .pill{background:var(--accent-light);border-color:var(--accent-soft);color:var(--accent)}
+        .card--teal .pill{background:var(--teal-light);border-color:var(--teal-soft);color:var(--teal)}
+        .card--blue .pill{background:var(--blue-light);border-color:var(--blue-soft);color:var(--blue)}
+        .card--green .pill{background:rgba(45,106,79,.09);border-color:rgba(45,106,79,.22);color:var(--green)}
+        .card-links{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+        .mini-link{display:inline-flex;align-items:center;gap:6px;font-size:.69rem;font-weight:600}
+        .mini-link:hover{text-decoration:underline}
+        .card--accent .mini-link{color:var(--accent)}
+        .card--teal .mini-link{color:var(--teal)}
+        .card--blue .mini-link{color:var(--blue)}
+        .card--green .mini-link{color:var(--green)}
         .code{background:#1C1A16;color:#D4C9BB;border-radius:var(--r-sm);padding:16px 18px;font-family:'Menlo','Consolas',monospace;font-size:.72rem;line-height:1.7;overflow-x:auto;box-shadow:var(--shadow-sm)}
         footer{text-align:center;padding:18px;font-size:.63rem;letter-spacing:.1em;color:var(--ink-faint);border-top:1px solid var(--border)}
-        @media (max-width:900px){.cards{grid-template-columns:1fr 1fr}.workspace{padding:20px 20px 32px}.topbar{padding:12px 20px}}
+        @media (max-width:1100px){.cards{grid-template-columns:1fr 1fr}.workspace{padding:20px 20px 32px}.topbar{padding:12px 20px}}
         @media (max-width:640px){.cards{grid-template-columns:1fr}.topbar{padding:12px 16px}}
     </style>
 </head>
@@ -87,7 +114,7 @@
                 <span class="chip">1338 records</span>
                 <span class="chip">7 input features</span>
                 <span class="chip">1 target: charges</span>
-                <span class="chip">Categorical + Numerical</span>
+                <span class="chip chip--ok">Categorical + Numerical</span>
             </div>
         </section>
 
@@ -99,43 +126,84 @@
         </section>
 
         <section class="panel">
-            <div class="panel-title">Model Cards</div>
+            <div class="panel-title">Overview + Model Cards</div>
             <div class="cards">
+                <a class="card card--green" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener noreferrer">
+                    <div class="card-head">
+                        <div class="card-icon">🧭</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Notebook overview</div>
+                            <div class="card-title">End-to-end pipeline</div>
+                            <div class="card-sub">Sections 1–9 · preprocessing, training, residuals, learning curves, and insights.</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="stat-row"><span class="stat-lbl">What to inspect</span><div><div class="stat-val">Section map</div><div class="stat-desc">Use this as your starting point</div></div></div>
+                        <div class="pills"><span class="pill">Data load</span><span class="pill">Preprocess</span><span class="pill">Analysis</span></div>
+                    </div>
+                    <div class="card-links">
+                        <span class="mini-link">Open notebook on GitHub →</span>
+                        <span class="mini-link">Jump to Sections 1–2: data + preprocessing</span>
+                        <span class="mini-link">Jump to Sections 3–5: model training</span>
+                        <span class="mini-link">Jump to Sections 6–9: curves, comparison, insights</span>
+                    </div>
+                </a>
+
                 <a class="card card--accent" href="./linear-regression.html">
-                    <h3>01. Baseline</h3>
-                    <div class="card-title">📈 Linear Regression</div>
-                    <div class="mini-table">
-                        <div class="mini-k">Input</div><div class="mini-v">Insurance rows with mixed feature types</div>
-                        <div class="mini-k">Preprocess</div><div class="mini-v">One-hot encoding + standard scaling</div>
-                        <div class="mini-k">Head</div><div class="mini-v">Linear regression estimator</div>
-                        <div class="mini-k">Backbone</div><div class="mini-v">Tabular feature matrix</div>
-                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    <div class="card-head">
+                        <div class="card-icon">01</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Baseline</div>
+                            <div class="card-title">Linear Regression</div>
+                            <div class="card-sub">Simple linear baseline after one-hot encoding and scaling.</div>
+                        </div>
                     </div>
-                    <span class="link link--accent">Open model details →</span>
+                    <div class="card-body">
+                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§3 + §6</div><div class="stat-desc">Algorithm 1 and learning curve check</div></div></div>
+                        <div class="pills"><span class="pill">Residual plot</span><span class="pill">Actual vs predicted</span></div>
+                    </div>
+                    <div class="card-links">
+                        <span class="mini-link">Model details page →</span>
+                        <span class="mini-link">Notebook sections: preprocessing + Algorithm 1</span>
+                    </div>
                 </a>
+
                 <a class="card card--teal" href="./random-forest.html">
-                    <h3>02. Ensemble</h3>
-                    <div class="card-title">🌲 Random Forest</div>
-                    <div class="mini-table">
-                        <div class="mini-k">Input</div><div class="mini-v">Encoded insurance features</div>
-                        <div class="mini-k">Preprocess</div><div class="mini-v">Same split + standardized table</div>
-                        <div class="mini-k">Head</div><div class="mini-v">Bagged tree ensemble</div>
-                        <div class="mini-k">Backbone</div><div class="mini-v">Decision trees on tabular data</div>
-                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    <div class="card-head">
+                        <div class="card-icon">02</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Ensemble</div>
+                            <div class="card-title">Random Forest</div>
+                            <div class="card-sub">Bagging-based ensemble that captures non-linear relationships.</div>
+                        </div>
                     </div>
-                    <span class="link link--teal">Open model details →</span>
+                    <div class="card-body">
+                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§4 + §6</div><div class="stat-desc">Algorithm 2 and stability analysis</div></div></div>
+                        <div class="pills"><span class="pill">Bagging</span><span class="pill">Residual plot</span></div>
+                    </div>
+                    <div class="card-links">
+                        <span class="mini-link">Model details page →</span>
+                        <span class="mini-link">Notebook sections: Algorithm 2 + learning curves</span>
+                    </div>
                 </a>
+
                 <a class="card card--blue" href="./gradient-boosting.html">
-                    <h3>03. Boosting</h3>
-                    <div class="card-title">🚀 Gradient Boosting</div>
-                    <div class="mini-table">
-                        <div class="mini-k">Input</div><div class="mini-v">Cleaned tabular features</div>
-                        <div class="mini-k">Preprocess</div><div class="mini-v">Same train/test split + scaling</div>
-                        <div class="mini-k">Head</div><div class="mini-v">Boosting regressor</div>
-                        <div class="mini-k">Backbone</div><div class="mini-v">Sequential tree learners</div>
-                        <div class="mini-k">Output</div><div class="mini-v">Predicted medical charges</div>
+                    <div class="card-head">
+                        <div class="card-icon">03</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Boosting</div>
+                            <div class="card-title">Gradient Boosting</div>
+                            <div class="card-sub">Boosting-based model with the strongest predictive performance.</div>
+                        </div>
                     </div>
-                    <span class="link link--blue">Open model details →</span>
+                    <div class="card-body">
+                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§5 + §7–§9</div><div class="stat-desc">Algorithm 3, importance, summary, insights</div></div></div>
+                        <div class="pills"><span class="pill">Feature importance</span><span class="pill">Best fit</span></div>
+                    </div>
+                    <div class="card-links">
+                        <span class="mini-link">Model details page →</span>
+                        <span class="mini-link">Notebook sections: Algorithm 3 + comparison</span>
+                    </div>
                 </a>
             </div>
         </section>
@@ -143,20 +211,44 @@
         <section class="panel">
             <div class="panel-title">Source links</div>
             <div class="cards">
-                <div class="card">
-                    <div class="card-title">Notebook</div>
-                    <p>Main notebook for the insurance regression pipeline: <strong>ml_tabular_insurance1.ipynb</strong>.</p>
-                    <a class="link link--accent" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener">Open notebook</a>
+                <div class="card card--accent">
+                    <div class="card-head">
+                        <div class="card-icon">📓</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Notebook</div>
+                            <div class="card-title">ml_tabular_insurance1.ipynb</div>
+                            <div class="card-sub">Only notebook for the tabular assignment.</div>
+                        </div>
+                    </div>
+                    <div class="card-links">
+                        <a class="mini-link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener noreferrer">Open on GitHub →</a>
+                    </div>
                 </div>
-                <div class="card">
-                    <div class="card-title">Dataset source</div>
-                    <p>Kaggle dataset for the Medical Cost Personal Datasets.</p>
-                    <a class="link link--accent" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source</a>
+                <div class="card card--blue">
+                    <div class="card-head">
+                        <div class="card-icon">🗂️</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Dataset source</div>
+                            <div class="card-title">Kaggle Insurance data</div>
+                            <div class="card-sub">Medical Cost Personal Datasets.</div>
+                        </div>
+                    </div>
+                    <div class="card-links">
+                        <a class="mini-link" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source →</a>
+                    </div>
                 </div>
-                <div class="card">
-                    <div class="card-title">Run locally</div>
-                    <p>Open the notebook locally from the tabular folder to inspect preprocessing, training, and evaluation code.</p>
-                    <a class="link link--accent" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener">Read code in notebook</a>
+                <div class="card card--teal">
+                    <div class="card-head">
+                        <div class="card-icon">📈</div>
+                        <div class="card-meta">
+                            <div class="card-kicker">Outputs</div>
+                            <div class="card-title">Plots & summary</div>
+                            <div class="card-sub">Residuals, learning curves, feature importance, sample predictions.</div>
+                        </div>
+                    </div>
+                    <div class="card-links">
+                        <span class="mini-link">Figures: residuals + learning curves + bar charts</span>
+                    </div>
                 </div>
             </div>
         </section>
