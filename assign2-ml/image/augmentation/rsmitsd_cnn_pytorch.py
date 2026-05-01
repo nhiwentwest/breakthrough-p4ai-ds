@@ -169,7 +169,10 @@ def evaluate_model(loader, eval_model):
 
 # --- Main Loop ---
 EPOCHS = 50
+PATIENCE = 8
+MIN_DELTA = 1e-4
 best_val_macro_f1 = 0.0
+epochs_no_improve = 0
 train_log = []
 
 print(f"Starting training for {EPOCHS} epochs...")
@@ -209,10 +212,16 @@ for epoch in range(EPOCHS):
     print(f"  [VALID] Acc: {val_acc:.4f} | Bal Acc: {val_bal_acc:.4f} | Macro F1: {val_macro_f1:.4f}")
 
     # Save checkpoint based on VALIDATION Macro F1
-    if val_macro_f1 > best_val_macro_f1:
+    if val_macro_f1 > (best_val_macro_f1 + MIN_DELTA):
         best_val_macro_f1 = val_macro_f1
+        epochs_no_improve = 0
         torch.save(model.state_dict(), "best_resnet50.pt")
         print("  🌟 Checkpoint: New best model saved (based on Validation Macro F1)!")
+    else:
+        epochs_no_improve += 1
+        if epochs_no_improve >= PATIENCE:
+            print(f"  Early stopping at epoch {epoch+1}")
+            break
 
 train_time_sec = float(sum(item["epoch_time_sec"] for item in train_log))
 train_time_min = train_time_sec / 60.0
