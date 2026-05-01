@@ -31,7 +31,7 @@
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">RSITMD image crops</div><div class="rdesc">The image branch is processed as a classification dataset, not a captioning task.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224&times;224 and normalized. Features are extracted once and cached for SVM training.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Augmentation + Tensors</div><div class="rdesc">Images are resized to 224&times;224 and normalized using ImageNet statistics. The pipeline includes light random cropping and horizontal flips during training to improve generalizability.</div></div></div>
       <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">ResNet50 (Fixed)</div><div class="rdesc">Acts as a frozen feature extractor using ImageNet-1K V1 weights. The final fully connected layer is replaced with an Identity mapping to produce raw 2048-dimensional embeddings.</div></div></div>
       <div class="row"><div class="rlabel">Classifier</div><div><div class="rval">RBF SVM</div><div class="rdesc">A classical Support Vector Machine with a Radial Basis Function kernel is trained on the extracted features. This separates representation learning from classification.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">Class predictions</div><div class="rdesc">Accuracy, balanced accuracy, macro F1, and confusion matrix on the RSITMD test split.</div></div></div>
