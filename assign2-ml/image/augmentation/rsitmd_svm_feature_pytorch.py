@@ -136,37 +136,7 @@ train_loss = log_loss(y_train, y_train_prob)
 print(f"SVM Training Time: {train_time_sec:.2f} sec ({train_time_min:.2f} min)")
 print(f"SVM Training Loss (Log Loss): {train_loss:.4f}")
 
-# 6. LEARNING CURVES (Train vs. Val on Dataset Size)
-print("\nGenerating Learning Curves...")
-train_sizes = np.linspace(0.1, 1.0, 10)
-train_scores, val_scores = [], []
-
-for size in train_sizes:
-    n_samples = int(size * len(X_train))
-    X_subset = X_train[:n_samples]
-    y_subset = y_train[:n_samples]
-    
-    # Train on subset
-    svm_sub = SVC(kernel='rbf', probability=True, random_state=42)
-    svm_sub.fit(X_subset, y_subset)
-    
-    # Evaluate
-    train_scores.append(accuracy_score(y_subset, svm_sub.predict(X_subset)))
-    val_scores.append(accuracy_score(y_val, svm_sub.predict(X_val)))
-
-plt.figure(figsize=(8, 5))
-plt.plot(train_sizes * 100, train_scores, 'o-', color="r", label="Train Accuracy")
-plt.plot(train_sizes * 100, val_scores, 'o-', color="g", label="Val Accuracy")
-plt.title("SVM Learning Curves (Train vs. Val)")
-plt.xlabel("Training Data Used (%)")
-plt.ylabel("Accuracy Score")
-plt.legend(loc="best")
-plt.grid(True)
-lc_path = os.path.join(output_dir, "learning_curves.png")
-plt.savefig(lc_path, dpi=200, bbox_inches='tight')
-plt.show()
-
-# 7. EVALUATION & CONFUSION MATRIX
+# 6. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 start_eval = time.time()
 y_pred = svm.predict(X_val)
@@ -180,7 +150,7 @@ print(f"SVM Accuracy: {svm_acc:.4f}")
 print(f"SVM Balanced Accuracy: {svm_bal_acc:.4f}")
 print(f"SVM Macro F1: {svm_macro_f1:.4f}")
 print(f"Inference Time: {ms_per_batch:.4f} ms/batch | {images_per_sec:.4f} images/sec")
-gpu_peak_mb = (torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None
+gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
 print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0, digits=4))
 
@@ -196,6 +166,31 @@ plt.xlabel('SVM Predicted'); plt.ylabel('Actual')
 plt.xticks(rotation=45, ha='right'); plt.tight_layout()
 cm_path = os.path.join(output_dir, 'confusion_matrix.png')
 plt.savefig(cm_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+# 6b. LEARNING CURVE FOR SVM
+print("Generating learning curves...")
+train_sizes = np.linspace(0.1, 1.0, 5)
+train_scores, val_scores = [], []
+for frac in train_sizes:
+    n_samples = max(1, int(len(X_train) * frac))
+    idx = np.linspace(0, len(X_train) - 1, n_samples, dtype=int)
+    X_sub = X_train[idx]
+    y_sub = y_train[idx]
+    clf = SVC(kernel='rbf', probability=True, random_state=42)
+    clf.fit(X_sub, y_sub)
+    train_scores.append(f1_score(y_sub, clf.predict(X_sub), average='macro', zero_division=0))
+    val_scores.append(f1_score(y_val, clf.predict(X_val), average='macro', zero_division=0))
+plt.figure(figsize=(8, 5))
+plt.plot((train_sizes * len(X_train)).astype(int), train_scores, marker='o', label='Training macro F1')
+plt.plot((train_sizes * len(X_train)).astype(int), val_scores, marker='o', label='Validation macro F1')
+plt.xlabel('Training samples')
+plt.ylabel('Macro F1')
+plt.title('SVM Learning Curves (Train vs Val)')
+plt.legend()
+plt.tight_layout()
+learning_curve_path = os.path.join(output_dir, 'learning_curves.png')
+plt.savefig(learning_curve_path, dpi=200, bbox_inches='tight')
 plt.show()
 
 # 7. SAVE MODELS & METADATA
@@ -224,13 +219,9 @@ report = {
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
         "confusion_matrix": cm_path,
-        "learning_curves": lc_path,
+        "learning_curves": learning_curve_path,
     },
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
     json.dump(report, f, indent=2)
 print("✅ Saved: svm_model.joblib, resnet50_extractor.pt, label_mapping.json, svm_report.json")
-
-# Feature visualization removed: the previous figure was a pseudo attention map
-# derived from intermediate ResNet activations, not a true attention mechanism.
-# The script now stops after saving the deployable artifacts and metrics.
