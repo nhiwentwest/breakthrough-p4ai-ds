@@ -136,7 +136,32 @@ train_loss = log_loss(y_train, y_train_prob)
 print(f"SVM Training Time: {train_time_sec:.2f} sec ({train_time_min:.2f} min)")
 print(f"SVM Training Loss (Log Loss): {train_loss:.4f}")
 
-# 6. EVALUATION & CONFUSION MATRIX
+# 6. LEARNING CURVES (Performance vs. Dataset Size)
+print("\nGenerating Learning Curves...")
+from sklearn.model_selection import learning_curve
+
+# Use a smaller number of cross-validation folds for speed
+train_sizes, train_scores, test_scores = learning_curve(
+    svm, X_train, y_train, cv=3, n_jobs=-1, 
+    train_sizes=np.linspace(0.1, 1.0, 5), scoring='accuracy'
+)
+
+train_mean = np.mean(train_scores, axis=1)
+test_mean = np.mean(test_scores, axis=1)
+
+plt.figure(figsize=(8, 5))
+plt.plot(train_sizes, train_mean, 'o-', color="r", label="Training score")
+plt.plot(train_sizes, test_mean, 'o-', color="g", label="Cross-validation score")
+plt.title("SVM Learning Curves (Accuracy vs. Training Size)")
+plt.xlabel("Training Examples")
+plt.ylabel("Accuracy Score")
+plt.legend(loc="best")
+plt.grid(True)
+lc_path = os.path.join(output_dir, "learning_curves.png")
+plt.savefig(lc_path, dpi=200, bbox_inches='tight')
+plt.show()
+
+# 7. EVALUATION & CONFUSION MATRIX
 print("\nEvaluating...")
 start_eval = time.time()
 y_pred = svm.predict(X_val)
@@ -150,7 +175,7 @@ print(f"SVM Accuracy: {svm_acc:.4f}")
 print(f"SVM Balanced Accuracy: {svm_bal_acc:.4f}")
 print(f"SVM Macro F1: {svm_macro_f1:.4f}")
 print(f"Inference Time: {ms_per_batch:.4f} ms/batch | {images_per_sec:.4f} images/sec")
-gpu_peak_mb = (torch.cuda.max_memory_allocated(device) / (1024 ** 2)) if device.type == "cuda" else None
+gpu_peak_mb = (torch.cuda.max_memory_allocated() / (1024 ** 2)) if device.type == "cuda" else None
 print(f"GPU Peak Memory: {gpu_peak_mb:.4f} MB" if gpu_peak_mb is not None else "GPU Peak Memory: N/A (CPU)")
 print("Classification Report:\n", classification_report(y_val, y_pred, target_names=class_names, zero_division=0, digits=4))
 
@@ -194,6 +219,7 @@ report = {
     "gpu_peak_mb": float(gpu_peak_mb) if gpu_peak_mb is not None else None,
     "artifacts": {
         "confusion_matrix": cm_path,
+        "learning_curves": lc_path,
     },
 }
 with open(os.path.join(output_dir, "svm_report.json"), "w") as f:
