@@ -12,7 +12,8 @@
         h2{font-size:1rem;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.12em;color:#7A746A}
         ul{padding-left:20px;line-height:1.8}
         .back{display:inline-block;margin-bottom:16px}
-        code{background:#1C1A16;color:#D4C9BB;border-radius:10px;padding:2px 5px}
+        code,pre{background:#1C1A16;color:#D4C9BB;border-radius:10px}
+        pre{padding:14px;overflow:auto}
     </style>
 </head>
 <body>
@@ -22,14 +23,14 @@
         <p>Bagging-based regression model from <code>ml_tabular_insurance1.ipynb</code>.</p>
         <h2>Pipeline</h2>
         <ul>
-            <li><strong>Input:</strong> insurance rows with numeric and categorical fields</li>
-            <li><strong>Preprocess:</strong> one-hot encoding + standard scaling</li>
-            <li><strong>Head:</strong> <code>RandomForestRegressor(n_estimators=100, random_state=42)</code></li>
-            <li><strong>Evaluation:</strong> RMSE, MAE, and R²</li>
-            <li><strong>Analysis:</strong> residual plots and comparison against the linear baseline</li>
+            <li>Use the same one-hot encoded and standardized features</li>
+            <li>Train <code>RandomForestRegressor(n_estimators=100, random_state=42)</code></li>
+            <li>Benchmark training and inference time</li>
+            <li>Evaluate with RMSE, MAE, and R²</li>
+            <li>Inspect actual-vs-predicted scatter plot and residual plot</li>
         </ul>
         <h2>Key idea</h2>
-        <p>Uses multiple trees and bagging to capture non-linear relationships in the insurance data.</p>
+        <p>Captures non-linear relationships by averaging many decision trees trained on bootstrapped samples.</p>
     </div>
 </body>
 </html>
