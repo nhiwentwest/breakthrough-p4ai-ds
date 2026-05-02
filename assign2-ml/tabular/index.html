@@ -49,6 +49,7 @@
         .big-stat-sub{font-size:.8rem;color:var(--ink-faint);margin-top:2px}
         .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .cards--2{grid-template-columns:repeat(2,1fr)}
+        .cards--1{grid-template-columns:1fr}
         .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}
         .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
         .card--accent{border-color:var(--accent-soft)}
@@ -127,34 +128,16 @@
             <div class="stat"><div class="big-stat-lbl">Metrics</div><div class="big-stat-val">RMSE / MAE / R²</div><div class="big-stat-sub">error + fit quality</div></div>
         </section>
 
-        <div class="section-label">Model Cards</div>
-        <div class="cards">
-            <a class="card card--accent" href="./regression-model.html">
-                <div class="card-head">
-                    <div class="card-icon">01</div>
+        <div class="section-label">Model Suite</div>
+        <div class="cards cards--1">
+            <a class="card card--accent" href="./regression-model.html" style="padding:28px">
+                <div class="card-head" style="align-items:center;gap:20px">
+                    <div class="card-icon" style="width:52px;height:52px;font-size:1.5rem;border-radius:12px">📊</div>
                     <div class="card-meta">
-                        <div class="card-title">Linear Regression</div>
-                        <div class="mini-link">Click to view details</div>
-                    </div>
-                </div>
-            </a>
-
-            <a class="card card--teal" href="./regression-model.html">
-                <div class="card-head">
-                    <div class="card-icon">02</div>
-                    <div class="card-meta">
-                        <div class="card-title">Random Forest</div>
-                        <div class="mini-link">Click to view details</div>
-                    </div>
-                </div>
-            </a>
-
-            <a class="card card--blue" href="./regression-model.html">
-                <div class="card-head">
-                    <div class="card-icon">03</div>
-                    <div class="card-meta">
-                        <div class="card-title">Gradient Boosting</div>
-                        <div class="mini-link">Click to view details</div>
+                        <div class="card-kicker">Performance Leaderboard</div>
+                        <div class="card-title" style="font-size:1.4rem;margin-bottom:6px">Regression Model Suite</div>
+                        <div class="card-sub" style="font-size:.85rem;max-width:600px">A comprehensive comparison of Linear Regression, Random Forest, and Gradient Boosting. Includes R² scores, residual analysis, and inference benchmarks.</div>
+                        <div class="mini-link" style="margin-top:12px;font-size:.8rem">Explore Comparative Analysis & Metrics →</div>
                     </div>
                 </div>
             </a>
