@@ -44,9 +44,9 @@
         .chip--ok{background:rgba(45,106,79,.09);border-color:rgba(45,106,79,.24);color:var(--green);font-weight:500}
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         .stat{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:14px 16px;box-shadow:var(--shadow-sm)}
-        .stat-lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:6px}
-        .stat-val{font-size:2.2rem;font-weight:700;color:var(--accent);line-height:1.1}
-        .stat-sub{font-size:.8rem;color:var(--ink-faint);margin-top:2px}
+        .big-stat-lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:6px}
+        .big-stat-val{font-size:2.2rem;font-weight:700;color:var(--accent);line-height:1.1}
+        .big-stat-sub{font-size:.8rem;color:var(--ink-faint);margin-top:2px}
         .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .cards--2{grid-template-columns:repeat(2,1fr)}
         .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}
@@ -121,10 +121,10 @@
         </section>
 
         <section class="stats">
-            <div class="stat"><div class="stat-lbl">Records</div><div class="stat-val">1338</div><div class="stat-sub">raw insurance dataset</div></div>
-            <div class="stat"><div class="stat-lbl">Features</div><div class="stat-val">7</div><div class="stat-sub">age, sex, bmi, children, smoker, region, etc.</div></div>
-            <div class="stat"><div class="stat-lbl">Task</div><div class="stat-val">Regression</div><div class="stat-sub">predict medical charges</div></div>
-            <div class="stat"><div class="stat-lbl">Metrics</div><div class="stat-val">RMSE / MAE / R²</div><div class="stat-sub">error + fit quality</div></div>
+            <div class="stat"><div class="big-stat-lbl">Records</div><div class="big-stat-val">1338</div><div class="big-stat-sub">raw insurance dataset</div></div>
+            <div class="stat"><div class="big-stat-lbl">Features</div><div class="big-stat-val">7</div><div class="big-stat-sub">age, sex, bmi, children, smoker, region, etc.</div></div>
+            <div class="stat"><div class="big-stat-lbl">Task</div><div class="big-stat-val">Regression</div><div class="big-stat-sub">predict medical charges</div></div>
+            <div class="stat"><div class="big-stat-lbl">Metrics</div><div class="big-stat-val">RMSE / MAE / R²</div><div class="big-stat-sub">error + fit quality</div></div>
         </section>
 
         <div class="section-label">Model Cards</div>
