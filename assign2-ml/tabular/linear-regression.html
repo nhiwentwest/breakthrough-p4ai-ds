@@ -17,6 +17,7 @@
         .result-stack{display:grid;gap:14px;margin-top:18px}.image-card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm)}.image-card img{width:100%;height:auto;border-radius:10px;display:block}
         .desc-text{font-size:.75rem;color:var(--ink-muted);margin-top:10px;line-height:1.5;font-style:italic}
         .section-label { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-faint); margin: 32px 0 12px; padding-left: 2px; }
+        .links{display:grid;grid-template-columns:1fr;gap:12px}.link{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}.link:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent)}.link .u{font-size:.74rem;color:var(--accent);word-break:break-all}
         footer{text-align:center;padding:18px;color:var(--ink-faint);font-size:.63rem;letter-spacing:.1em;border-top:1px solid var(--border);margin-top:18px}
         @media(max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:20px 20px 32px}.topbar{padding:12px 20px}.row{grid-template-columns:1fr}}
     </style>
@@ -41,7 +42,12 @@
       <div class="s">Based on the R² score and RMSE, <strong>unknown</strong> provides the most robust predictive performance for this dataset.</div>
       <div style="margin-top:16px">
          <div class="label">Source Notebook</div>
-         <a href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" style="font-size:.72rem;color:var(--accent);text-decoration:underline">ml_tabular_insurance1.ipynb</a>
+         <div class="links">
+           <a class="link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener">
+             <div class="k" style="font-size:.72rem;margin-bottom:2px">Jupyter Notebook</div>
+             <div class="u">ml_tabular_insurance1.ipynb</div>
+           </a>
+         </div>
       </div>
     </aside>
   </div>
