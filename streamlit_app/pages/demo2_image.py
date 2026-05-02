@@ -960,13 +960,14 @@ with left:
                     true_name = str(true_label)
                 st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
 
-    pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
-    explain = st.checkbox("Explain", value=False, help="Generate saliency / Grad-CAM / occlusion heatmaps only when enabled.", label_visibility="collapsed")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with right:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Prediction & Explainability</div>", unsafe_allow_html=True)
+
+    pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
+    explain = st.checkbox("Explain", value=False, help="Generate saliency / Grad-CAM / occlusion heatmaps only when enabled.", label_visibility="collapsed")
 
     if pred_btn:
         if image is None:
@@ -1014,11 +1015,11 @@ with right:
 
             top_label, top_prob = topk[0]
 
-            pred_col, top5_col = st.columns([1, 1.05], gap="medium")
+            pred_col, top5_col = st.columns([0.9, 1.1], gap="medium")
             with pred_col:
                 st.markdown("<div class='section'>Prediction Result</div>", unsafe_allow_html=True)
-                st.markdown(f"<div class='demo-label' style='margin-top:0.2rem;'>Predicted label: <b>{top_label}</b></div>", unsafe_allow_html=True)
-                st.markdown(f"<div class='demo-label' style='margin-top:0.45rem;'>Confidence: <b>{top_prob:.2%}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='demo-label' style='margin-top:0.15rem;'>Predicted label: <b>{top_label}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='demo-label' style='margin-top:0.28rem;'>Confidence: <b>{top_prob:.2%}</b></div>", unsafe_allow_html=True)
                 st.progress(float(top_prob))
                 if model_debug and "top1_top2_gap" in model_debug:
                     st.caption(f"Top-1 vs Top-2 gap: {model_debug['top1_top2_gap']:.2%}")
@@ -1027,9 +1028,9 @@ with right:
                 top5_html = []
                 for label, prob in topk:
                     top5_html.append(
-                        f"<div style='display:flex; justify-content:space-between; gap:.75rem; margin-bottom:.28rem; font-size:0.92rem;'><span style='font-weight:600;'>{label}</span><span>{prob:.2%}</span></div>"
+                        f"<div style='display:flex; justify-content:space-between; gap:.6rem; margin-bottom:.16rem; font-size:0.84rem; line-height:1.05;'><span style='font-weight:600;'>{label}</span><span>{prob:.2%}</span></div>"
                     )
-                st.markdown("<div class='bento' style='padding:.55rem .7rem; background:#f4ede2;'>" + "".join(top5_html) + "</div>", unsafe_allow_html=True)
+                st.markdown("<div class='bento' style='padding:.4rem .55rem; background:#f4ede2;'>" + "".join(top5_html) + "</div>", unsafe_allow_html=True)
 
             if explain:
                 st.markdown("<div class='section'>Visual Explanations</div>", unsafe_allow_html=True)
