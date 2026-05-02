@@ -852,8 +852,8 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Keep the demo above-the-fold by dedicating more width to the result panel.
-left, right = st.columns([0.72, 1.78])
+# Keep the demo above-the-fold while giving the control panel a bit more room.
+left, right = st.columns([0.84, 1.64])
 
 with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
