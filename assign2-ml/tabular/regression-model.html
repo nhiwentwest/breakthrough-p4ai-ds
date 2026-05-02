@@ -38,8 +38,8 @@
     </section>
     <aside class="card">
       <div class="label">Key Findings</div>
-      <div class="k">Best Performer: unknown</div>
-      <div class="s">Based on the R² score and RMSE, <strong>unknown</strong> provides the most robust predictive performance for this dataset.</div>
+      <div class="k">Best Performer: Gradient Boosting</div>
+      <div class="s">Based on the notebook's comparison of R² and RMSE, <strong>Gradient Boosting Regressor</strong> provides the most robust predictive performance for this dataset.</div>
       <div style="margin-top:16px">
          <div class="label">Source Notebook</div>
          <div class="links">
@@ -54,7 +54,7 @@
 
   <div class="section-label">Model Comparison (R2 Score)</div>
   <div class="image-card">
-    <img src="unknown" alt="R2 Score Comparison Chart placeholder" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="./figures/r2_score_comparison.png" alt="R2 Score Comparison Chart" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Visualizing the performance in explaining data variance across three algorithms. An R2 score closer to 1.0 indicates a more accurate prediction model.</p>
   </div>
 
@@ -76,29 +76,29 @@
         <tr>
           <td>Linear Regression</td>
           <td>Default</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
         </tr>
         <tr>
           <td>Random Forest</td>
-          <td>n_estimators=unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
+          <td>n_estimators=100</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
         </tr>
         <tr>
           <td>Gradient Boosting</td>
-          <td>learning_rate=unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
-          <td>unknown</td>
+          <td>learning_rate=0.1, n_estimators=100, max_depth=3</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
         </tr>
       </tbody>
     </table>
