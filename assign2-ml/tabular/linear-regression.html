@@ -3,71 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linear Regression · Assignment 02 | Breakthrough</title>
+    <title>Model Comparison · Tabular A02 | Breakthrough</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        :root{--bg:#F0EDE6;--bg-card:#FAF8F4;--ink:#1C1A16;--ink-muted:#7A746A;--ink-faint:#B0A89C;--accent:#A06820;--blue:#3D5A80;--border:rgba(28,26,22,.09);--border-md:rgba(28,26,22,.14);--shadow-sm:0 1px 3px rgba(28,26,22,.06),0 2px 8px rgba(28,26,22,.04)}
+        :root{--bg:#F0EDE6;--bg-card:#FAF8F4;--ink:#1C1A16;--ink-muted:#7A746A;--ink-faint:#B0A89C;--accent:#A06820;--blue:#3D5A80;--teal:#2A7A70;--border:rgba(28,26,22,.09);--border-md:rgba(28,26,22,.14);--shadow-sm:0 1px 3px rgba(28,26,22,.06),0 2px 8px rgba(28,26,22,.04)}
         body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}a{text-decoration:none;color:inherit}
         .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 40px;background:var(--bg-card);border-bottom:1px solid var(--border)}
         .brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08rem;display:inline-flex;align-items:center;gap:7px}.brand .b{color:var(--ink)}.brand .t{color:var(--accent)}.brand .i{width:18px;height:18px;border-radius:999px;background:rgba(61,90,128,.09);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
         .wrap{max-width:900px;margin:0 auto;padding:28px 40px 44px}.eyebrow{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}.title{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2rem,4vw,3rem);line-height:1;margin-bottom:8px}.sub{max-width:760px;color:var(--ink);line-height:1.55;font-size:.82rem}
         .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:22px}.card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;box-shadow:var(--shadow-sm);padding:18px}.label{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}.k{font-size:.95rem;font-weight:700;color:var(--accent);margin-bottom:4px}.s{font-size:.78rem;color:var(--ink-muted);line-height:1.45}
         .row{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:start;padding:10px 0;border-top:1px solid var(--border)}.row:first-child{border-top:none;padding-top:0}.rlabel{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}.rval{font-size:.88rem;font-weight:700;color:var(--accent)}.rdesc{font-size:.72rem;color:var(--ink-muted);margin-top:2px;line-height:1.4}
-        .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.chip{font-size:.63rem;padding:4px 10px;border-radius:999px;border:1px solid var(--border-md);background:var(--bg);color:var(--ink-muted)}
-        .links{display:grid;grid-template-columns:1fr;gap:12px}.link{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}.link:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--accent-soft)}.link .u{font-size:.74rem;color:var(--accent);word-break:break-all}
-        .table-card{margin-top:14px;background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}.table-title{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}.tbl{width:100%;border-collapse:collapse;font-size:.82rem}.tbl th,.tbl td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top;line-height:1.45}.tbl th{background:var(--bg);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
-        .result-stack{display:grid;gap:14px;margin-top:14px}.image-card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm)}.image-card img{width:100%;height:auto;border-radius:10px;display:block}
+        .table-card{margin-top:18px;background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm)}.table-title{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}.tbl{width:100%;border-collapse:collapse;font-size:.82rem}.tbl th,.tbl td{border:1px solid var(--border);padding:10px 12px;text-align:left;vertical-align:top;line-height:1.45}.tbl th{background:var(--bg);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-muted)}
+        .result-stack{display:grid;gap:14px;margin-top:18px}.image-card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm)}.image-card img{width:100%;height:auto;border-radius:10px;display:block}
+        .desc-text{font-size:.75rem;color:var(--ink-muted);margin-top:10px;line-height:1.5;font-style:italic}
         footer{text-align:center;padding:18px;color:var(--ink-faint);font-size:.63rem;letter-spacing:.1em;border-top:1px solid var(--border);margin-top:18px}
         @media(max-width:900px){.grid{grid-template-columns:1fr}.wrap{padding:20px 20px 32px}.topbar{padding:12px 20px}.row{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
-<div class="topbar"><a class="brand" href="../index.html" title="Return to landpage"><span class="i">↩</span><span class="b">Break</span><span class="t">through.</span></a><div style="font-size:.68rem;letter-spacing:.08em;color:#B0A89C">A02 · Tabular · Linear Regression</div></div>
+<div class="topbar"><a class="brand" href="./index.html" title="Return to Tabular index"><span class="i">↩</span><span class="b">Break</span><span class="t">through.</span></a><div style="font-size:.68rem;letter-spacing:.08em;color:#B0A89C">A02 · Tabular · Performance Suite</div></div>
 <main class="wrap">
-  <div class="eyebrow">Assignment 02 · Model Child Page</div>
-  <h1 class="title">Linear Regression</h1>
-  <p class="sub">Template cloned from MBLANet. Content will be updated for Tabular Linear Regression. Baseline regression model used for predicting medical insurance charges.</p>
+  <div class="eyebrow">Assignment 02 · Comparative Analysis</div>
+  <h1 class="title">Regression Model Suite</h1>
+  <p class="sub">Evaluation of three fundamental regression algorithms—Linear Regression, Random Forest, and Gradient Boosting—on the insurance dataset to predict medical charges. This page analyzes the accuracy and performance trade-offs across the suite.</p>
+  
   <div class="grid">
     <section class="card">
-      <div class="label">Pipeline</div>
-      <div class="row"><div class="rlabel">Input</div><div><div class="rval">Placeholder</div><div class="rdesc">Description placeholder.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Placeholder</div><div class="rdesc">Description placeholder.</div></div></div>
-      <div class="row"><div class="rlabel">Model</div><div><div class="rval">Placeholder</div><div class="rdesc">Description placeholder.</div></div></div>
-      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Placeholder</div><div class="rdesc">Description placeholder.</div></div></div>
+      <div class="label">Shared Pipeline</div>
+      <div class="row"><div class="rlabel">Input</div><div><div class="rval">Insurance Dataset</div><div class="rdesc">1338 records with features: age, sex, bmi, children, smoker, region.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">One-Hot + Standard Scaling</div><div class="rdesc">Categorical variables (sex, smoker, region) are encoded; numeric features are scaled to zero mean and unit variance.</div></div></div>
+      <div class="row"><div class="rlabel">Models</div><div><div class="rval">LR / RF / GBDT</div><div class="rdesc">Three distinct levels of complexity: from simple linear baseline to high-performance ensemble methods.</div></div></div>
     </section>
     <aside class="card">
-      <div class="label">What makes it different</div>
-      <div class="k">Baseline Model</div>
-      <div class="s">Description placeholder for the linear regression characteristics.</div>
-      <div class="chips"><span class="chip">Linear</span><span class="chip">Baseline</span><span class="chip">Scikit-Learn</span></div>
-      <div class="label" style="margin-top:16px">Source links</div>
-      <div class="links">
-        <a class="link" href="#" target="_blank" rel="noopener"><div class="k" style="font-size:.72rem;margin-bottom:2px">Notebook link</div><div class="u">#</div></a>
+      <div class="label">Key Findings</div>
+      <div class="k">Best Performer: unknown</div>
+      <div class="s">Based on the R² score and RMSE, <strong>unknown</strong> provides the most robust predictive performance for this dataset.</div>
+      <div style="margin-top:16px">
+         <div class="label">Source Notebook</div>
+         <a href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" style="font-size:.72rem;color:var(--accent);text-decoration:underline">ml_tabular_insurance1.ipynb</a>
       </div>
     </aside>
   </div>
 
+  <div class="image-card">
+    <div class="table-title">Model Comparison (R2 Score)</div>
+    <img src="unknown" alt="R2 Score Comparison Chart placeholder" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <p class="desc-text">Biểu đồ trực quan hóa hiệu suất giải thích sự biến thiên dữ liệu của 3 thuật toán. Chỉ số R2 càng bám sát 1.0 chứng tỏ mô hình dự đoán càng chính xác.</p>
+  </div>
+
   <div class="table-card">
-    <div class="table-title">TRAINING Configuration</div>
+    <div class="table-title">Comprehensive Model Summary Table</div>
     <table class="tbl">
       <thead>
         <tr>
-          <th>Hyperparameter</th>
-          <th>Configuration</th>
+          <th>Model</th>
+          <th>Key Hyperparameters</th>
+          <th>RMSE</th>
+          <th>MAE</th>
+          <th>R2 Score</th>
+          <th>Train Time</th>
+          <th>Inference</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td>Model</td>
-          <td>LinearRegression()</td>
+          <td>Linear Regression</td>
+          <td>Default</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+        </tr>
+        <tr>
+          <td>Random Forest</td>
+          <td>n_estimators=unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+        </tr>
+        <tr>
+          <td>Gradient Boosting</td>
+          <td>learning_rate=unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
+          <td>unknown</td>
         </tr>
       </tbody>
     </table>
+    <p class="desc-text">Bảng phân tích chi tiết sự đánh đổi (trade-off) giữa tốc độ tính toán (thời gian huấn luyện/suy luận) và độ chính xác của từng thuật toán.</p>
   </div>
-  <div class="table-card">
-    <div class="table-title">Result</div>
-    <table class="tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>RMSE</td><td>0.0000</td></tr></tbody></table>
-  </div>
+
 </main>
 <footer>Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026</footer>
 </body>
