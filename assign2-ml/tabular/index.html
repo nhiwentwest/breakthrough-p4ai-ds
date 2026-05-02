@@ -47,7 +47,7 @@
         .stat-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-faint);margin-bottom:4px}
         .stat-val{font-size:1.35rem;font-weight:700;color:var(--accent);line-height:1}
         .stat-sub{font-size:.62rem;color:var(--ink-faint);margin-top:2px}
-        .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+        .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:16px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}
         .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
         .card--accent{border-color:var(--accent-soft)}
@@ -128,43 +128,13 @@
         <section class="panel">
             <div class="panel-title">Overview + Model Cards</div>
             <div class="cards">
-                <a class="card card--green" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener noreferrer">
-                    <div class="card-head">
-                        <div class="card-icon">🧭</div>
-                        <div class="card-meta">
-                            <div class="card-kicker">Notebook overview</div>
-                            <div class="card-title">End-to-end pipeline</div>
-                            <div class="card-sub">Sections 1–9 · preprocessing, training, residuals, learning curves, and insights.</div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="stat-row"><span class="stat-lbl">What to inspect</span><div><div class="stat-val">Section map</div><div class="stat-desc">Use this as your starting point</div></div></div>
-                        <div class="pills"><span class="pill">Data load</span><span class="pill">Preprocess</span><span class="pill">Analysis</span></div>
-                    </div>
-                    <div class="card-links">
-                        <span class="mini-link">Open notebook on GitHub →</span>
-                        <span class="mini-link">Jump to Sections 1–2: data + preprocessing</span>
-                        <span class="mini-link">Jump to Sections 3–5: model training</span>
-                        <span class="mini-link">Jump to Sections 6–9: curves, comparison, insights</span>
-                    </div>
-                </a>
-
                 <a class="card card--accent" href="./linear-regression.html">
                     <div class="card-head">
                         <div class="card-icon">01</div>
                         <div class="card-meta">
-                            <div class="card-kicker">Baseline</div>
                             <div class="card-title">Linear Regression</div>
-                            <div class="card-sub">Simple linear baseline after one-hot encoding and scaling.</div>
+                            <div class="mini-link">Click to view details</div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§3 + §6</div><div class="stat-desc">Algorithm 1 and learning curve check</div></div></div>
-                        <div class="pills"><span class="pill">Residual plot</span><span class="pill">Actual vs predicted</span></div>
-                    </div>
-                    <div class="card-links">
-                        <span class="mini-link">Model details page →</span>
-                        <span class="mini-link">Notebook sections: preprocessing + Algorithm 1</span>
                     </div>
                 </a>
 
@@ -172,18 +142,9 @@
                     <div class="card-head">
                         <div class="card-icon">02</div>
                         <div class="card-meta">
-                            <div class="card-kicker">Ensemble</div>
                             <div class="card-title">Random Forest</div>
-                            <div class="card-sub">Bagging-based ensemble that captures non-linear relationships.</div>
+                            <div class="mini-link">Click to view details</div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§4 + §6</div><div class="stat-desc">Algorithm 2 and stability analysis</div></div></div>
-                        <div class="pills"><span class="pill">Bagging</span><span class="pill">Residual plot</span></div>
-                    </div>
-                    <div class="card-links">
-                        <span class="mini-link">Model details page →</span>
-                        <span class="mini-link">Notebook sections: Algorithm 2 + learning curves</span>
                     </div>
                 </a>
 
@@ -191,18 +152,9 @@
                     <div class="card-head">
                         <div class="card-icon">03</div>
                         <div class="card-meta">
-                            <div class="card-kicker">Boosting</div>
                             <div class="card-title">Gradient Boosting</div>
-                            <div class="card-sub">Boosting-based model with the strongest predictive performance.</div>
+                            <div class="mini-link">Click to view details</div>
                         </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="stat-row"><span class="stat-lbl">Notebook refs</span><div><div class="stat-val">§5 + §7–§9</div><div class="stat-desc">Algorithm 3, importance, summary, insights</div></div></div>
-                        <div class="pills"><span class="pill">Feature importance</span><span class="pill">Best fit</span></div>
-                    </div>
-                    <div class="card-links">
-                        <span class="mini-link">Model details page →</span>
-                        <span class="mini-link">Notebook sections: Algorithm 3 + comparison</span>
                     </div>
                 </a>
             </div>
