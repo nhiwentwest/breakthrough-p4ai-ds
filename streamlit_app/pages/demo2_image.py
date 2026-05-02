@@ -53,19 +53,19 @@ body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-s
 #MainMenu,footer,header {{ visibility:hidden; }}
 section[data-testid="stSidebar"] {{ display:none !important; }}
 div[data-testid="collapsedControl"] {{ display:none !important; }}
-.block-container {{ padding-top:0.55rem; padding-bottom:0.35rem; max-width: 1200px; }}
-.hero {{ font-family:'Playfair Display',serif; font-size:2rem; font-weight:900; margin:0; line-height:1.05; }}
-.sub {{ color:{MUT}; margin-top:.2rem; margin-bottom:.65rem; font-size:0.92rem; }}
-.bento {{ background:{CARD}; border:1px solid {BOR}; border-radius:14px; padding:0.78rem; }}
-.section {{ font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.45rem; }}
-.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; padding:.45rem .7rem; }}
+.block-container {{ padding-top:0.35rem; padding-bottom:0.2rem; max-width: 1240px; }}
+.hero {{ font-family:'Playfair Display',serif; font-size:1.78rem; font-weight:900; margin:0; line-height:1.03; }}
+.sub {{ color:{MUT}; margin-top:.12rem; margin-bottom:.35rem; font-size:0.84rem; line-height:1.25; }}
+.bento {{ background:{CARD}; border:1px solid {BOR}; border-radius:14px; padding:0.6rem; }}
+.section {{ font-size:.61rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.3rem; }}
+.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.07em; border-radius:4px; padding:.38rem .6rem; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
-.small-note {{ color:{MUT}; font-size:0.78rem; }}
-.kpi-grid {{ display:grid; grid-template-columns: 1fr; gap:.35rem; margin:.35rem 0 .55rem; }}
-.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.45rem .65rem; }}
-.kpi-lbl {{ font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
-.kpi-val {{ font-weight:700; font-size:.9rem; margin-top:.1rem; }}
-.editor-bar {{ display:flex; align-items:center; gap:.28rem; margin-bottom:.4rem; }}
+.small-note {{ color:{MUT}; font-size:0.74rem; }}
+.kpi-grid {{ display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:.3rem; margin:.18rem 0 .34rem; }}
+.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:11px; padding:.28rem .42rem; min-height:54px; }}
+.kpi-lbl {{ font-size:.54rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; line-height:1.05; }}
+.kpi-val {{ font-weight:700; font-size:.8rem; margin-top:.08rem; line-height:1.15; }}
+.editor-bar {{ display:flex; align-items:center; gap:.24rem; margin-bottom:.3rem; }}
 .dot {{ width:.55rem; height:.55rem; border-radius:999px; display:inline-block; }}
 .dot-r {{ background:#e57373; }} .dot-y {{ background:#ffca28; }} .dot-g {{ background:#66bb6a; }}
 .demo-label {{ color:#111111 !important; font-weight:700; background:#f3eadb; border:1px solid #d7c7b2; padding:.35rem .55rem; border-radius:8px; display:inline-block; margin-top:.35rem; }}
@@ -852,24 +852,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    """
-    <div class='kpi-grid'>
-      <div class='kpi-card'><div class='kpi-lbl'>Task</div><div class='kpi-val'>RSITMD Image Classification</div></div>
-      <div class='kpi-card'><div class='kpi-lbl'>Input Size</div><div class='kpi-val'>224 × 224 px</div></div>
-      <div class='kpi-card'><div class='kpi-lbl'>Explainability</div><div class='kpi-val'>Saliency · Grad-CAM · Attention</div></div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-left, right = st.columns([0.92, 1.58])
+# Keep the demo above-the-fold by dedicating more width to the result panel.
+left, right = st.columns([0.72, 1.78])
 
 with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model & Input Console</div>", unsafe_allow_html=True)
 
     model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
+
+    st.markdown("<div class='small-note'>Tip: load once, then switch demo states without reloading until you change model.</div>", unsafe_allow_html=True)
 
     # Lazy-load model assets to avoid heavy startup crashes on Streamlit Cloud
     model = None
@@ -912,7 +904,7 @@ with left:
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
-    mode = st.radio("Input mode", ["Upload image", "Drive random sample", "Drive named sample"], horizontal=True)
+    mode = st.radio("Input mode", ["Upload image", "Drive random sample", "Drive named sample"], horizontal=True, label_visibility="collapsed")
 
     image = None
     true_label = None
@@ -969,7 +961,7 @@ with left:
                 st.markdown(f"<div class='demo-label'>Ground truth label: {true_name}</div>", unsafe_allow_html=True)
 
     pred_btn = st.button("Predict", use_container_width=True, disabled=not model_ready)
-    explain = st.checkbox("Explain", value=False, help="Generate saliency / Grad-CAM / occlusion heatmaps only when enabled.")
+    explain = st.checkbox("Explain", value=False, help="Generate saliency / Grad-CAM / occlusion heatmaps only when enabled.", label_visibility="collapsed")
     st.markdown("</div>", unsafe_allow_html=True)
 
 with right:
