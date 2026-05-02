@@ -879,21 +879,26 @@ with left:
 
     load_model_btn = st.button("Load selected model", use_container_width=True)
 
+    loaded_key = f"image_demo_loaded_model::{model_choice}"
     if load_model_btn:
         with st.spinner(f"Preparing {model_choice}..."):
             ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
             model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
-            st.session_state["image_demo_loaded_model_choice"] = model_choice
-            st.session_state["image_demo_ckpt_path"] = _ckpt_used
+            st.session_state[loaded_key] = {
+                "model": model,
+                "id2label": id2label,
+                "device": device,
+                "ckpt": _ckpt_used,
+            }
         st.success("Model loaded successfully.")
 
     # Re-hydrate cached model object if user loaded it previously
-    if st.session_state.get("image_demo_loaded_model_choice") == model_choice:
-        try:
-            ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
-            model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
-        except Exception:
-            model = None
+    cached_loaded = st.session_state.get(loaded_key)
+    if cached_loaded:
+        model = cached_loaded.get("model")
+        id2label = cached_loaded.get("id2label")
+        device = cached_loaded.get("device", device)
+        _ckpt_used = cached_loaded.get("ckpt", _ckpt_used)
 
     model_ready = (model is not None)
 
