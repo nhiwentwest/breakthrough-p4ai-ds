@@ -150,8 +150,14 @@ def load_sample_dataset():
 # Evaluation function removed as per request
 
 
-model, tokenizer, checkpoint_path = load_text_model()
+model = None
+tokenizer = None
+checkpoint_path = None
+
 df = load_sample_dataset()
+
+if "text_demo_model_loaded" not in st.session_state:
+    st.session_state["text_demo_model_loaded"] = False
 
 st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
 left, right = st.columns([1.15, 1])
@@ -160,8 +166,23 @@ with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model</div>", unsafe_allow_html=True)
     st.markdown("<div class='model-chip'>BERT fine-tuning</div>", unsafe_allow_html=True)
-    st.caption("Checkpoint")
-    st.code(checkpoint_path, language="text")
+
+    load_model_btn = st.button("Load BERT model", use_container_width=True)
+    if load_model_btn:
+        with st.spinner("Downloading/loading BERT checkpoint..."):
+            model, tokenizer, checkpoint_path = load_text_model()
+            st.session_state["text_demo_model_loaded"] = True
+            st.session_state["text_demo_checkpoint_path"] = checkpoint_path
+        st.success("BERT model loaded successfully.")
+
+    if st.session_state.get("text_demo_model_loaded"):
+        if model is None or tokenizer is None:
+            with st.spinner("Restoring loaded model..."):
+                model, tokenizer, checkpoint_path = load_text_model()
+        st.caption("Checkpoint")
+        st.code(st.session_state.get("text_demo_checkpoint_path", checkpoint_path), language="text")
+    else:
+        st.info("Click 'Load BERT model' before running prediction.")
 
     st.markdown("<div class='section'>Input Text</div>", unsafe_allow_html=True)
     sample_options = df.sample(6, random_state=7).reset_index(drop=True)
@@ -177,19 +198,24 @@ with right:
     st.markdown("<div class='section'>Prediction</div>", unsafe_allow_html=True)
     
     if pred_btn:
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
-        with torch.no_grad():
-            logits = model.to(device)(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
-            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-            pred_id = int(np.argmax(probs))
-        st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
-        st.write("Class probabilities")
-        for i, p in enumerate(probs):
-            st.markdown(
-                f"<div style='margin-bottom:0.6rem;'><div style='display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.25rem; font-weight:600;'><span>{LABELS[i]}</span><span>{p:.1%}</span></div><div style='width:100%; background:rgba(212,201,184,0.4); border-radius:99px; height:8px; overflow:hidden;'><div style='width:{p*100}%; background:#B42318; height:100%; border-radius:99px;'></div></div></div>",
-                unsafe_allow_html=True
-            )
+        if not st.session_state.get("text_demo_model_loaded"):
+            st.warning("Please load the BERT model first.")
+        else:
+            if model is None or tokenizer is None:
+                model, tokenizer, checkpoint_path = load_text_model()
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
+            with torch.no_grad():
+                logits = model.to(device)(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
+                probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+                pred_id = int(np.argmax(probs))
+            st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
+            st.write("Class probabilities")
+            for i, p in enumerate(probs):
+                st.markdown(
+                    f"<div style='margin-bottom:0.6rem;'><div style='display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:0.25rem; font-weight:600;'><span>{LABELS[i]}</span><span>{p:.1%}</span></div><div style='width:100%; background:rgba(212,201,184,0.4); border-radius:99px; height:8px; overflow:hidden;'><div style='width:{p*100}%; background:#B42318; height:100%; border-radius:99px;'></div></div></div>",
+                    unsafe_allow_html=True
+                )
     else:
         st.info("Choose a sample or type text, then click Predict.")
 
