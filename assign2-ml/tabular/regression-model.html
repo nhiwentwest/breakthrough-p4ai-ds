@@ -31,23 +31,19 @@
   
   <div class="grid">
     <section class="card">
-      <div class="label">Source Notebook</div>
-      <div class="k">Notebook reference for this section</div>
-      <div class="s">Use the linked notebook as the source of truth for preprocessing details, model setup, metrics, and the pipeline design used throughout this tabular regression page.</div>
-      <div style="margin-top:14px">
-        <div class="links">
-          <a class="link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener">
-            <div class="k" style="font-size:.72rem;margin-bottom:2px">Jupyter Notebook</div>
-            <div class="u">ml_tabular_insurance1.ipynb</div>
-          </a>
-        </div>
-      </div>
-    </section>
-    <aside class="card">
       <div class="label">Preprocessing & Strategy</div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Verified 0% missing data</div><div class="rdesc">All 1,338 samples are complete, so no imputation was required.</div></div></div>
+      <div class="row"><div class="rlabel">Missing Values</div><div><div class="rval">Verified 0% missing data</div><div class="rdesc">All 1,338 samples are complete, so no imputation was required.</div></div></div>
       <div class="row"><div class="rlabel">Data Splitting</div><div><div class="rval">80% Training / 20% Testing</div><div class="rdesc">1,070 training samples and 268 testing samples; random_state=42 was fixed for reproducibility.</div></div></div>
       <div class="row"><div class="rlabel">Feature Engineering</div><div><div class="rval">One-Hot Encoding + Standardization</div><div class="rdesc">Categorical variables (sex, smoker, region) were converted to numeric binary columns, while age and bmi were scaled with StandardScaler to a common range.</div></div></div>
+      <div class="row"><div class="rlabel">Source Notebook</div><div><div class="rval">ml_tabular_insurance1.ipynb</div><div class="rdesc"><a href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:underline">Open the notebook on GitHub</a> for the preprocessing, model setup, and evaluation pipeline used on this page.</div></div></div>
+    </section>
+    <aside class="card">
+      <div class="label">Pipeline</div>
+      <div class="row"><div class="rlabel">Input</div><div><div class="rval">Raw CSV → Pandas DataFrame</div><div class="rdesc">Loading raw insurance data into a structured tabular format for processing.</div></div></div>
+      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Missing values, encoding, scaling</div><div class="rdesc">The preprocessing stage verifies completeness, encodes categorical variables, and standardizes age and bmi.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">Scaler fit on training only</div><div class="rdesc">The scaler is fit only on the training set to prevent data leakage.</div></div></div>
+      <div class="row"><div class="rlabel">Head</div><div><div class="rval">Linear Regression / RF / GBDT</div><div class="rdesc">Scaled features are passed into three model heads to predict continuous insurance charges.</div></div></div>
+      <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predicted Charges</div><div class="rdesc">Continuous numerical prediction of insurance charges for unseen customers.</div></div></div>
     </aside>
   </div>
 
@@ -83,7 +79,6 @@
         </tr>
       </tbody>
     </table>
-  </div>
   </div>
 
   <div class="section-label">Model Comparison (R2 Score)</div>
