@@ -31,21 +31,29 @@
   
   <div class="grid">
     <section class="card">
-      <div class="label">Shared Pipeline</div>
-      <div class="row"><div class="rlabel">Input</div><div><div class="rval">Insurance Dataset</div><div class="rdesc">1338 records with features: age, sex, bmi, children, smoker, region.</div></div></div>
-      <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">One-Hot + Standard Scaling</div><div class="rdesc">Categorical variables (sex, smoker, region) are encoded; numeric features are scaled to zero mean and unit variance.</div></div></div>
-      <div class="row"><div class="rlabel">Models</div><div><div class="rval">LR / RF / GBDT</div><div class="rdesc">Three distinct levels of complexity: from simple linear baseline to high-performance ensemble methods.</div></div></div>
+      <div class="label">Preprocessing & Strategy</div>
+      <div class="row"><div class="rlabel">Missing Values</div><div><div class="rval">Verified 0% missing data</div><div class="rdesc">All 1,338 samples are complete, so no imputation was required.</div></div></div>
+      <div class="row"><div class="rlabel">Data Splitting</div><div><div class="rval">80% Training / 20% Testing</div><div class="rdesc">1,070 training samples and 268 testing samples; random_state=42 was fixed for reproducibility.</div></div></div>
+      <div class="row"><div class="rlabel">Feature Engineering</div><div><div class="rval">One-Hot Encoding + Standardization</div><div class="rdesc">Categorical variables (sex, smoker, region) were converted to numeric binary columns, while age and bmi were scaled with StandardScaler to a common range.</div></div></div>
     </section>
     <aside class="card">
-      <div class="label">Key Findings</div>
-      <div class="k">Best Performer: Gradient Boosting</div>
-      <div class="s">Based on the notebook's comparison of R² and RMSE, <strong>Gradient Boosting Regressor</strong> provides the most robust predictive performance for this dataset.</div>
+      <div class="label">Pipeline Heads</div>
+      <div class="k">Input → Backbone → Heads → Output</div>
+      <div class="s">The pipeline loads raw CSV data into a Pandas DataFrame, fits the scaler only on the training set to prevent leakage, then passes the scaled features into Linear Regression, Random Forest, and Gradient Boosting heads for continuous insurance charge prediction.</div>
       <div style="margin-top:16px">
-         <div class="label">Source Notebook</div>
+         <div class="label">Model Roles</div>
          <div class="links">
-           <a class="link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/tabular/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener">
-             <div class="k" style="font-size:.72rem;margin-bottom:2px">Jupyter Notebook</div>
-             <div class="u">ml_tabular_insurance1.ipynb</div>
+           <a class="link" href="#summary">
+             <div class="k" style="font-size:.72rem;margin-bottom:2px">Linear Regression</div>
+             <div class="u">Baseline model for linear relationships between features and costs.</div>
+           </a>
+           <a class="link" href="#summary">
+             <div class="k" style="font-size:.72rem;margin-bottom:2px">Random Forest</div>
+             <div class="u">An ensemble bagging method that reduces variance by averaging 100 decision trees.</div>
+           </a>
+           <a class="link" href="#summary">
+             <div class="k" style="font-size:.72rem;margin-bottom:2px">Gradient Boosting</div>
+             <div class="u">A boosting method that sequentially corrects errors from previous trees and is the most powerful model.</div>
            </a>
          </div>
       </div>
