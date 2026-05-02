@@ -1028,9 +1028,9 @@ with right:
                 top5_html = []
                 for label, prob in topk:
                     top5_html.append(
-                        f"<div style='display:flex; justify-content:space-between; gap:.6rem; margin-bottom:.16rem; font-size:0.84rem; line-height:1.05;'><span style='font-weight:600;'>{label}</span><span>{prob:.2%}</span></div>"
+                        f"<div style='display:flex; justify-content:space-between; gap:.6rem; margin-bottom:.16rem; font-size:0.92rem; line-height:1.1;'><span style='font-weight:650;'>{label}</span><span style='font-weight:600;'>{prob:.2%}</span></div>"
                     )
-                st.markdown("<div class='bento' style='padding:.4rem .55rem; background:#f4ede2;'>" + "".join(top5_html) + "</div>", unsafe_allow_html=True)
+                st.markdown("<div class='bento' style='padding:.42rem .58rem; background:#f4ede2;'>" + "".join(top5_html) + "</div>", unsafe_allow_html=True)
 
             if explain:
                 st.markdown("<div class='section'>Visual Explanations</div>", unsafe_allow_html=True)
