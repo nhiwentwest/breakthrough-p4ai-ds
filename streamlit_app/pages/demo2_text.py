@@ -168,12 +168,26 @@ with left:
     st.markdown("<div class='model-chip'>BERT fine-tuning</div>", unsafe_allow_html=True)
 
     load_model_btn = st.button("Load BERT model", use_container_width=True)
+    loaded_key = "text_demo_loaded_model"
     if load_model_btn:
         with st.spinner("Downloading/loading BERT checkpoint..."):
             model, tokenizer, checkpoint_path = load_text_model()
+            st.session_state[loaded_key] = {
+                "model": model,
+                "tokenizer": tokenizer,
+                "checkpoint_path": checkpoint_path,
+            }
             st.session_state["text_demo_model_loaded"] = True
             st.session_state["text_demo_checkpoint_path"] = checkpoint_path
         st.success("BERT model loaded successfully.")
+
+    cached_loaded = st.session_state.get(loaded_key)
+    if cached_loaded:
+        model = cached_loaded.get("model")
+        tokenizer = cached_loaded.get("tokenizer")
+        checkpoint_path = cached_loaded.get("checkpoint_path", checkpoint_path)
+        st.session_state["text_demo_model_loaded"] = True
+        st.session_state["text_demo_checkpoint_path"] = checkpoint_path
 
     if st.session_state.get("text_demo_model_loaded"):
         if model is None or tokenizer is None:
