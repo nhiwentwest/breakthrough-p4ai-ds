@@ -854,20 +854,39 @@ with left:
 
     model_choice = st.selectbox("Choose model", ["MBLANet", "CNN Scratch", "Pretrained CNN Frozen", "Pretrained CNN Fine-tuned", "SVM + ResNet50"], index=0)
 
-    # Auto-load model assets on selection
-    with st.spinner(f"Preparing {model_choice}..."):
-        ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
-        model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
-    
+    # Lazy-load model assets to avoid heavy startup crashes on Streamlit Cloud
+    model = None
+    id2label = None
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    _ckpt_used = None
+
+    load_model_btn = st.button("Load selected model", use_container_width=True)
+
+    if load_model_btn:
+        with st.spinner(f"Preparing {model_choice}..."):
+            ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
+            model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
+            st.session_state["image_demo_loaded_model_choice"] = model_choice
+            st.session_state["image_demo_ckpt_path"] = _ckpt_used
+        st.success("Model loaded successfully.")
+
+    # Re-hydrate cached model object if user loaded it previously
+    if st.session_state.get("image_demo_loaded_model_choice") == model_choice:
+        try:
+            ckpt_path_str, map_path_str = get_checkpoint_and_mapping(model_choice)
+            model, id2label, device, _ckpt_used = load_model_and_labels(model_choice, ckpt_path_str, map_path_str)
+        except Exception:
+            model = None
+
     model_ready = (model is not None)
-    
+
     if model_ready:
         st.markdown(
             f"<div class='small-note'>Model ready: <b>{_ckpt_used}</b></div>",
             unsafe_allow_html=True,
         )
     else:
-        st.warning("Model failed to load.")
+        st.info("Select a model and click 'Load selected model'.")
 
     st.markdown("<div class='section'>Image Input</div>", unsafe_allow_html=True)
 
