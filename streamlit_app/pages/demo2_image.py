@@ -53,19 +53,19 @@ body,.stApp {{ background:{BG}; color:{TEXT}; font-family:'Source Sans 3',sans-s
 #MainMenu,footer,header {{ visibility:hidden; }}
 section[data-testid="stSidebar"] {{ display:none !important; }}
 div[data-testid="collapsedControl"] {{ display:none !important; }}
-.block-container {{ padding-top:1.2rem; }}
-.hero {{ font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; margin:0; }}
-.sub {{ color:{MUT}; margin-top:.25rem; margin-bottom:1rem; }}
-.bento {{ background:{CARD}; border:1px solid {BOR}; border-radius:14px; padding:1rem; }}
-.section {{ font-size:.68rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.6rem; }}
-.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; }}
+.block-container {{ padding-top:0.55rem; padding-bottom:0.35rem; max-width: 1200px; }}
+.hero {{ font-family:'Playfair Display',serif; font-size:2rem; font-weight:900; margin:0; line-height:1.05; }}
+.sub {{ color:{MUT}; margin-top:.2rem; margin-bottom:.65rem; font-size:0.92rem; }}
+.bento {{ background:{CARD}; border:1px solid {BOR}; border-radius:14px; padding:0.78rem; }}
+.section {{ font-size:.65rem; letter-spacing:.12em; text-transform:uppercase; color:{ACC}; font-weight:700; margin-bottom:.45rem; }}
+.stButton > button {{ border:1.5px solid {TEXT}; background:transparent; color:{TEXT}; font-weight:700; letter-spacing:.08em; border-radius:4px; padding:.45rem .7rem; }}
 .stButton > button:hover {{ background:{ACC}; color:white; border-color:{ACC}; }}
-.small-note {{ color:{MUT}; font-size:0.82rem; }}
-.kpi-grid {{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:.65rem; margin:.8rem 0 1rem; }}
-.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.65rem .8rem; }}
-.kpi-lbl {{ font-size:.62rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
-.kpi-val {{ font-weight:700; font-size:1rem; margin-top:.15rem; }}
-.editor-bar {{ display:flex; align-items:center; gap:.35rem; margin-bottom:.55rem; }}
+.small-note {{ color:{MUT}; font-size:0.78rem; }}
+.kpi-grid {{ display:grid; grid-template-columns: 1fr; gap:.35rem; margin:.35rem 0 .55rem; }}
+.kpi-card {{ background:{CARD}; border:1px solid {BOR}; border-radius:12px; padding:.45rem .65rem; }}
+.kpi-lbl {{ font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color:{MUT}; }}
+.kpi-val {{ font-weight:700; font-size:.9rem; margin-top:.1rem; }}
+.editor-bar {{ display:flex; align-items:center; gap:.28rem; margin-bottom:.4rem; }}
 .dot {{ width:.55rem; height:.55rem; border-radius:999px; display:inline-block; }}
 .dot-r {{ background:#e57373; }} .dot-y {{ background:#ffca28; }} .dot-g {{ background:#66bb6a; }}
 .demo-label {{ color:#111111 !important; font-weight:700; background:#f3eadb; border:1px solid #d7c7b2; padding:.35rem .55rem; border-radius:8px; display:inline-block; margin-top:.35rem; }}
@@ -863,7 +863,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-left, right = st.columns([1.25, 1])
+left, right = st.columns([0.92, 1.58])
 
 with left:
     st.markdown("<div class='bento'><div class='editor-bar'><span class='dot dot-r'></span><span class='dot dot-y'></span><span class='dot dot-g'></span></div>", unsafe_allow_html=True)
@@ -1022,32 +1022,36 @@ with right:
 
             top_label, top_prob = topk[0]
 
-            st.metric("Predicted class", top_label)
-            st.markdown(f"<div class='demo-label'>Predicted label: {top_label}</div>", unsafe_allow_html=True)
-            st.progress(float(top_prob))
-            st.markdown(f"<div class='demo-label'>Confidence: {top_prob:.2%}</div>", unsafe_allow_html=True)
-
-            st.markdown("---")
-            st.markdown("**Top-5 predictions**")
-            for label, prob in topk:
-                st.write(f"- {label}: {prob:.2%}")
+            pred_col, top5_col = st.columns([1, 1.05], gap="medium")
+            with pred_col:
+                st.markdown("<div class='section'>Prediction Result</div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='demo-label' style='margin-top:0.2rem;'>Predicted label: <b>{top_label}</b></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='demo-label' style='margin-top:0.45rem;'>Confidence: <b>{top_prob:.2%}</b></div>", unsafe_allow_html=True)
+                st.progress(float(top_prob))
+                if model_debug and "top1_top2_gap" in model_debug:
+                    st.caption(f"Top-1 vs Top-2 gap: {model_debug['top1_top2_gap']:.2%}")
+            with top5_col:
+                st.markdown("<div class='section'>Top-5 predictions</div>", unsafe_allow_html=True)
+                top5_html = []
+                for label, prob in topk:
+                    top5_html.append(
+                        f"<div style='display:flex; justify-content:space-between; gap:.75rem; margin-bottom:.28rem; font-size:0.92rem;'><span style='font-weight:600;'>{label}</span><span>{prob:.2%}</span></div>"
+                    )
+                st.markdown("<div class='bento' style='padding:.55rem .7rem; background:#f4ede2;'>" + "".join(top5_html) + "</div>", unsafe_allow_html=True)
 
             if explain:
+                st.markdown("<div class='section'>Visual Explanations</div>", unsafe_allow_html=True)
                 if model_choice == "SVM + ResNet50":
-                    st.markdown("---")
-                    st.markdown("**Occlusion sensitivity**")
                     st.image(saliency_overlay, caption="Occlusion heatmap", use_container_width=True)
                 else:
-                    st.markdown("---")
-                    st.markdown("**Visual Explanations**")
-                    cols = st.columns(3)
-                    with cols[0]:
+                    exp_cols = st.columns([1, 1, 1], gap="small")
+                    with exp_cols[0]:
                         st.image(saliency_overlay, caption="Saliency map", use_container_width=True)
-                    with cols[1]:
+                    with exp_cols[1]:
                         gradcam_caption = "Grad-CAM (CNN focus)" if attention_overlay is not None else "Grad-CAM"
                         st.image(gradcam_overlay, caption=gradcam_caption, use_container_width=True)
                     if attention_overlay is not None:
-                        with cols[2]:
+                        with exp_cols[2]:
                             st.image(attention_overlay, caption="Attention map", use_container_width=True)
             else:
                 st.info("Explain is off, so no heatmaps were generated.")
