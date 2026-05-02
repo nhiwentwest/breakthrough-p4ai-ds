@@ -5,27 +5,37 @@ import re
 import importlib.util
 from pathlib import Path
 
-import gdown
 import joblib
 import numpy as np
 import streamlit as st
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from datasets import Dataset, DatasetDict, load_from_disk
 from PIL import Image
-from torchvision import models, transforms
+
+# Optional heavy dependencies for image demo page.
+# Keep app boot resilient on Streamlit Cloud if these are unavailable.
+try:
+    import gdown
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    from datasets import Dataset, DatasetDict, load_from_disk
+    from torchvision import models, transforms
+    IMAGE_DEMO_DEPS_OK = True
+    IMAGE_DEMO_IMPORT_ERROR = ""
+except Exception as _e:
+    IMAGE_DEMO_DEPS_OK = False
+    IMAGE_DEMO_IMPORT_ERROR = str(_e)
 
 st.set_page_config(page_title="Demo 2 · Image Classification", page_icon="🖼️", layout="wide")
 
 if st.session_state.get("current_page") != "demo2_image":
     st.cache_resource.clear()
     import gc; gc.collect()
-    try:
-        import torch
-        if torch.cuda.is_available(): torch.cuda.empty_cache()
-    except ImportError:
-        pass
+    if IMAGE_DEMO_DEPS_OK:
+        try:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
     st.session_state["current_page"] = "demo2_image"
 
 BG = "#F7F3EB"
@@ -72,6 +82,13 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 # =========================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+if not IMAGE_DEMO_DEPS_OK:
+    st.markdown('<p class="hero">Assignment 02 · Image Classification</p>', unsafe_allow_html=True)
+    st.error("Image demo dependencies are unavailable on this deployment, so this page is temporarily disabled.")
+    st.caption(f"Import error: {IMAGE_DEMO_IMPORT_ERROR}")
+    st.info("Try other pages (Tabular/Text/EDA) while we recover this page.")
+    st.stop()
 
 
 def _load_source_mblanet_class():
