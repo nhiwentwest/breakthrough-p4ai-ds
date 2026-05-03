@@ -25,27 +25,27 @@
         a{color:inherit;text-decoration:none}
         .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 40px;background:var(--bg-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
         .brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08rem;font-weight:700;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
-        .brand-icon{width:18px;height:18px;border-radius:999px;background:var(--accent-light);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
+        .brand-icon{width:18px;height:18px;border-radius:999px;background:var(--blue-light);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
         .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
-        .badge{font-size:.62rem;padding:3px 9px;border-radius:999px;background:var(--accent-light);border:1px solid var(--accent-soft);color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+        .badge{font-size:.62rem;padding:3px 9px;border-radius:999px;background:var(--blue-light);border:1px solid var(--blue-soft);color:var(--blue);letter-spacing:.06em;text-transform:uppercase}
         .tag{font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
         .workspace{flex:1;max-width:900px;margin:0 auto;padding:28px 40px 44px;width:100%}
         .page-head{margin-bottom:24px}
-        .eyebrow{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+        .eyebrow{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--blue);margin-bottom:6px}
         .title{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2rem,4vw,3rem);font-weight:700;line-height:1;letter-spacing:-.02em;margin-bottom:8px}
         .sub{font-size:.8rem;color:var(--ink);line-height:1.55;max-width:760px}
         .panel{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r);padding:20px;box-shadow:var(--shadow-sm);margin-bottom:18px}
         .panel-title{font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px}
-        .dataset-title{font-size:1.25rem;font-weight:700;color:var(--accent);margin-bottom:6px}
+        .dataset-title{font-size:1.25rem;font-weight:700;color:var(--blue);margin-bottom:6px}
         .dataset-sub{font-size:.88rem;color:var(--ink-muted);margin-bottom:12px}
         .chips{display:flex;flex-wrap:wrap;gap:8px}
         .chip{font-size:.75rem;padding:5px 14px;border-radius:999px;border:1px solid var(--border-md);background:var(--bg-card);color:var(--ink-muted);letter-spacing:.04em}
-        .chip--accent{background:var(--accent-light);border-color:var(--accent-soft);color:var(--accent);font-weight:500}
+        .chip--accent{background:var(--blue-light);border-color:var(--blue-soft);color:var(--blue);font-weight:500}
         .chip--ok{background:rgba(45,106,79,.09);border-color:rgba(45,106,79,.24);color:var(--green);font-weight:500}
         .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
         .stat{background:var(--bg-card);border:1px solid var(--border-md);border-radius:var(--r-sm);padding:14px 16px;box-shadow:var(--shadow-sm)}
         .big-stat-lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:6px}
-        .big-stat-val{font-size:1.9rem;font-weight:700;color:var(--accent);line-height:1.1}
+        .big-stat-val{font-size:1.9rem;font-weight:700;color:var(--blue);line-height:1.1}
         .big-stat-sub{font-size:.8rem;color:var(--ink-faint);margin-top:2px}
         .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
         .cards--2{grid-template-columns:repeat(2,1fr)}
@@ -130,7 +130,7 @@
 
         <div class="section-label">Model Suite</div>
         <div class="cards cards--1">
-            <a class="card card--accent" href="./regression-model.html" style="padding:28px">
+            <a class="card card--blue" href="./regression-model.html" style="padding:28px">
                 <div class="card-head" style="align-items:center;gap:20px">
                     <div class="card-icon" style="width:52px;height:52px;font-size:1.5rem;border-radius:12px">💠</div>
                     <div class="card-meta">
@@ -144,7 +144,7 @@
 
         <div class="section-label">Source links</div>
         <div class="cards cards--2">
-            <div class="card card--accent">
+            <div class="card card--blue">
                 <div class="card-head">
                     <div class="card-icon">📓</div>
                     <div class="card-meta">
@@ -157,9 +157,9 @@
                     <a class="mini-link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/ml_tabular_insurance1.ipynb" target="_blank" rel="noopener noreferrer">Open on GitHub →</a>
                 </div>
             </div>
-            <div class="card card--blue">
+            <div class="card card--blue" style="border-color:var(--accent-soft)">
                 <div class="card-head">
-                    <div class="card-icon">🗂️</div>
+                    <div class="card-icon" style="background:var(--accent-light); color:var(--accent)">🗂️</div>
                     <div class="card-meta">
                         <div class="card-kicker">Dataset source</div>
                         <div class="card-title">Kaggle Insurance data</div>
@@ -167,7 +167,7 @@
                     </div>
                 </div>
                 <div class="card-links">
-                    <a class="mini-link" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer">Open Kaggle source →</a>
+                    <a class="mini-link" href="https://www.kaggle.com/datasets/mirichoi0218/insurance" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Open Kaggle source →</a>
                 </div>
             </div>
 
