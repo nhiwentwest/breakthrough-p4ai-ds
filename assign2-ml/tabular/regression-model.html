@@ -14,7 +14,7 @@
         .grid{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:22px}.card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;box-shadow:var(--shadow-sm);padding:22px}.label{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:12px}.k{font-size:1.05rem;font-weight:700;color:var(--blue);margin-bottom:6px}.s{font-size:.9rem;color:var(--ink-muted);line-height:1.5}
         .row{position:relative;display:grid;grid-template-columns:130px 1fr;gap:20px;padding:12px 0 12px 24px}.row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, transparent, var(--blue) 20%, var(--blue) 80%, transparent);opacity:.3}.row::after{content:'';position:absolute;left:-4px;top:26px;width:10px;height:10px;border-radius:50%;background:var(--blue);border:2px solid var(--bg-card);box-shadow:0 0 0 2px rgba(61,90,128,.1)}.row:first-child::before{top:26px}.row:last-child::before{bottom:calc(100% - 26px)}.row:first-child{padding-top:0}.row:first-child::after{top:22px}.row:first-child::before{top:22px}.rlabel{font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--blue);font-weight:700;padding-top:14px}.row > div:nth-child(2){background:var(--bg);border:1px solid var(--border-md);padding:18px 22px;border-radius:12px;box-shadow:inset 0 1px 2px rgba(0,0,0,.01)}.rval{font-size:1rem;font-weight:700;color:var(--ink)}.rdesc{font-size:.88rem;color:var(--ink-muted);margin-top:6px;line-height:1.6}
         .table-card{margin-top:18px;background:var(--bg-card);border:1px solid var(--border-md);border-radius:12px;padding:24px;box-shadow:var(--shadow-sm);overflow:hidden}.table-title{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-bottom:16px}.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.88rem;border:1.5px solid rgba(28,26,22,.35);border-radius:8px;overflow:hidden}.tbl th,.tbl td{padding:14px 16px;text-align:left;vertical-align:middle;line-height:1.45;border-bottom:1px solid rgba(28,26,22,.35);border-right:1px solid rgba(28,26,22,.35)}.tbl th:last-child,.tbl td:last-child{border-right:none}.tbl th{background:var(--blue);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:#fff;font-weight:600;border-right:1px solid rgba(255,255,255,.1)}.tbl th:last-child{border-right:none}.tbl tr:last-child td{border-bottom:none}.tbl tr:hover td{background:rgba(61,90,128,.02)}.badge-leader{display:inline-flex;align-items:center;gap:5px;font-size:.6rem;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(42,122,112,.12);color:var(--teal);text-transform:uppercase;letter-spacing:.05em;margin-left:8px}
-        .result-stack{display:grid;gap:14px;margin-top:18px}.image-card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm)}.image-card img{width:100%;height:auto;border-radius:10px;display:block}
+        .result-stack{display:grid;gap:14px;margin-top:18px}.image-card{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:18px;box-shadow:var(--shadow-sm);text-align:center}.image-card img{max-width:100%;height:auto;border-radius:6px;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
         .desc-text{font-size:.75rem;color:var(--ink-muted);margin-top:10px;line-height:1.5;font-style:italic}
         .section-label { font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blue); margin: 32px 0 12px; padding-left: 2px; }
         .links{display:grid;grid-template-columns:1fr;gap:12px}.link{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}.link:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--blue)}.link .u{font-size:.74rem;color:var(--blue);word-break:break-all}
@@ -56,7 +56,7 @@
 
   <div class="section-label">Model Comparison (R2 Score)</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889227/finalmodel_olaaxj.png" alt="R2 Score Comparison Chart" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889227/finalmodel_olaaxj.png" alt="R2 Score Comparison Chart" />
     <p class="desc-text">Visualizing the performance in explaining data variance across three algorithms. An R2 score closer to 1.0 indicates a more accurate prediction model.</p>
   </div>
 
@@ -109,61 +109,61 @@
 
   <div class="section-label">Linear Regression · Predict vs Actual</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889234/linear_pgpkws.png" alt="Linear Regression Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889234/linear_pgpkws.png" alt="Linear Regression Predict vs Actual" />
     <p class="desc-text">Predicted vs actual charges for Linear Regression. Systematic under-prediction visible for high-cost smoker patients due to the missing BMI×smoker interaction term.</p>
   </div>
 
   <div class="section-label">Linear Regression · Residual Plot</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889238/residualplot_linear_ibmpgj.png" alt="Linear Regression Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889238/residualplot_linear_ibmpgj.png" alt="Linear Regression Residual Plot" />
     <p class="desc-text">LR residuals show a funnel-shape (heteroscedasticity) — increasing spread with larger predictions, confirming systematic failure on the smoker sub-population.</p>
   </div>
 
   <div class="section-label">Linear Regression · Learning Curves</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889230/learningcurves_linear_mcmb2l.png" alt="Linear Regression Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889230/learningcurves_linear_mcmb2l.png" alt="Linear Regression Learning Curves" />
     <p class="desc-text">Train and validation curves converge quickly to a relatively high error — classic underfitting (high bias). The model is too simple for the non-linear data structure.</p>
   </div>
 
   <div class="section-label">Random Forest · Predict vs Actual</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889235/randomforeset_ez0u4y.png" alt="Random Forest Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889235/randomforeset_ez0u4y.png" alt="Random Forest Predict vs Actual" />
     <p class="desc-text">RF predictions cluster more tightly around the diagonal. The 100-tree ensemble captures the smoker interaction automatically via branching.</p>
   </div>
 
   <div class="section-label">Random Forest · Residual Plot</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889240/residualplot_randomforest_n47k9n.png" alt="Random Forest Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889240/residualplot_randomforest_n47k9n.png" alt="Random Forest Residual Plot" />
     <p class="desc-text">RF residuals are more uniformly distributed around zero, though some variance remains at extreme values due to bootstrap sampling noise.</p>
   </div>
 
   <div class="section-label">Random Forest · Learning Curves</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889232/learningcurves_randomforest_msoxve.png" alt="Random Forest Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889232/learningcurves_randomforest_msoxve.png" alt="Random Forest Learning Curves" />
     <p class="desc-text">Near-perfect training score with a moderate train-validation gap — mild overfitting that decreases with more data. Characteristic of high-variance ensemble models.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Predict vs Actual</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889228/gradient_boosting_xlwn7l.png" alt="Gradient Boosting Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889228/gradient_boosting_xlwn7l.png" alt="Gradient Boosting Predict vs Actual" />
     <p class="desc-text">GB produces the tightest clustering around the diagonal. Sequential error correction yields the most accurate predictions across both smoker and non-smoker sub-populations.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Residual Plot</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889236/residualplot_GradientBoosting_jmvhof.png" alt="Gradient Boosting Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889236/residualplot_GradientBoosting_jmvhof.png" alt="Gradient Boosting Residual Plot" />
     <p class="desc-text">GB residuals are more uniformly distributed around zero, confirming better model fit for the non-linear smoker–BMI interactions.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Learning Curves</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889229/learningcurves_gradientboosting_ez19ed.png" alt="Gradient Boosting Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889229/learningcurves_gradientboosting_ez19ed.png" alt="Gradient Boosting Learning Curves" />
     <p class="desc-text">Validation curve closely tracks the training curve — stable generalisation with minimal overfitting thanks to shallow trees (max_depth=3).</p>
   </div>
 
   <div class="section-label">Feature Importance (Gradient Boosting)</div>
   <div class="image-card">
-    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889226/featureimportance_zlccwc.png" alt="Gradient Boosting Feature Importance" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889226/featureimportance_zlccwc.png" alt="Gradient Boosting Feature Importance" />
     <p class="desc-text">smoker_yes accounts for ≈67% of total predictive power, confirming the EDA finding. BMI (~19%) and age (~12%) together contribute another ~30%, while gender and region have minimal impact.</p>
   </div>
 
