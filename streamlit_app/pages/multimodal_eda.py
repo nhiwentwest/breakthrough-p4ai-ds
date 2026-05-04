@@ -763,22 +763,31 @@ def render_step(step_idx):
         train_cat_counts = Counter(parse_category(img["filename"]) for img in D["train_imgs"])
         test_cat_counts = Counter(parse_category(img["filename"]) for img in D["test_imgs"])
         all_cats_sorted = sorted(set(train_cat_counts.keys()) | set(test_cat_counts.keys()))
-        train_vals = [train_cat_counts.get(c, 0) for c in all_cats_sorted]
-        test_vals = [test_cat_counts.get(c, 0) for c in all_cats_sorted]
+
+        # Diverging bar: proportion difference (test% − train%)
+        train_total = sum(train_cat_counts.values()) or 1
+        test_total = sum(test_cat_counts.values()) or 1
+        drift_data = []
+        for c in all_cats_sorted:
+            tr_pct = train_cat_counts.get(c, 0) / train_total * 100
+            te_pct = test_cat_counts.get(c, 0) / test_total * 100
+            drift_data.append({"category": c, "train%": tr_pct, "test%": te_pct, "drift": te_pct - tr_pct})
+        drift_df = pd.DataFrame(drift_data).sort_values("drift")
 
         fig_drift, ax_drift = make_fig(w_mult=1.0, h_mult=1.4)
-        y = np.arange(len(all_cats_sorted))
-        bar_h = 0.35
-        ax_drift.barh(y + bar_h/2, train_vals, bar_h, label=f"Train ({D['n_train']})", color="#3D5A80", alpha=0.85)
-        ax_drift.barh(y - bar_h/2, test_vals, bar_h, label=f"Test ({D['n_test']})", color="#B42318", alpha=0.85)
-        ax_drift.set_yticks(y)
-        ax_drift.set_yticklabels(all_cats_sorted, fontsize=max(5.0, 6.5 * diagram_text_scale))
-        ax_drift.set_title("Category distribution: Train vs Test", color=TEXT, pad=10)
-        ax_drift.set_xlabel("Count")
-        ax_drift.legend(frameon=False)
-        ax_drift.invert_yaxis()
+        colors = ["#B42318" if d < 0 else "#2A7A70" for d in drift_df["drift"]]
+        ax_drift.barh(drift_df["category"], drift_df["drift"], color=colors, alpha=0.85, height=0.7)
+        ax_drift.axvline(0, color=TEXT, linewidth=0.8, alpha=0.4)
+        ax_drift.set_title("Category proportion drift (Test% \u2212 Train%)", color=TEXT, pad=10)
+        ax_drift.set_xlabel("Proportion difference (%)")
+        ax_drift.tick_params(axis='y', labelsize=max(5.0, 6.5 * diagram_text_scale))
+        for spine in ['top', 'right']:
+            ax_drift.spines[spine].set_visible(False)
         render_chart(fig_drift)
 
+        st.caption("\U0001f7e2 Green = over-represented in test \u00a0\u00a0 \U0001f534 Red = under-represented in test")
+
+        # Dumbbell charts for brightness & texture drift
         px_train = get_or_compute("image_pixel_stats::train", lambda: image_pixel_stats(D["train_imgs"]), spinner_text="Computing pixel stats (train)...")
         px_test = get_or_compute("image_pixel_stats::test", lambda: image_pixel_stats(D["test_imgs"]), spinner_text="Computing pixel stats (test)...")
         if not px_train.empty and not px_test.empty:
@@ -786,27 +795,41 @@ def render_step(step_idx):
                 px_test[["category", "brightness", "texture"]], on="category", suffixes=("_train", "_test"), how="inner"
             )
             if not merged.empty:
-                fig_bdrift, ax_bdrift = make_fig(w_mult=1.0, h_mult=0.85)
-                ax_bdrift.scatter(merged["brightness_train"], merged["brightness_test"], c="#3D5A80", s=marker_size, alpha=0.85)
-                lims = [min(merged["brightness_train"].min(), merged["brightness_test"].min()) - 0.02,
-                        max(merged["brightness_train"].max(), merged["brightness_test"].max()) + 0.02]
-                ax_bdrift.plot(lims, lims, '--', color=ACC, alpha=0.5, label="y=x (no drift)")
-                ax_bdrift.set_xlabel("Train brightness")
-                ax_bdrift.set_ylabel("Test brightness")
-                ax_bdrift.set_title("Per-category brightness drift: Train vs Test", color=TEXT, pad=10)
-                ax_bdrift.legend(frameon=False)
-                render_chart(fig_bdrift)
+                # Brightness dumbbell
+                m_br = merged.sort_values("brightness_train")
+                fig_db, ax_db = make_fig(w_mult=1.0, h_mult=1.4)
+                y_pos = np.arange(len(m_br))
+                for i, (_, row) in enumerate(m_br.iterrows()):
+                    ax_db.plot([row["brightness_train"], row["brightness_test"]], [i, i],
+                               color="#D4C9B8", linewidth=2, zorder=1)
+                ax_db.scatter(m_br["brightness_train"], y_pos, c="#3D5A80", s=marker_size, zorder=2, label="Train")
+                ax_db.scatter(m_br["brightness_test"], y_pos, c="#B42318", s=marker_size, zorder=2, label="Test", marker="D")
+                ax_db.set_yticks(y_pos)
+                ax_db.set_yticklabels(m_br["category"].values, fontsize=max(5.0, 6.5 * diagram_text_scale))
+                ax_db.set_title("Brightness drift by category (Train \u2192 Test)", color=TEXT, pad=10)
+                ax_db.set_xlabel("Brightness (0\u20131)")
+                ax_db.legend(frameon=False, loc="lower right")
+                for spine in ['top', 'right']:
+                    ax_db.spines[spine].set_visible(False)
+                render_chart(fig_db)
 
-                fig_tdrift, ax_tdrift = make_fig(w_mult=1.0, h_mult=0.85)
-                ax_tdrift.scatter(merged["texture_train"], merged["texture_test"], c="#8e44ad", s=marker_size, alpha=0.85)
-                tlims = [min(merged["texture_train"].min(), merged["texture_test"].min()) - 0.005,
-                         max(merged["texture_train"].max(), merged["texture_test"].max()) + 0.005]
-                ax_tdrift.plot(tlims, tlims, '--', color=ACC, alpha=0.5, label="y=x (no drift)")
-                ax_tdrift.set_xlabel("Train texture")
-                ax_tdrift.set_ylabel("Test texture")
-                ax_tdrift.set_title("Per-category texture drift: Train vs Test", color=TEXT, pad=10)
-                ax_tdrift.legend(frameon=False)
-                render_chart(fig_tdrift)
+                # Texture dumbbell
+                m_tx = merged.sort_values("texture_train")
+                fig_dt, ax_dt = make_fig(w_mult=1.0, h_mult=1.4)
+                y_pos_t = np.arange(len(m_tx))
+                for i, (_, row) in enumerate(m_tx.iterrows()):
+                    ax_dt.plot([row["texture_train"], row["texture_test"]], [i, i],
+                               color="#D4C9B8", linewidth=2, zorder=1)
+                ax_dt.scatter(m_tx["texture_train"], y_pos_t, c="#3D5A80", s=marker_size, zorder=2, label="Train")
+                ax_dt.scatter(m_tx["texture_test"], y_pos_t, c="#B42318", s=marker_size, zorder=2, label="Test", marker="D")
+                ax_dt.set_yticks(y_pos_t)
+                ax_dt.set_yticklabels(m_tx["category"].values, fontsize=max(5.0, 6.5 * diagram_text_scale))
+                ax_dt.set_title("Texture drift by category (Train \u2192 Test)", color=TEXT, pad=10)
+                ax_dt.set_xlabel("Texture (std dev of gray)")
+                ax_dt.legend(frameon=False, loc="lower right")
+                for spine in ['top', 'right']:
+                    ax_dt.spines[spine].set_visible(False)
+                render_chart(fig_dt)
 
     elif step_idx == 3:
         split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
