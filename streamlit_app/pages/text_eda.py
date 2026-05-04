@@ -290,31 +290,22 @@ with st.spinner("Loading and analyzing text dataset..."):
 df = D["df"]
 step = st.session_state.text_step
 
-if "full_page_mode" not in st.session_state:
-    st.session_state.full_page_mode = False
-
 st.markdown("## Text EDA — Twitter Financial News Sentiment")
-mode_col1, mode_col2 = st.columns([0.26, 0.74])
-with mode_col1:
-    full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="text_full_page_mode")
-with mode_col2:
-    if full_page_mode:
-        st.caption("Full page mode: showing all sections on one page")
-    else:
-        st.caption(f"Step {step + 1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
+st.caption("Full page mode: showing all sections on one page")
+full_page_mode = True
 
 with st.expander("🎛️ Visual controls", expanded=False):
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        chart_w = st.slider("Base width", 2.4, 12.0, 8.0 if full_page_mode else 3.8, 0.2, key="text_chart_w")
+        chart_w = st.slider("Base width", 2.4, 12.0, 8.0, 0.2, key="text_chart_w")
     with c2:
-        chart_h = st.slider("Base height", 1.6, 8.0, 4.5 if full_page_mode else 2.3, 0.2, key="text_chart_h")
+        chart_h = st.slider("Base height", 1.6, 8.0, 4.5, 0.2, key="text_chart_h")
     with c3:
-        chart_scale = st.slider("Global scale", 0.45, 2.0, 1.2 if full_page_mode else 0.62, 0.02, key="text_chart_scale")
+        chart_scale = st.slider("Global scale", 0.45, 2.0, 1.2, 0.02, key="text_chart_scale")
     with c4:
-        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.85 if full_page_mode else 0.62, 0.05, key="text_chart_panel")
+        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.85, 0.05, key="text_chart_panel")
     with c5:
-        font_scale = st.slider("Font scale", 0.45, 2.0, 1.3 if full_page_mode else 0.65, 0.05, key="text_font_scale")
+        font_scale = st.slider("Font scale", 0.45, 2.0, 1.3, 0.05, key="text_font_scale")
 
 sns.set_context("notebook", font_scale=font_scale)
 plt.rcParams.update({
@@ -603,30 +594,8 @@ def render_text_step(step_idx):
             render_chart(fig)
     
 
-if full_page_mode:
-    for s in range(TOTAL_STEPS):
-        st.markdown(f"### {s+1}. {STEP_LABELS[s]}")
-        render_text_step(s)
-        if s < TOTAL_STEPS - 1:
-            st.markdown("---")
-else:
-    render_text_step(step)
-
-col1, col2 = st.columns(2)
-with col1:
-    if step == 0:
-        st.empty()
-    else:
-        if st.button("← Previous"):
-            st.session_state.text_step = max(0, step - 1)
-            st.rerun()
-
-with col2:
-    if step == TOTAL_STEPS - 1:
-        if st.button("↺ Start Over", type="primary"):
-            st.session_state.text_step = 0
-            st.rerun()
-    else:
-        if st.button("Next →"):
-            st.session_state.text_step = min(TOTAL_STEPS - 1, step + 1)
-            st.rerun()
+for s in range(TOTAL_STEPS):
+    st.markdown(f"### {s+1}. {STEP_LABELS[s]}")
+    render_text_step(s)
+    if s < TOTAL_STEPS - 1:
+        st.markdown("---")
