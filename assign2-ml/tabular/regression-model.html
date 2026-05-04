@@ -27,14 +27,14 @@
 <main class="wrap">
   <div class="eyebrow">Assignment 02 · Comparative Analysis</div>
   <h1 class="title">Regression Model Suite</h1>
-  <p class="sub">Evaluation of three fundamental regression algorithms—Linear Regression, Random Forest, and Gradient Boosting—on the insurance dataset to predict medical charges. This page analyzes the accuracy and performance trade-offs across the suite.</p>
+  <p class="sub">Evaluation of three regression algorithms—Linear Regression, Random Forest, and Gradient Boosting—on the Insurance dataset (1,338 records, 8 features after OHE). The target <strong>charges</strong> exhibits a bimodal distribution driven by the smoker/non-smoker split, which challenges purely linear models.</p>
   
   <div class="grid">
     <section class="card">
       <div class="label">Pipeline</div>
       <div class="row"><div class="rlabel">Input</div><div><div class="rval">Raw CSV → Pandas DataFrame</div><div class="rdesc">Loading raw insurance data into a structured tabular format for processing.</div></div></div>
       <div class="row"><div class="rlabel">Preprocess</div><div><div class="rval">Missing values, encoding, scaling</div><div class="rdesc">Verified 0% missing data (1,338/1,338 samples are complete). Categorical variables (sex, smoker, region) are converted with One-Hot Encoding, while age and bmi are standardized with StandardScaler.</div></div></div>
-      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">Scaler fit on training only</div><div class="rdesc">The scaler is fit only on the training set to prevent data leakage; this supports the 80% training / 20% testing split (1,070 / 268 samples) with random_state=42.</div></div></div>
+      <div class="row"><div class="rlabel">Backbone</div><div><div class="rval">Scaler fit on training only</div><div class="rdesc">StandardScaler is fit only on the training set to prevent data leakage. Split: 70/15/15 → 936 train / 201 valid / 201 test, random_state=42.</div></div></div>
       <div class="row"><div class="rlabel">Head</div><div><div class="rval">Linear Regression / RF / GBDT</div><div class="rdesc">Scaled features are passed into three model heads to predict continuous insurance charges. Linear Regression is the baseline, Random Forest averages 100 trees, and Gradient Boosting sequentially corrects errors from previous trees.</div></div></div>
       <div class="row"><div class="rlabel">Output</div><div><div class="rval">Predicted Charges</div><div class="rdesc">Continuous numerical prediction of insurance charges for unseen customers.</div></div></div>
     </section>
@@ -78,87 +78,93 @@
         <tr>
           <td style="font-weight:600; color:var(--ink)">Linear Regression</td>
           <td style="color:var(--ink-muted); font-family:monospace; font-size:.75rem">fit_intercept=True</td>
-          <td>$5,796</td>
-          <td>$4,181</td>
-          <td style="font-weight:700">0.7836</td>
-          <td style="color:var(--ink-faint)">0.0164s</td>
-          <td style="color:var(--ink-faint)">1.602ms</td>
+          <td>$6,090</td>
+          <td>$4,360</td>
+          <td style="font-weight:700">0.7554</td>
+          <td style="color:var(--ink-faint)">0.035s</td>
+          <td style="color:var(--ink-faint)">7.066ms</td>
         </tr>
         <tr>
           <td style="font-weight:600; color:var(--ink)">Random Forest</td>
           <td style="color:var(--ink-muted); font-family:monospace; font-size:.75rem">n_estimators=100, rs=42</td>
-          <td>$4,568</td>
-          <td>$2,544</td>
-          <td style="font-weight:700">0.8656</td>
-          <td style="color:var(--ink-faint)">0.4226s</td>
-          <td style="color:var(--ink-faint)">15.906ms</td>
+          <td>$4,633</td>
+          <td>$2,618</td>
+          <td style="font-weight:700">0.8584</td>
+          <td style="color:var(--ink-faint)">0.215s</td>
+          <td style="color:var(--ink-faint)">18.163ms</td>
         </tr>
         <tr style="background:rgba(42,122,112,.03)">
           <td style="font-weight:600; color:var(--ink)">Gradient Boosting <span class="badge-leader">🏆 Leader</span></td>
           <td style="color:var(--ink-muted); font-family:monospace; font-size:.75rem">lr=0.1, n_est=100, d=3</td>
-          <td style="color:var(--teal); font-weight:600">$4,330</td>
-          <td style="color:var(--teal); font-weight:600">$2,443</td>
-          <td style="color:var(--teal); font-weight:800; font-size:1rem">0.8793</td>
-          <td style="color:var(--ink-faint)">0.2454s</td>
-          <td style="color:var(--ink-faint)">64.377ms</td>
+          <td style="color:var(--teal); font-weight:600">$4,570</td>
+          <td style="color:var(--teal); font-weight:600">$2,570</td>
+          <td style="color:var(--teal); font-weight:800; font-size:1rem">0.8623</td>
+          <td style="color:var(--ink-faint)">0.081s</td>
+          <td style="color:var(--ink-faint)">1.611ms</td>
         </tr>
       </tbody>
     </table>
-    <p class="desc-text">Detailed analysis of the trade-off between computational speed (training/inference time) and the predictive accuracy of each algorithm.</p>
+    <p class="desc-text">Test set (n=201). GB achieves the best accuracy <em>and</em> fastest inference (1.6ms). The RMSE reduction from $6,090→$4,570 means predictions are ~$1,520 more accurate per patient.</p>
   </div>
 
   <div class="section-label">Linear Regression · Predict vs Actual</div>
   <div class="image-card">
     <img src="./figures/linear_regression_predict_vs_actual.png" alt="Linear Regression Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Linear Regression predict-vs-actual chart here.</p>
+    <p class="desc-text">Predicted vs actual charges for Linear Regression. Systematic under-prediction visible for high-cost smoker patients due to the missing BMI×smoker interaction term.</p>
   </div>
 
   <div class="section-label">Linear Regression · Residual Plot</div>
   <div class="image-card">
     <img src="./figures/linear_regression_residual_plot.png" alt="Linear Regression Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Linear Regression residual plot here.</p>
+    <p class="desc-text">LR residuals show a funnel-shape (heteroscedasticity) — increasing spread with larger predictions, confirming systematic failure on the smoker sub-population.</p>
   </div>
 
   <div class="section-label">Linear Regression · Learning Curves</div>
   <div class="image-card">
     <img src="./figures/linear_regression_learning_curve.png" alt="Linear Regression Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Linear Regression learning curve here.</p>
+    <p class="desc-text">Train and validation curves converge quickly to a relatively high error — classic underfitting (high bias). The model is too simple for the non-linear data structure.</p>
   </div>
 
   <div class="section-label">Random Forest · Predict vs Actual</div>
   <div class="image-card">
     <img src="./figures/random_forest_predict_vs_actual.png" alt="Random Forest Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Random Forest predict-vs-actual chart here.</p>
+    <p class="desc-text">RF predictions cluster more tightly around the diagonal. The 100-tree ensemble captures the smoker interaction automatically via branching.</p>
   </div>
 
   <div class="section-label">Random Forest · Residual Plot</div>
   <div class="image-card">
     <img src="./figures/random_forest_residual_plot.png" alt="Random Forest Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Random Forest residual plot here.</p>
+    <p class="desc-text">RF residuals are more uniformly distributed around zero, though some variance remains at extreme values due to bootstrap sampling noise.</p>
   </div>
 
   <div class="section-label">Random Forest · Learning Curves</div>
   <div class="image-card">
     <img src="./figures/random_forest_learning_curve.png" alt="Random Forest Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Random Forest learning curve here.</p>
+    <p class="desc-text">Near-perfect training score with a moderate train-validation gap — mild overfitting that decreases with more data. Characteristic of high-variance ensemble models.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Predict vs Actual</div>
   <div class="image-card">
     <img src="./figures/gradient_boosting_predict_vs_actual.png" alt="Gradient Boosting Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Gradient Boosting predict-vs-actual chart here.</p>
+    <p class="desc-text">GB produces the tightest clustering around the diagonal. Sequential error correction yields the most accurate predictions across both smoker and non-smoker sub-populations.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Residual Plot</div>
   <div class="image-card">
     <img src="./figures/gradient_boosting_residual_plot.png" alt="Gradient Boosting Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Gradient Boosting residual plot here.</p>
+    <p class="desc-text">GB residuals are more uniformly distributed around zero, confirming better model fit for the non-linear smoker–BMI interactions.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Learning Curves</div>
   <div class="image-card">
     <img src="./figures/gradient_boosting_learning_curve.png" alt="Gradient Boosting Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
-    <p class="desc-text">Insert the Gradient Boosting learning curve here.</p>
+    <p class="desc-text">Validation curve closely tracks the training curve — stable generalisation with minimal overfitting thanks to shallow trees (max_depth=3).</p>
+  </div>
+
+  <div class="section-label">Feature Importance (Gradient Boosting)</div>
+  <div class="image-card">
+    <img src="./figures/feature_importance_gb.png" alt="Gradient Boosting Feature Importance" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <p class="desc-text">smoker_yes accounts for ≈67% of total predictive power, confirming the EDA finding. BMI (~19%) and age (~12%) together contribute another ~30%, while gender and region have minimal impact.</p>
   </div>
 
 </main>
