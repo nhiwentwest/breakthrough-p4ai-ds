@@ -565,33 +565,23 @@ if "n_total" not in D:
     D["n_total"] = D["n_train"] + D["n_test"]
 
 st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
-mode_col1, mode_col2 = st.columns([0.26, 0.74])
-with mode_col1:
-    full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="full_page_mode")
-with mode_col2:
-    step = st.session_state.step
-    if full_page_mode:
-        st.caption("Full page mode: showing all sections on one page")
-    else:
-        st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
-
-if full_page_mode:
-    st.info("Full page mode is enabled, but this page still uses the step renderer. Refresh after the next update to see the one-page layout.")
+st.caption("Full page mode: showing all sections on one page")
+full_page_mode = True
 
 with st.expander("🎛️ Chart controls", expanded=False):
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
-        chart_w = st.slider("Base width", 2.0, 12.0, 8.0 if full_page_mode else 4.5, 0.2, key="chart_w")
+        chart_w = st.slider("Base width", 2.0, 12.0, 8.0, 0.2, key="chart_w")
     with c2:
-        chart_h = st.slider("Base height", 1.6, 8.0, 4.5 if full_page_mode else 3.0, 0.2, key="chart_h")
+        chart_h = st.slider("Base height", 1.6, 8.0, 4.5, 0.2, key="chart_h")
     with c3:
-        chart_scale = st.slider("Global scale", 0.4, 2.0, 1.2 if full_page_mode else 0.8, 0.02, key="chart_scale")
+        chart_scale = st.slider("Global scale", 0.4, 2.0, 1.2, 0.02, key="chart_scale")
     with c4:
-        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.85 if full_page_mode else 0.7, 0.05, key="chart_panel")
+        chart_panel = st.slider("Panel width", 0.45, 1.0, 0.85, 0.05, key="chart_panel")
     with c5:
-        diagram_text_scale = st.slider("Chart text size", 0.75, 2.0, 1.3 if full_page_mode else 1.0, 0.05, key="chart_font_scale")
+        diagram_text_scale = st.slider("Chart text size", 0.75, 2.0, 1.3, 0.05, key="chart_font_scale")
     with c6:
-        marker_size = st.slider("Marker size", 6, 80, 40 if full_page_mode else 20, 2, key="chart_marker_size")
+        marker_size = st.slider("Marker size", 6, 80, 40, 2, key="chart_marker_size")
 
 # Adjust text scaling for better legibility on large screens.
 label_scale = 1.1 * diagram_text_scale
@@ -724,6 +714,99 @@ def render_step(step_idx):
             render_chart(fig375)
         elif x_metric == y_metric:
             st.info("Please choose different X and Y metrics for the scatter plot.")
+
+        # --- RGB & Visual Statistics by Category ---
+        st.markdown("#### RGB & Visual Statistics by Category")
+        if not px_df.empty:
+            dom_counts = px_df["dom"].value_counts()
+            color_map = {"G>R>B": "#2ecc71", "B>R>G": "#3498db", "R>G>B": "#e74c3c", "R≈G>B": "#95a5a6"}
+            dom_colors = [color_map.get(d, "#888") for d in dom_counts.index]
+            fig_dom, ax_dom = make_fig(w_mult=0.8, h_mult=0.7)
+            ax_dom.bar(dom_counts.index, dom_counts.values, color=dom_colors)
+            ax_dom.set_title(f"Dominant RGB channel distribution ({split_img})", color=TEXT, pad=10)
+            ax_dom.set_ylabel("Number of categories")
+            render_chart(fig_dom)
+
+            cats_sorted = px_df.sort_values("brightness", ascending=True)
+            fig_br, ax_br = make_fig(w_mult=1.0, h_mult=1.2)
+            ax_br.barh(cats_sorted["category"].values, cats_sorted["brightness"].values, color="#f39c12", alpha=0.85)
+            ax_br.set_title(f"Mean brightness by category ({split_img})", color=TEXT, pad=10)
+            ax_br.set_xlabel("Brightness (0\u20131)")
+            ax_br.tick_params(axis='y', labelsize=max(5.0, 7.0 * diagram_text_scale))
+            render_chart(fig_br)
+
+            cats_sorted_t = px_df.sort_values("texture", ascending=True)
+            fig_tx, ax_tx = make_fig(w_mult=1.0, h_mult=1.2)
+            ax_tx.barh(cats_sorted_t["category"].values, cats_sorted_t["texture"].values, color="#8e44ad", alpha=0.85)
+            ax_tx.set_title(f"Mean texture complexity by category ({split_img})", color=TEXT, pad=10)
+            ax_tx.set_xlabel("Texture (std dev of gray)")
+            ax_tx.tick_params(axis='y', labelsize=max(5.0, 7.0 * diagram_text_scale))
+            render_chart(fig_tx)
+
+            render_bento_table(
+                title="Per-category visual statistics",
+                icon="\U0001f4ca",
+                df=px_df[["category", "brightness", "texture", "blur", "dom"]].sort_values("brightness", ascending=False),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "category": st.column_config.TextColumn("Category \U0001f3f7\ufe0f"),
+                    "brightness": st.column_config.NumberColumn("Brightness", format="%.3f"),
+                    "texture": st.column_config.NumberColumn("Texture", format="%.3f"),
+                    "blur": st.column_config.NumberColumn("Blur", format="%.1f"),
+                    "dom": st.column_config.TextColumn("Dominant RGB \U0001f3a8"),
+                }
+            )
+
+        # --- Train vs Test Distribution Drift ---
+        st.markdown("#### Train vs Test Distribution Drift")
+        train_cat_counts = Counter(parse_category(img["filename"]) for img in D["train_imgs"])
+        test_cat_counts = Counter(parse_category(img["filename"]) for img in D["test_imgs"])
+        all_cats_sorted = sorted(set(train_cat_counts.keys()) | set(test_cat_counts.keys()))
+        train_vals = [train_cat_counts.get(c, 0) for c in all_cats_sorted]
+        test_vals = [test_cat_counts.get(c, 0) for c in all_cats_sorted]
+
+        fig_drift, ax_drift = make_fig(w_mult=1.0, h_mult=1.4)
+        y = np.arange(len(all_cats_sorted))
+        bar_h = 0.35
+        ax_drift.barh(y + bar_h/2, train_vals, bar_h, label=f"Train ({D['n_train']})", color="#3D5A80", alpha=0.85)
+        ax_drift.barh(y - bar_h/2, test_vals, bar_h, label=f"Test ({D['n_test']})", color="#B42318", alpha=0.85)
+        ax_drift.set_yticks(y)
+        ax_drift.set_yticklabels(all_cats_sorted, fontsize=max(5.0, 6.5 * diagram_text_scale))
+        ax_drift.set_title("Category distribution: Train vs Test", color=TEXT, pad=10)
+        ax_drift.set_xlabel("Count")
+        ax_drift.legend(frameon=False)
+        ax_drift.invert_yaxis()
+        render_chart(fig_drift)
+
+        px_train = get_or_compute("image_pixel_stats::train", lambda: image_pixel_stats(D["train_imgs"]), spinner_text="Computing pixel stats (train)...")
+        px_test = get_or_compute("image_pixel_stats::test", lambda: image_pixel_stats(D["test_imgs"]), spinner_text="Computing pixel stats (test)...")
+        if not px_train.empty and not px_test.empty:
+            merged = px_train[["category", "brightness", "texture"]].merge(
+                px_test[["category", "brightness", "texture"]], on="category", suffixes=("_train", "_test"), how="inner"
+            )
+            if not merged.empty:
+                fig_bdrift, ax_bdrift = make_fig(w_mult=1.0, h_mult=0.85)
+                ax_bdrift.scatter(merged["brightness_train"], merged["brightness_test"], c="#3D5A80", s=marker_size, alpha=0.85)
+                lims = [min(merged["brightness_train"].min(), merged["brightness_test"].min()) - 0.02,
+                        max(merged["brightness_train"].max(), merged["brightness_test"].max()) + 0.02]
+                ax_bdrift.plot(lims, lims, '--', color=ACC, alpha=0.5, label="y=x (no drift)")
+                ax_bdrift.set_xlabel("Train brightness")
+                ax_bdrift.set_ylabel("Test brightness")
+                ax_bdrift.set_title("Per-category brightness drift: Train vs Test", color=TEXT, pad=10)
+                ax_bdrift.legend(frameon=False)
+                render_chart(fig_bdrift)
+
+                fig_tdrift, ax_tdrift = make_fig(w_mult=1.0, h_mult=0.85)
+                ax_tdrift.scatter(merged["texture_train"], merged["texture_test"], c="#8e44ad", s=marker_size, alpha=0.85)
+                tlims = [min(merged["texture_train"].min(), merged["texture_test"].min()) - 0.005,
+                         max(merged["texture_train"].max(), merged["texture_test"].max()) + 0.005]
+                ax_tdrift.plot(tlims, tlims, '--', color=ACC, alpha=0.5, label="y=x (no drift)")
+                ax_tdrift.set_xlabel("Train texture")
+                ax_tdrift.set_ylabel("Test texture")
+                ax_tdrift.set_title("Per-category texture drift: Train vs Test", color=TEXT, pad=10)
+                ax_tdrift.legend(frameon=False)
+                render_chart(fig_tdrift)
 
     elif step_idx == 3:
         split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
@@ -1062,39 +1145,14 @@ def render_step(step_idx):
 
                 st.markdown("---")
 
-if full_page_mode:
-    if st.button("↺ Start Over"):
-        st.session_state.step = 0
-        st.session_state.D = None
-        st.session_state.mm_step_cache = {}
-        st.rerun()
-    for idx in range(TOTAL_STEPS):
-        st.markdown(f"### {idx+1}. {STEP_LABELS.get(idx, 'Unknown Step')}")
-        render_step(idx)
-        if idx < TOTAL_STEPS - 1:
-            st.markdown("---")
-else:
-    col1, col2 = st.columns(2)
-    with col1:
-        if step == 0:
-            if st.button("↺ Start Over"):
-                st.session_state.step = 0
-                st.session_state.D = None
-                st.session_state.mm_step_cache = {}
-                st.rerun()
-        else:
-            if st.button("← Previous"):
-                st.session_state.step = max(0, step-1)
-                st.rerun()
+if st.button("↺ Start Over / Clear Cache"):
+    st.session_state.D = None
+    st.session_state.mm_step_cache = {}
+    st.cache_data.clear()
+    st.rerun()
 
-    with col2:
-        if step == TOTAL_STEPS - 1:
-            if st.button("↺ Start Over"):
-                st.session_state.step = 0
-                st.session_state.D = None
-                st.session_state.mm_step_cache = {}
-                st.rerun()
-        else:
-            if st.button("Next →"):
-                st.session_state.step = min(TOTAL_STEPS-1, step+1)
-                st.rerun()
+for idx in range(TOTAL_STEPS):
+    st.markdown(f"### {idx+1}. {STEP_LABELS.get(idx, 'Unknown Step')}")
+    render_step(idx)
+    if idx < TOTAL_STEPS - 1:
+        st.markdown("---")
