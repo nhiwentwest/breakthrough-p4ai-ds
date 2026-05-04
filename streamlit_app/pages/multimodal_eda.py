@@ -258,6 +258,28 @@ def image_pixel_stats(train_imgs):
 
 
 @st.cache_data(show_spinner=False, persist="disk")
+def image_level_drift_stats(imgs):
+    """Per-image brightness and blur (Laplacian variance) for drift histograms."""
+    rows = []
+    for img_meta in imgs:
+        path = IMG_DIR / img_meta["filename"]
+        if not path.exists():
+            continue
+        try:
+            with Image.open(path) as im:
+                arr = np.array(im.convert("RGB"), dtype=np.float32) / 255.0
+            gray = 0.299 * arr[:,:,0] + 0.587 * arr[:,:,1] + 0.114 * arr[:,:,2]
+            brightness = float(np.mean(gray))
+            lap = (gray[:-2, 1:-1] + gray[2:, 1:-1] + gray[1:-1, :-2] + gray[1:-1, 2:]
+                   - 4.0 * gray[1:-1, 1:-1])
+            blur_var = float(np.var(lap))
+            rows.append({"brightness": brightness, "blur_score": blur_var})
+        except Exception:
+            continue
+    return pd.DataFrame(rows)
+
+
+@st.cache_data(show_spinner=False, persist="disk")
 def category_similarity(train_imgs):
     if not SKLEARN_AVAILABLE:
         return pd.DataFrame()
@@ -787,49 +809,33 @@ def render_step(step_idx):
 
         st.caption("\U0001f7e2 Green = over-represented in test \u00a0\u00a0 \U0001f534 Red = under-represented in test")
 
-        # Dumbbell charts for brightness & texture drift
-        px_train = get_or_compute("image_pixel_stats::train", lambda: image_pixel_stats(D["train_imgs"]), spinner_text="Computing pixel stats (train)...")
-        px_test = get_or_compute("image_pixel_stats::test", lambda: image_pixel_stats(D["test_imgs"]), spinner_text="Computing pixel stats (test)...")
-        if not px_train.empty and not px_test.empty:
-            merged = px_train[["category", "brightness", "texture"]].merge(
-                px_test[["category", "brightness", "texture"]], on="category", suffixes=("_train", "_test"), how="inner"
-            )
-            if not merged.empty:
-                # Brightness dumbbell
-                m_br = merged.sort_values("brightness_train")
-                fig_db, ax_db = make_fig(w_mult=1.0, h_mult=1.4)
-                y_pos = np.arange(len(m_br))
-                for i, (_, row) in enumerate(m_br.iterrows()):
-                    ax_db.plot([row["brightness_train"], row["brightness_test"]], [i, i],
-                               color="#D4C9B8", linewidth=2, zorder=1)
-                ax_db.scatter(m_br["brightness_train"], y_pos, c="#3D5A80", s=marker_size, zorder=2, label="Train")
-                ax_db.scatter(m_br["brightness_test"], y_pos, c="#B42318", s=marker_size, zorder=2, label="Test", marker="D")
-                ax_db.set_yticks(y_pos)
-                ax_db.set_yticklabels(m_br["category"].values, fontsize=max(5.0, 6.5 * diagram_text_scale))
-                ax_db.set_title("Brightness drift by category (Train \u2192 Test)", color=TEXT, pad=10)
-                ax_db.set_xlabel("Brightness (0\u20131)")
-                ax_db.legend(frameon=False, loc="lower right")
-                for spine in ['top', 'right']:
-                    ax_db.spines[spine].set_visible(False)
-                render_chart(fig_db)
+        # Overlapping histograms: Brightness & Blur drift (per-image)
+        drift_train = get_or_compute("image_level_drift::train", lambda: image_level_drift_stats(D["train_imgs"]), spinner_text="Computing per-image stats (train)...")
+        drift_test = get_or_compute("image_level_drift::test", lambda: image_level_drift_stats(D["test_imgs"]), spinner_text="Computing per-image stats (test)...")
 
-                # Texture dumbbell
-                m_tx = merged.sort_values("texture_train")
-                fig_dt, ax_dt = make_fig(w_mult=1.0, h_mult=1.4)
-                y_pos_t = np.arange(len(m_tx))
-                for i, (_, row) in enumerate(m_tx.iterrows()):
-                    ax_dt.plot([row["texture_train"], row["texture_test"]], [i, i],
-                               color="#D4C9B8", linewidth=2, zorder=1)
-                ax_dt.scatter(m_tx["texture_train"], y_pos_t, c="#3D5A80", s=marker_size, zorder=2, label="Train")
-                ax_dt.scatter(m_tx["texture_test"], y_pos_t, c="#B42318", s=marker_size, zorder=2, label="Test", marker="D")
-                ax_dt.set_yticks(y_pos_t)
-                ax_dt.set_yticklabels(m_tx["category"].values, fontsize=max(5.0, 6.5 * diagram_text_scale))
-                ax_dt.set_title("Texture drift by category (Train \u2192 Test)", color=TEXT, pad=10)
-                ax_dt.set_xlabel("Texture (std dev of gray)")
-                ax_dt.legend(frameon=False, loc="lower right")
+        if not drift_train.empty and not drift_test.empty:
+            fig_hist, (ax_br, ax_bl) = plt.subplots(1, 2, figsize=(max(7, chart_w * 2 * chart_scale), max(3, chart_h * chart_scale)), dpi=110)
+            fig_hist.patch.set_facecolor(BG)
+            for a in (ax_br, ax_bl):
+                a.set_facecolor(BG)
+                a.grid(axis='y', alpha=0.3)
                 for spine in ['top', 'right']:
-                    ax_dt.spines[spine].set_visible(False)
-                render_chart(fig_dt)
+                    a.spines[spine].set_visible(False)
+
+            ax_br.hist(drift_train["brightness"], bins=40, color="#66bb6a", alpha=0.6, label="Train", edgecolor="white", linewidth=0.3)
+            ax_br.hist(drift_test["brightness"], bins=40, color="#ef5350", alpha=0.5, label="Test", edgecolor="white", linewidth=0.3)
+            ax_br.set_title("Brightness Drift", color=TEXT, pad=8)
+            ax_br.set_xlabel("Mean brightness")
+            ax_br.legend(frameon=False)
+
+            ax_bl.hist(drift_train["blur_score"], bins=40, color="#b39ddb", alpha=0.6, label="Train", edgecolor="white", linewidth=0.3)
+            ax_bl.hist(drift_test["blur_score"], bins=40, color="#a1887f", alpha=0.5, label="Test", edgecolor="white", linewidth=0.3)
+            ax_bl.set_title("Blur Score Drift", color=TEXT, pad=8)
+            ax_bl.set_xlabel("Laplacian variance")
+            ax_bl.legend(frameon=False)
+
+            fig_hist.tight_layout(pad=2.0)
+            render_chart(fig_hist)
 
     elif step_idx == 3:
         split = st.radio("Split", ["train", "test"], horizontal=True, key="mm_split")
