@@ -465,18 +465,14 @@ def bento_table(title, df, **kwargs):
 # ══════════════════════════════════════════════════════════════════════════════
 if df is not None:
     if "full_page_mode" not in st.session_state:
-        st.session_state.full_page_mode = False
+        st.session_state.full_page_mode = True
         
     st.markdown(f"<p class='eyebrow'>§ Tabular Analysis &nbsp;·&nbsp; World Happiness</p>",
                 unsafe_allow_html=True)
-                
-    mode_col1, mode_col2 = st.columns([0.26, 0.74])
-    with mode_col1:
-        st.markdown(f"<h1 style='font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;margin:0 0 0.5rem'>"
-                    f"EDA Tabular</h1>", unsafe_allow_html=True)
-    with mode_col2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="tab_full_page_mode")
+    st.markdown(f"<h1 style='font-size:clamp(1.8rem,3vw,2.8rem);font-weight:900;margin:0 0 0.5rem'>"
+                f"EDA Tabular</h1>", unsafe_allow_html=True)
+    st.caption("Full page mode: showing all sections on one page")
+    full_page_mode = True
 
     if data_source == "live":
         src_label = "World Happiness Report 2019 · Kaggle"
@@ -488,17 +484,17 @@ if df is not None:
     with st.expander("🎛️ Visual controls", expanded=False):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.slider("Base width", 1.8, 12.0, 8.0 if full_page_mode else 2.8, 0.2, key="tab_chart_w")
+            st.slider("Base width", 1.8, 12.0, 8.0, 0.2, key="tab_chart_w")
             st.slider("Histogram bins", 8, 50, 24, 1, key="tab_hist_bins")
         with c2:
-            st.slider("Base height", 1.4, 8.0, 4.5 if full_page_mode else 1.8, 0.2, key="tab_chart_h")
+            st.slider("Base height", 1.4, 8.0, 4.5, 0.2, key="tab_chart_h")
             st.slider("Chart alpha", 0.45, 1.0, 0.82, 0.05, key="tab_alpha")
         with c3:
-            st.slider("Panel width", 0.40, 1.0, 0.85 if full_page_mode else 0.55, 0.05, key="tab_chart_panel")
+            st.slider("Panel width", 0.40, 1.0, 0.85, 0.05, key="tab_chart_panel")
             st.slider("Panel padding", 0.0, 0.20, 0.08, 0.01, key="tab_panel_pad")
         with c4:
-            font_scale = st.slider("Font scale", 0.45, 2.0, 1.2 if full_page_mode else 0.70, 0.05, key="tab_font_scale")
-            st.slider("Marker size", 6, 80, 40 if full_page_mode else 18, 2, key="tab_marker_size")
+            font_scale = st.slider("Font scale", 0.45, 2.0, 1.2, 0.05, key="tab_font_scale")
+            st.slider("Marker size", 6, 80, 40, 2, key="tab_marker_size")
             st.checkbox("Show grid", value=True, key="tab_show_grid")
 
     sns.set_context("notebook", font_scale=font_scale)
@@ -551,14 +547,6 @@ if df is not None:
             bento_table("Feature schema", pd.DataFrame(feat_rows), use_container_width=True, hide_index=True)
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: Missing Values →"):
-                n_missing = df.isnull().sum().sum()
-                st.session_state.log.append(
-                    f"[{time.strftime('%H:%M:%S')}] ✓ "
-                    f"Overview: {len(df)} rows · {len(df.columns)} cols"
-                )
-                st.session_state.step = 1
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 1: Missing Values
@@ -611,11 +599,6 @@ if df is not None:
                 """)
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: Numerical Distributions →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Missing Values: {len(has_missing)} cols affected")
-                st.session_state.step = 2
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 2: Numerical Distributions
@@ -667,11 +650,6 @@ if df is not None:
             st.dataframe(pd.DataFrame(stat_rows).set_index("Feature"))
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: GDP Level (Categorical) →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Numerical: {len(feat_options)} features analyzed")
-                st.session_state.step = 3
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 3: Categorical — GDP Level
@@ -721,11 +699,6 @@ if df is not None:
                 st.dataframe(pd.DataFrame(cat_rows).set_index("GDP_Level"))
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: Target Distribution →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Categorical: GDP_Level distribution shown")
-                st.session_state.step = 4
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 4: Target Distribution
@@ -763,11 +736,6 @@ if df is not None:
             t4.metric("Max",    f"{vals.max():.2f}")
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: Correlation Analysis →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Target: Score μ={vals.mean():.2f} [{vals.min():.1f}–{vals.max():.1f}]")
-                st.session_state.step = 5
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 5: Correlation Analysis
@@ -831,11 +799,6 @@ if df is not None:
                 st.info("No pairs with |r| > 0.5.")
     
             st.markdown("")
-            if not full_page_mode and st.button("Next: Outlier Detection →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Correlation: top predictor analyzed")
-                st.session_state.step = 6
-                safe_rerun()
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 6: Outlier Detection (IQR Method)
@@ -898,12 +861,7 @@ if df is not None:
             )
             bento_table("IQR outlier summary", pd.DataFrame(iqr_rows).set_index("Feature"), use_container_width=True)
     
-            st.markdown("")
-            if not full_page_mode and st.button("Next: GDP Level vs Score →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Outliers: IQR analysis complete")
-                st.session_state.step = 7
-                safe_rerun()
+
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 7: GDP Level vs Score (Target vs Categorical)
@@ -972,12 +930,7 @@ if df is not None:
                         })
                 st.dataframe(pd.DataFrame(grp_rows).set_index("GDP_Level"))
     
-            st.markdown("")
-            if not full_page_mode and st.button("Next: Sample Data →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"GDP vs Score: tier analysis complete")
-                st.session_state.step = 8
-                safe_rerun()
+
     
         # ══════════════════════════════════════════════════════════════════════════
         #  STEP 8: Sample Data
@@ -1004,22 +957,14 @@ if df is not None:
             st.dataframe(df.sample(min(15, len(df)), random_state=42).reset_index(drop=True),
                          )
     
-            st.markdown("")
-            if not full_page_mode and st.button("✅  View Full Dashboard →"):
-                st.session_state.log.append(f"[{time.strftime('%H:%M:%S')}] ✓ "
-                                            f"Sample: top/bottom/random rows viewed")
-                st.session_state.phase = "done"
-                safe_rerun()
     
 
-    if full_page_mode:
-        for s in range(TOTAL_STEPS):
-            st.markdown(f"### {s+1}. {STEP_LABELS.get(s, '')}")
-            render_tabular_step(s)
-            if s < TOTAL_STEPS - 1:
-                st.markdown("---")
-    else:
-        render_tabular_step(st.session_state.step)
+
+    for s in range(TOTAL_STEPS):
+        st.markdown(f"### {s+1}. {STEP_LABELS.get(s, '')}")
+        render_tabular_step(s)
+        if s < TOTAL_STEPS - 1:
+            st.markdown("---")
 # ══════════════════════════════════════════════════════════════════════════════
 #  DONE STATE — Full Dashboard
 # ══════════════════════════════════════════════════════════════════════════════

@@ -121,7 +121,7 @@ D = st.session_state.mnist
 step = st.session_state.step
 
 st.markdown("## Image EDA · MNIST")
-st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS[step]}")
+st.caption("Full page mode: showing all sections on one page")
 
 with st.expander("🎛️ Visual controls", expanded=False):
     c1, c2, c3 = st.columns(3)
@@ -148,7 +148,9 @@ def bento_table(title, df, **kwargs):
     st.markdown(f"<div class='bento-card'><div class='bento-title'>{title}</div></div>", unsafe_allow_html=True)
     st.dataframe(df, **kwargs)
 
-if step == 0:
+
+def render_image_step(step_idx):
+  if step_idx == 0:
     st.write("Load train and test split from MNIST.")
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Train images", f"{len(D['x_train']):,}")
@@ -156,7 +158,7 @@ if step == 0:
     m3.metric("Test images", f"{len(D['x_test']):,}")
     m4.metric("Test labels", f"{len(D['y_test']):,}")
 
-elif step == 1:
+  elif step_idx == 1:
     st.write("Convert to NumPy arrays and reshape train images.")
     info = pd.DataFrame(
         {
@@ -175,7 +177,7 @@ elif step == 1:
     )
     st.dataframe(info.style.set_properties(**{'background-color': '#fafafa', 'color': '#333'}), use_container_width=True, hide_index=True)
 
-elif step == 2:
+  elif step_idx == 2:
     x_flat = D["images_np"]
     props = pd.DataFrame(
         {
@@ -201,7 +203,7 @@ elif step == 2:
     )
     st.dataframe(props.style.set_properties(**{'background-color': '#f8f9fa', 'color': '#222'}), use_container_width=True, hide_index=True)
 
-elif step == 3:
+  elif step_idx == 3:
     sums_per_image = D["images_np"].sum(axis=1)
     blank_images = int((sums_per_image == 0).sum())
     c1, c2 = st.columns(2)
@@ -216,7 +218,7 @@ elif step == 3:
     ax.set_ylabel("Image count")
     st.pyplot(fig)
 
-elif step == 4:
+  elif step_idx == 4:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="sample_split")
     x = D["x_train"] if split == "train" else D["x_test"]
     y = D["y_train"] if split == "train" else D["y_test"]
@@ -278,7 +280,7 @@ elif step == 4:
 
     st.caption(f"Showing {len(idx_sel):,} samples from pool of {len(idx_pool):,}.")
 
-elif step == 5:
+  elif step_idx == 5:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="dist_split")
     labels = D["y_train"] if split == "train" else D["y_test"]
 
@@ -301,7 +303,7 @@ elif step == 5:
         }
     )
 
-elif step == 6:
+  elif step_idx == 6:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="pix_split")
     x = D["x_train"] if split == "train" else D["x_test"]
     pixels = x.flatten()
@@ -342,7 +344,7 @@ elif step == 6:
         }
     )
 
-elif step == 7:
+  elif step_idx == 7:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="ex_split")
     x = D["x_train"] if split == "train" else D["x_test"]
     y = D["y_train"] if split == "train" else D["y_test"]
@@ -417,7 +419,7 @@ elif step == 7:
     plt.tight_layout()
     st.pyplot(fig2)
 
-elif step == 8:
+  elif step_idx == 8:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="mean_split")
     x = D["x_train"] if split == "train" else D["x_test"]
     y = D["y_train"] if split == "train" else D["y_test"]
@@ -449,7 +451,7 @@ elif step == 8:
     fig2.colorbar(im, ax=ax2)
     st.pyplot(fig2)
 
-elif step == 9:
+  elif step_idx == 9:
     split = st.radio("Split", ["train", "test"], horizontal=True, key="std_split")
     x = D["x_train"] if split == "train" else D["x_test"]
     y = D["y_train"] if split == "train" else D["y_test"]
@@ -497,25 +499,8 @@ elif step == 9:
     )
 
 
-col1, col2 = st.columns(2)
-with col1:
-    if step == 0:
-        if st.button("↺ Start Over"):
-            st.session_state.step = 0
-            st.session_state.mnist = None
-            st.rerun()
-    else:
-        if st.button("← Previous"):
-            st.session_state.step = max(0, step - 1)
-            st.rerun()
-
-with col2:
-    if step == TOTAL_STEPS - 1:
-        if st.button("↺ Start Over"):
-            st.session_state.step = 0
-            st.session_state.mnist = None
-            st.rerun()
-    else:
-        if st.button("Next →"):
-            st.session_state.step = min(TOTAL_STEPS - 1, step + 1)
-            st.rerun()
+for s in range(TOTAL_STEPS):
+    st.markdown(f"### {s+1}. {STEP_LABELS[s]}")
+    render_image_step(s)
+    if s < TOTAL_STEPS - 1:
+        st.markdown("---")
