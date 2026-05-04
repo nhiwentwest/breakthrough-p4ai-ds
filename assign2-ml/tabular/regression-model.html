@@ -56,7 +56,7 @@
 
   <div class="section-label">Model Comparison (R2 Score)</div>
   <div class="image-card">
-    <img src="./figures/r2_score_comparison.png" alt="R2 Score Comparison Chart" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889227/finalmodel_olaaxj.png" alt="R2 Score Comparison Chart" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Visualizing the performance in explaining data variance across three algorithms. An R2 score closer to 1.0 indicates a more accurate prediction model.</p>
   </div>
 
@@ -109,61 +109,61 @@
 
   <div class="section-label">Linear Regression · Predict vs Actual</div>
   <div class="image-card">
-    <img src="./figures/linear_regression_predict_vs_actual.png" alt="Linear Regression Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889234/linear_pgpkws.png" alt="Linear Regression Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Predicted vs actual charges for Linear Regression. Systematic under-prediction visible for high-cost smoker patients due to the missing BMI×smoker interaction term.</p>
   </div>
 
   <div class="section-label">Linear Regression · Residual Plot</div>
   <div class="image-card">
-    <img src="./figures/linear_regression_residual_plot.png" alt="Linear Regression Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889238/residualplot_linear_ibmpgj.png" alt="Linear Regression Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">LR residuals show a funnel-shape (heteroscedasticity) — increasing spread with larger predictions, confirming systematic failure on the smoker sub-population.</p>
   </div>
 
   <div class="section-label">Linear Regression · Learning Curves</div>
   <div class="image-card">
-    <img src="./figures/linear_regression_learning_curve.png" alt="Linear Regression Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889230/learningcurves_linear_mcmb2l.png" alt="Linear Regression Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Train and validation curves converge quickly to a relatively high error — classic underfitting (high bias). The model is too simple for the non-linear data structure.</p>
   </div>
 
   <div class="section-label">Random Forest · Predict vs Actual</div>
   <div class="image-card">
-    <img src="./figures/random_forest_predict_vs_actual.png" alt="Random Forest Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889235/randomforeset_ez0u4y.png" alt="Random Forest Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">RF predictions cluster more tightly around the diagonal. The 100-tree ensemble captures the smoker interaction automatically via branching.</p>
   </div>
 
   <div class="section-label">Random Forest · Residual Plot</div>
   <div class="image-card">
-    <img src="./figures/random_forest_residual_plot.png" alt="Random Forest Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889240/residualplot_randomforest_n47k9n.png" alt="Random Forest Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">RF residuals are more uniformly distributed around zero, though some variance remains at extreme values due to bootstrap sampling noise.</p>
   </div>
 
   <div class="section-label">Random Forest · Learning Curves</div>
   <div class="image-card">
-    <img src="./figures/random_forest_learning_curve.png" alt="Random Forest Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889232/learningcurves_randomforest_msoxve.png" alt="Random Forest Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Near-perfect training score with a moderate train-validation gap — mild overfitting that decreases with more data. Characteristic of high-variance ensemble models.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Predict vs Actual</div>
   <div class="image-card">
-    <img src="./figures/gradient_boosting_predict_vs_actual.png" alt="Gradient Boosting Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889228/gradient_boosting_xlwn7l.png" alt="Gradient Boosting Predict vs Actual" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">GB produces the tightest clustering around the diagonal. Sequential error correction yields the most accurate predictions across both smoker and non-smoker sub-populations.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Residual Plot</div>
   <div class="image-card">
-    <img src="./figures/gradient_boosting_residual_plot.png" alt="Gradient Boosting Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889236/residualplot_GradientBoosting_jmvhof.png" alt="Gradient Boosting Residual Plot" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">GB residuals are more uniformly distributed around zero, confirming better model fit for the non-linear smoker–BMI interactions.</p>
   </div>
 
   <div class="section-label">Gradient Boosting · Learning Curves</div>
   <div class="image-card">
-    <img src="./figures/gradient_boosting_learning_curve.png" alt="Gradient Boosting Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889229/learningcurves_gradientboosting_ez19ed.png" alt="Gradient Boosting Learning Curves" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">Validation curve closely tracks the training curve — stable generalisation with minimal overfitting thanks to shallow trees (max_depth=3).</p>
   </div>
 
   <div class="section-label">Feature Importance (Gradient Boosting)</div>
   <div class="image-card">
-    <img src="./figures/feature_importance_gb.png" alt="Gradient Boosting Feature Importance" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
+    <img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777889226/featureimportance_zlccwc.png" alt="Gradient Boosting Feature Importance" style="background:#eee; aspect-ratio:16/7; display:flex; align-items:center; justify-content:center;" />
     <p class="desc-text">smoker_yes accounts for ≈67% of total predictive power, confirming the EDA finding. BMI (~19%) and age (~12%) together contribute another ~30%, while gender and region have minimal impact.</p>
   </div>
 
