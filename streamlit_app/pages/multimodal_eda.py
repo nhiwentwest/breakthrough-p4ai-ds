@@ -565,18 +565,8 @@ if "n_total" not in D:
     D["n_total"] = D["n_train"] + D["n_test"]
 
 st.markdown("## EDA Multimodal — Strict Script-Aligned Demo")
-mode_col1, mode_col2 = st.columns([0.26, 0.74])
-with mode_col1:
-    full_page_mode = st.toggle("Full page mode", value=st.session_state.full_page_mode, key="full_page_mode")
-with mode_col2:
-    step = st.session_state.step
-    if full_page_mode:
-        st.caption("Full page mode: showing all sections on one page")
-    else:
-        st.caption(f"Step {step+1}/{TOTAL_STEPS}: {STEP_LABELS.get(step, 'Unknown Step')}")
-
-if full_page_mode:
-    st.info("Full page mode is enabled, but this page still uses the step renderer. Refresh after the next update to see the one-page layout.")
+st.caption("Full page mode: showing all sections on one page")
+full_page_mode = True
 
 with st.expander("🎛️ Chart controls", expanded=False):
     c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -1062,39 +1052,14 @@ def render_step(step_idx):
 
                 st.markdown("---")
 
-if full_page_mode:
-    if st.button("↺ Start Over"):
-        st.session_state.step = 0
-        st.session_state.D = None
-        st.session_state.mm_step_cache = {}
-        st.rerun()
-    for idx in range(TOTAL_STEPS):
-        st.markdown(f"### {idx+1}. {STEP_LABELS.get(idx, 'Unknown Step')}")
-        render_step(idx)
-        if idx < TOTAL_STEPS - 1:
-            st.markdown("---")
-else:
-    col1, col2 = st.columns(2)
-    with col1:
-        if step == 0:
-            if st.button("↺ Start Over"):
-                st.session_state.step = 0
-                st.session_state.D = None
-                st.session_state.mm_step_cache = {}
-                st.rerun()
-        else:
-            if st.button("← Previous"):
-                st.session_state.step = max(0, step-1)
-                st.rerun()
+if st.button("↺ Start Over / Clear Cache"):
+    st.session_state.D = None
+    st.session_state.mm_step_cache = {}
+    st.cache_data.clear()
+    st.rerun()
 
-    with col2:
-        if step == TOTAL_STEPS - 1:
-            if st.button("↺ Start Over"):
-                st.session_state.step = 0
-                st.session_state.D = None
-                st.session_state.mm_step_cache = {}
-                st.rerun()
-        else:
-            if st.button("Next →"):
-                st.session_state.step = min(TOTAL_STEPS-1, step+1)
-                st.rerun()
+for idx in range(TOTAL_STEPS):
+    st.markdown(f"### {idx+1}. {STEP_LABELS.get(idx, 'Unknown Step')}")
+    render_step(idx)
+    if idx < TOTAL_STEPS - 1:
+        st.markdown("---")
