@@ -782,32 +782,6 @@ def render_step(step_idx):
 
         # --- Train vs Test Distribution Drift ---
         st.markdown("#### Train vs Test Distribution Drift")
-        train_cat_counts = Counter(parse_category(img["filename"]) for img in D["train_imgs"])
-        test_cat_counts = Counter(parse_category(img["filename"]) for img in D["test_imgs"])
-        all_cats_sorted = sorted(set(train_cat_counts.keys()) | set(test_cat_counts.keys()))
-
-        # Diverging bar: proportion difference (test% − train%)
-        train_total = sum(train_cat_counts.values()) or 1
-        test_total = sum(test_cat_counts.values()) or 1
-        drift_data = []
-        for c in all_cats_sorted:
-            tr_pct = train_cat_counts.get(c, 0) / train_total * 100
-            te_pct = test_cat_counts.get(c, 0) / test_total * 100
-            drift_data.append({"category": c, "train%": tr_pct, "test%": te_pct, "drift": te_pct - tr_pct})
-        drift_df = pd.DataFrame(drift_data).sort_values("drift")
-
-        fig_drift, ax_drift = make_fig(w_mult=1.0, h_mult=1.4)
-        colors = ["#B42318" if d < 0 else "#2A7A70" for d in drift_df["drift"]]
-        ax_drift.barh(drift_df["category"], drift_df["drift"], color=colors, alpha=0.85, height=0.7)
-        ax_drift.axvline(0, color=TEXT, linewidth=0.8, alpha=0.4)
-        ax_drift.set_title("Category proportion drift (Test% \u2212 Train%)", color=TEXT, pad=10)
-        ax_drift.set_xlabel("Proportion difference (%)")
-        ax_drift.tick_params(axis='y', labelsize=max(5.0, 6.5 * diagram_text_scale))
-        for spine in ['top', 'right']:
-            ax_drift.spines[spine].set_visible(False)
-        render_chart(fig_drift)
-
-        st.caption("\U0001f7e2 Green = over-represented in test \u00a0\u00a0 \U0001f534 Red = under-represented in test")
 
         # Overlapping histograms: Brightness & Blur drift (per-image)
         drift_train = get_or_compute("image_level_drift::train", lambda: image_level_drift_stats(D["train_imgs"]), spinner_text="Computing per-image stats (train)...")
