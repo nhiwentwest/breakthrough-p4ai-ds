@@ -979,6 +979,31 @@ def render_step(step_idx):
                 }
             )
 
+            # Top-N noisy samples bar chart
+            st.markdown("#### Top Noisy Samples — Three-Layer Diagnostics")
+            top_n_noisy = st.slider("Show top N noisy samples", 5, 30, 12, key="top_n_noisy")
+            top_noisy = noise_df.sort_values("noise_score", ascending=False).head(top_n_noisy).copy()
+            top_noisy["severity"] = top_noisy["noise_score"].apply(lambda s: "HIGH" if s >= 0.65 else "MEDIUM")
+            top_noisy["dominant_issue"] = top_noisy.apply(
+                lambda r: "cross_modal_mismatch" if r["layer_b_score"] >= r["layer_a_score"] else "semantic_drift", axis=1
+            )
+            top_noisy["label"] = top_noisy["severity"] + " | " + top_noisy["dominant_issue"]
+            top_noisy = top_noisy.sort_values("noise_score", ascending=True)
+
+            fig_topn, ax_topn = make_fig(w_mult=1.0, h_mult=1.2)
+            bar_colors = ["#B42318" if s == "HIGH" else "#c68a1d" for s in top_noisy["severity"]]
+            ax_topn.barh(top_noisy["filename"], top_noisy["noise_score"], color=bar_colors, alpha=0.88, height=0.7)
+            for i, (_, row) in enumerate(top_noisy.iterrows()):
+                ax_topn.text(row["noise_score"] + 0.008, i, row["label"],
+                             va="center", fontsize=max(5.5, 7.0 * diagram_text_scale), color=MUT)
+            ax_topn.set_title(f"Top-{top_n_noisy} Noisy Samples ({split.title()}) from Three-Layer Diagnostics", color=TEXT, pad=10)
+            ax_topn.set_xlabel("Noise score")
+            ax_topn.tick_params(axis='y', labelsize=max(5.5, 7.0 * diagram_text_scale))
+            for spine in ['top', 'right']:
+                ax_topn.spines[spine].set_visible(False)
+            ax_topn.set_xlim(right=ax_topn.get_xlim()[1] * 1.35)
+            render_chart(fig_topn)
+
             inspect_pool = noisy_candidates["filename"].tolist() if len(noisy_candidates) else noise_df.sort_values("noise_score", ascending=False)["filename"].head(30).tolist()
             st.markdown("#### Inspect image + 5 captions (noise evidence)")
             selected_noise_file = st.selectbox("Choose a sample to inspect", options=inspect_pool, key="noise_inspect_file")
