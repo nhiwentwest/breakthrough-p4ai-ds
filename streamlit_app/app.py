@@ -211,3 +211,33 @@ with a1r2c2:
 """,
         unsafe_allow_html=True,
     )
+
+# ── Demo Preparation (warm-up) ──────────────────────────────────────────
+st.markdown(
+    '<p class="hero-kicker" style="margin-top:1.5rem">⚡ Demo Preparation</p>',
+    unsafe_allow_html=True,
+)
+st.markdown(
+    '<p class="hero-sub" style="margin-bottom:.6rem">'
+    "Pre-download all model checkpoints to local disk so demo pages load instantly (2-4 s instead of minutes)."
+    "</p>",
+    unsafe_allow_html=True,
+)
+
+if st.button("⚡ Warm-up: Download all checkpoints", use_container_width=True):
+    from pathlib import Path
+    from utils.warmup import warmup_download_all
+
+    ckpt_dir = Path(__file__).resolve().parent / "checkpoints"
+    bar = st.progress(0, text="Starting warm-up …")
+    results = warmup_download_all(checkpoint_dir=ckpt_dir, progress_callback=bar)
+    bar.progress(1.0, text="Done!")
+
+    downloaded = sum(1 for v in results.values() if v == "downloaded")
+    skipped = sum(1 for v in results.values() if v == "skipped")
+    failed = sum(1 for v in results.values() if v.startswith("FAILED"))
+
+    if failed:
+        st.warning(f"⚠️ {failed} file(s) failed. Re-click to retry.")
+    else:
+        st.success(f"✅ All checkpoints ready! ({downloaded} downloaded, {skipped} already cached)")

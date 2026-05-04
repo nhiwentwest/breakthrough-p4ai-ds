@@ -6,29 +6,24 @@ os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 os.environ["TRANSFORMERS_VERBOSITY"] = "error"
 warnings.filterwarnings("ignore")
 
+import gc
+
 import gdown
 import numpy as np
-import pandas as pd
 import streamlit as st
 import torch
 import torch.nn as nn
-from datasets import load_dataset
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
-from torch.utils.data import DataLoader, Dataset
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 
 st.set_page_config(page_title="Demo 2 · Text Classification", page_icon="📝", layout="wide")
 
+# ── Page-switch cleanup ──────────────────────────────────────────────────
 if st.session_state.get("current_page") != "demo2_text":
-    st.cache_resource.clear()
-    import gc; gc.collect()
-    try:
-        import torch
-        if torch.cuda.is_available(): torch.cuda.empty_cache()
-    except ImportError:
-        pass
+    from utils.warmup import cleanup_other_pages
+    cleanup_other_pages("text")
     st.session_state["current_page"] = "demo2_text"
 
+# ── Design tokens ────────────────────────────────────────────────────────
 BG = "#F7F3EB"
 CARD = "#EFE8DC"
 TEXT = "#111111"
@@ -73,41 +68,7 @@ st.markdown("<p class='hero'>Demo 2 · Text Classification</p>", unsafe_allow_ht
 st.markdown("<p class='sub'>Single-model demo using BERT fine-tuning on the Twitter financial news sentiment dataset.</p>", unsafe_allow_html=True)
 
 
-def _download_checkpoint() -> Path:
-    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = CHECKPOINT_DIR / "text_bert_checkpoint.bin"
-    if checkpoint_path.exists() and checkpoint_path.stat().st_size > 0:
-        return checkpoint_path
-    url = f"https://drive.google.com/uc?id={TEXT_CHECKPOINT_ID}"
-    gdown.download(url, str(checkpoint_path), quiet=False)
-    return checkpoint_path
-
-
-class TwitterSentimentDataset(Dataset):
-    def __init__(self, texts, labels, tokenizer, max_length=64):
-        self.texts = list(texts)
-        self.labels = list(labels)
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-
-    def __len__(self):
-        return len(self.texts)
-
-    def __getitem__(self, idx):
-        enc = self.tokenizer(
-            str(self.texts[idx]),
-            truncation=True,
-            padding="max_length",
-            max_length=self.max_length,
-            return_tensors="pt",
-        )
-        return {
-            "input_ids": enc["input_ids"].squeeze(0),
-            "attention_mask": enc["attention_mask"].squeeze(0),
-            "label": torch.tensor(int(self.labels[idx]), dtype=torch.long),
-        }
-
-
+# ── Model ────────────────────────────────────────────────────────────────
 class BERTMeanPoolingClassifier(nn.Module):
     def __init__(self, model_name: str, num_labels: int = 3):
         super().__init__()
@@ -125,23 +86,35 @@ class BERTMeanPoolingClassifier(nn.Module):
         return self.classifier(pooled)
 
 
+def _download_checkpoint() -> Path:
+    CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = CHECKPOINT_DIR / "text_bert_checkpoint.bin"
+    if checkpoint_path.exists() and checkpoint_path.stat().st_size > 0:
+        return checkpoint_path
+    url = f"https://drive.google.com/uc?id={TEXT_CHECKPOINT_ID}"
+    gdown.download(url, str(checkpoint_path), quiet=False)
+    return checkpoint_path
+
+
 @st.cache_resource(show_spinner=True)
 def load_text_model():
     checkpoint_path = _download_checkpoint()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = BERTMeanPoolingClassifier(MODEL_NAME, num_labels=3)
-    state = torch.load(checkpoint_path, map_location="cpu")
+    state = torch.load(checkpoint_path, map_location=device)
     if isinstance(state, dict) and "state_dict" in state:
         state = state["state_dict"]
     if isinstance(state, dict):
         cleaned = {k.replace("module.", ""): v for k, v in state.items()}
         model.load_state_dict(cleaned, strict=False)
-    model.eval()
+    model.to(device).eval()
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=True)
-    return model, tokenizer, str(checkpoint_path)
+    return model, tokenizer, device, str(checkpoint_path)
 
 
 @st.cache_data(show_spinner=True)
 def load_sample_dataset():
+    from datasets import load_dataset
     ds = load_dataset("zeroshot/twitter-financial-news-sentiment")
     split_name = "test" if "test" in ds else ("validation" if "validation" in ds else list(ds.keys())[-1])
     return ds[split_name].to_pandas().copy()
@@ -150,10 +123,7 @@ def load_sample_dataset():
 # Evaluation function removed as per request
 
 
-model = None
-tokenizer = None
-checkpoint_path = None
-
+# ── UI ───────────────────────────────────────────────────────────────────
 df = load_sample_dataset()
 
 if "text_demo_model_loaded" not in st.session_state:
@@ -168,33 +138,16 @@ with left:
     st.markdown("<div class='model-chip'>BERT fine-tuning</div>", unsafe_allow_html=True)
 
     load_model_btn = st.button("Load BERT model", use_container_width=True)
-    loaded_key = "text_demo_loaded_model"
     if load_model_btn:
         with st.spinner("Downloading/loading BERT checkpoint..."):
-            model, tokenizer, checkpoint_path = load_text_model()
-            st.session_state[loaded_key] = {
-                "model": model,
-                "tokenizer": tokenizer,
-                "checkpoint_path": checkpoint_path,
-            }
+            _model, _tok, _dev, _ckpt = load_text_model()
             st.session_state["text_demo_model_loaded"] = True
-            st.session_state["text_demo_checkpoint_path"] = checkpoint_path
+            st.session_state["text_demo_checkpoint_path"] = _ckpt
         st.success("BERT model loaded successfully.")
 
-    cached_loaded = st.session_state.get(loaded_key)
-    if cached_loaded:
-        model = cached_loaded.get("model")
-        tokenizer = cached_loaded.get("tokenizer")
-        checkpoint_path = cached_loaded.get("checkpoint_path", checkpoint_path)
-        st.session_state["text_demo_model_loaded"] = True
-        st.session_state["text_demo_checkpoint_path"] = checkpoint_path
-
     if st.session_state.get("text_demo_model_loaded"):
-        if model is None or tokenizer is None:
-            with st.spinner("Restoring loaded model..."):
-                model, tokenizer, checkpoint_path = load_text_model()
         st.caption("Checkpoint")
-        st.code(st.session_state.get("text_demo_checkpoint_path", checkpoint_path), language="text")
+        st.code(st.session_state.get("text_demo_checkpoint_path", ""), language="text")
     else:
         st.info("Click 'Load BERT model' before running prediction.")
 
@@ -210,17 +163,15 @@ with left:
 with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Prediction</div>", unsafe_allow_html=True)
-    
+
     if pred_btn:
         if not st.session_state.get("text_demo_model_loaded"):
             st.warning("Please load the BERT model first.")
         else:
-            if model is None or tokenizer is None:
-                model, tokenizer, checkpoint_path = load_text_model()
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            model, tokenizer, device, _ = load_text_model()
             encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
             with torch.no_grad():
-                logits = model.to(device)(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
+                logits = model(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
                 probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
                 pred_id = int(np.argmax(probs))
             st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)

@@ -5,6 +5,8 @@ import gdown
 import joblib
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import streamlit as st
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
@@ -12,14 +14,10 @@ from sklearn.model_selection import train_test_split
 
 st.set_page_config(page_title="Demo 2 · Tabular Regression", page_icon="📊", layout="wide")
 
+# ── Page-switch cleanup ──────────────────────────────────────────────────
 if st.session_state.get("current_page") != "demo2_tabular":
-    st.cache_resource.clear()
-    import gc; gc.collect()
-    try:
-        import torch
-        if torch.cuda.is_available(): torch.cuda.empty_cache()
-    except ImportError:
-        pass
+    from utils.warmup import cleanup_other_pages
+    cleanup_other_pages("tabular")
     st.session_state["current_page"] = "demo2_tabular"
 
 BG = "#F7F3EB"
@@ -134,16 +132,20 @@ def load_insurance_dataset():
     return pd.read_csv(dataset_path)
 
 
-def prepare_insurance_data(df: pd.DataFrame):
+@st.cache_data(show_spinner=False)
+def prepare_insurance_data(_df_hash, df: pd.DataFrame):
+    """Cached train/test split — only runs once per dataset."""
     df_encoded = pd.get_dummies(df, columns=["sex", "smoker", "region"], drop_first=True)
     X = df_encoded.drop(columns=["charges"])
     y = df_encoded["charges"]
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
 
-def evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test):
-    X_test_scaled = scaler.transform(X_test)
-    preds = model.predict(X_test_scaled)
+@st.cache_data(show_spinner=False)
+def evaluate_model_on_insurance(_model_name, _model, _scaler, feature_columns, X_test, y_test):
+    """Cached evaluation — only re-runs when the model changes."""
+    X_test_scaled = _scaler.transform(X_test)
+    preds = _model.predict(X_test_scaled)
     mse = mean_squared_error(y_test, preds)
     eval_df = X_test.copy().reset_index(drop=True)
     eval_df["actual"] = y_test.reset_index(drop=True)
@@ -182,6 +184,7 @@ def build_feature_row(age, bmi, children, sex, smoker, region):
     return row
 
 
+# ── UI ───────────────────────────────────────────────────────────────────
 st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
 left, right = st.columns([1.15, 1])
 
@@ -223,9 +226,6 @@ with right:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Prediction Output</div>", unsafe_allow_html=True)
 
-    df = load_insurance_dataset()
-    X_train, X_test, y_train, y_test = prepare_insurance_data(df)
-
     if pred_btn:
         model, scaler, feature_columns, _model_path = load_tabular_model(model_name)
         feature_row = build_feature_row(age, bmi, children, sex, smoker, region)
@@ -238,7 +238,15 @@ with right:
             scaled = scaler.transform(ordered)
             pred = model.predict(scaled)
             pred_value = float(np.ravel(pred)[0])
-            score = evaluate_model_on_insurance(model, scaler, feature_columns, X_test, y_test)
+
+            # Load dataset + evaluate (both cached)
+            df = load_insurance_dataset()
+            X_train, X_test, y_train, y_test = prepare_insurance_data(
+                id(df), df,
+            )
+            score = evaluate_model_on_insurance(
+                model_name, model, scaler, feature_columns, X_test, y_test,
+            )
             eval_df = score["eval_df"]
             residual_std = float(eval_df["residual"].std())
             outlier_mask = eval_df["residual"].abs() > (2 * residual_std if residual_std > 0 else np.inf)
@@ -288,6 +296,7 @@ if pred_btn and 'score' in locals():
         ax.set_ylabel("Predicted charges")
         ax.set_title("Actual vs Predicted")
         st.pyplot(fig_fit, use_container_width=True)
+        plt.close(fig_fit)
 
     with tab_errors:
         c_left, c_right = st.columns(2)
@@ -299,6 +308,7 @@ if pred_btn and 'score' in locals():
             ax_res.set_ylabel("Residuals (pred - actual)")
             ax_res.set_title("Residuals vs Predicted")
             st.pyplot(fig_res, use_container_width=True)
+            plt.close(fig_res)
         with c_right:
             fig_hist, ax_hist = plt.subplots(figsize=(6.2, 4))
             ax_hist.hist(eval_df["residual"], bins=30, color="#d97706", alpha=0.85)
@@ -307,6 +317,7 @@ if pred_btn and 'score' in locals():
             ax_hist.set_ylabel("Count")
             ax_hist.set_title("Residual Histogram")
             st.pyplot(fig_hist, use_container_width=True)
+            plt.close(fig_hist)
         st.markdown(f"**Outliers**: {outlier_count} points with residual > 2σ")
 
     with tab_why:
