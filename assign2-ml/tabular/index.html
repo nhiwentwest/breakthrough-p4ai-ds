@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment 02 — Tabular | Breakthrough</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -112,7 +111,7 @@
         <header class="page-head">
             <div class="eyebrow">Assignment 02 · 2025–2026</div>
             <h1 class="title">Tabular Machine Learning</h1>
-            <p class="sub">A regression pipeline for the <strong>Medical Cost Personal Datasets</strong> (Insurance), comparing Linear Regression, Random Forest, and Gradient Boosting with preprocessing, residual analysis, learning curves, and inference-time benchmarking.</p>
+            <p class="sub">A regression pipeline predicting annual medical insurance charges (USD) from demographic &amp; lifestyle features. Comparing <strong>Linear Regression</strong>, <strong>Random Forest</strong>, and <strong>Gradient Boosting</strong> with OHE + StandardScaler preprocessing, residual analysis, learning curves, and feature importance.</p>
         </header>
 
         <section class="panel">
@@ -122,17 +121,17 @@
             <div class="chips">
                 <span class="chip chip--accent">Regression</span>
                 <span class="chip">1338 records</span>
-                <span class="chip">7 input features</span>
-                <span class="chip">1 target: charges</span>
-                <span class="chip chip--ok">Categorical + Numerical</span>
+                <span class="chip">7 raw → 8 after OHE</span>
+                <span class="chip">Target: charges (USD)</span>
+                <span class="chip chip--ok">70 / 15 / 15 split</span>
             </div>
         </section>
 
         <section class="stats">
-            <div class="stat"><div class="big-stat-lbl">Records</div><div class="big-stat-val">1338</div><div class="big-stat-sub">raw insurance dataset</div></div>
-            <div class="stat"><div class="big-stat-lbl">Features</div><div class="big-stat-val">7</div><div class="big-stat-sub">age, sex, bmi, children, smoker, region, etc.</div></div>
-            <div class="stat"><div class="big-stat-lbl">Task</div><div class="big-stat-val">Regression</div><div class="big-stat-sub">predict medical charges</div></div>
-            <div class="stat"><div class="big-stat-lbl">Best R² Score</div><div class="big-stat-val">0.8793</div><div class="big-stat-sub">Gradient Boosting Regressor</div></div>
+            <div class="stat"><div class="big-stat-lbl">Records</div><div class="big-stat-val">1,338</div><div class="big-stat-sub">No missing values</div></div>
+            <div class="stat"><div class="big-stat-lbl">Features</div><div class="big-stat-val">8</div><div class="big-stat-sub">after One-Hot Encoding</div></div>
+            <div class="stat"><div class="big-stat-lbl">Split</div><div class="big-stat-val">70/15/15</div><div class="big-stat-sub">936 / 201 / 201</div></div>
+            <div class="stat"><div class="big-stat-lbl">Best R²</div><div class="big-stat-val">0.8623</div><div class="big-stat-sub">Gradient Boosting</div></div>
         </section>
 
 
