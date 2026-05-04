@@ -980,13 +980,31 @@ def render_step(step_idx):
             )
 
             # Top-N noisy samples bar chart
-            st.markdown("#### Top Noisy Samples — Three-Layer Diagnostics")
+            st.markdown("#### Top Noisy Samples \u2014 Three-Layer Diagnostics")
             top_n_noisy = st.slider("Show top N noisy samples", 5, 30, 12, key="top_n_noisy")
             top_noisy = noise_df.sort_values("noise_score", ascending=False).head(top_n_noisy).copy()
-            top_noisy["severity"] = top_noisy["noise_score"].apply(lambda s: "HIGH" if s >= 0.65 else "MEDIUM")
-            top_noisy["dominant_issue"] = top_noisy.apply(
-                lambda r: "cross_modal_mismatch" if r["layer_b_score"] >= r["layer_a_score"] else "semantic_drift", axis=1
-            )
+
+            # Severity classification matching eda_multimodal.py exactly
+            def classify_row(r):
+                ns, la, lb, lc = r["noise_score"], r["layer_a_score"], r["layer_b_score"], r["layer_c_score"]
+                oc = int(r["outlier_count"])
+                if ns >= 0.62 and la >= 0.45 and (lb >= 0.35 or oc >= 2):
+                    confidence = "HIGH"
+                elif ns >= 0.50 and (la >= 0.36 or lb >= 0.25 or oc >= 1):
+                    confidence = "MEDIUM"
+                else:
+                    confidence = "LOW"
+                if confidence == "HIGH" and lb >= 0.40:
+                    noise_type = "cross_modal_mismatch"
+                elif confidence in {"HIGH", "MEDIUM"} and la >= 0.42:
+                    noise_type = "semantic_drift"
+                elif confidence in {"HIGH", "MEDIUM"} and lc >= 0.45:
+                    noise_type = "linguistic_low_info"
+                else:
+                    noise_type = "clean_or_borderline"
+                return pd.Series({"severity": confidence, "dominant_issue": noise_type})
+
+            top_noisy[["severity", "dominant_issue"]] = top_noisy.apply(classify_row, axis=1)
             top_noisy["label"] = top_noisy["severity"] + " | " + top_noisy["dominant_issue"]
             top_noisy = top_noisy.sort_values("noise_score", ascending=True)
 
