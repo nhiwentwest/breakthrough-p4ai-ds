@@ -979,10 +979,37 @@ def render_step(step_idx):
                 }
             )
 
-            # Top-N noisy samples bar chart
-            st.markdown("#### Top Noisy Samples \u2014 Three-Layer Diagnostics")
+            # Top-N noisy samples bar chart (BOTH splits combined)
+            st.markdown("#### Top Noisy Samples \u2014 Three-Layer Diagnostics (Train + Test)")
             top_n_noisy = st.slider("Show top N noisy samples", 5, 30, 12, key="top_n_noisy")
-            top_noisy = noise_df.sort_values("noise_score", ascending=False).head(top_n_noisy).copy()
+
+            # Compute noise for the OTHER split too
+            other_split = "test" if split == "train" else "train"
+            other_imgs = D["test_imgs"] if split == "train" else D["train_imgs"]
+            other_px = get_or_compute(
+                f"image_pixel_stats::{other_split}",
+                lambda: image_pixel_stats(other_imgs),
+                spinner_text=f"Computing pixel stats ({other_split})..."
+            )
+            other_dom = {r["category"]: r["dom"] for _, r in other_px.iterrows()}
+            other_cdf = get_or_compute(
+                f"contradiction_map::{other_split}",
+                lambda: contradiction_map(other_imgs, other_dom),
+                spinner_text=f"Computing contradiction map ({other_split})..."
+            )
+            other_noise = get_or_compute(
+                f"image_noise_probe::{other_split}::three_layer_v2",
+                lambda: image_noise_probe(other_imgs, other_cdf, tuple(sorted(other_dom.items()))),
+                spinner_text=f"Computing noise probe ({other_split})..."
+            )
+
+            # Merge both splits
+            noise_train = (noise_df if split == "train" else other_noise).copy()
+            noise_test = (other_noise if split == "train" else noise_df).copy()
+            noise_train["split"] = "train"
+            noise_test["split"] = "test"
+            combined_noise = pd.concat([noise_train, noise_test], ignore_index=True)
+            top_noisy = combined_noise.sort_values("noise_score", ascending=False).head(top_n_noisy).copy()
 
             # Severity classification matching eda_multimodal.py exactly
             def classify_row(r):
@@ -1006,15 +1033,16 @@ def render_step(step_idx):
 
             top_noisy[["severity", "dominant_issue"]] = top_noisy.apply(classify_row, axis=1)
             top_noisy["label"] = top_noisy["severity"] + " | " + top_noisy["dominant_issue"]
+            top_noisy["bar_label"] = top_noisy["filename"] + " [" + top_noisy["split"] + "]"
             top_noisy = top_noisy.sort_values("noise_score", ascending=True)
 
             fig_topn, ax_topn = make_fig(w_mult=1.0, h_mult=1.2)
             bar_colors = ["#B42318" if s == "HIGH" else "#c68a1d" for s in top_noisy["severity"]]
-            ax_topn.barh(top_noisy["filename"], top_noisy["noise_score"], color=bar_colors, alpha=0.88, height=0.7)
+            ax_topn.barh(top_noisy["bar_label"], top_noisy["noise_score"], color=bar_colors, alpha=0.88, height=0.7)
             for i, (_, row) in enumerate(top_noisy.iterrows()):
                 ax_topn.text(row["noise_score"] + 0.008, i, row["label"],
                              va="center", fontsize=max(5.5, 7.0 * diagram_text_scale), color=MUT)
-            ax_topn.set_title(f"Top-{top_n_noisy} Noisy Samples ({split.title()}) from Three-Layer Diagnostics", color=TEXT, pad=10)
+            ax_topn.set_title(f"Top-{top_n_noisy} Noisy Samples (Train + Test) from Three-Layer Diagnostics", color=TEXT, pad=10)
             ax_topn.set_xlabel("Noise score")
             ax_topn.tick_params(axis='y', labelsize=max(5.5, 7.0 * diagram_text_scale))
             for spine in ['top', 'right']:
