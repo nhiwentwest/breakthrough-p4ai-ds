@@ -1,5 +1,5 @@
 """
-Warm-up utility — pre-download all Demo 2 checkpoint files to disk.
+Warm-up utility — pre-download all Demo 2 checkpoint files and datasets to disk.
 
 This module separates the slow network download (Google Drive) from the fast
 local disk load (torch.load / joblib.load).  Running ``warmup_download_all``
@@ -9,6 +9,7 @@ disk instead of waiting minutes for a Drive download.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -39,6 +40,12 @@ WARMUP_REGISTRY: dict[str, str] = {
     "best_resnet50_finetuned_model.pt": "1vIgcLba9ylYT7wNUVeQ7FLRBauvioi8_",
     "label_mapping_finetuned.json": "1cOLEUL0kULFGM0b0YuJA35-Oc1ohBenV",
 }
+
+# ---------------------------------------------------------------------------
+# Image demo dataset (Google Drive folder)
+# ---------------------------------------------------------------------------
+IMAGE_DATASET_FOLDER_URL = "https://drive.google.com/drive/folders/1vmk07ZO_5hi6yBZQ15N0TfhZ2D9Y9-mv?usp=sharing"
+IMAGE_DATASET_CACHE_DIR = Path(__file__).resolve().parents[1] / "data_cache" / "drive_image_demo_v2"
 
 DEFAULT_CHECKPOINT_DIR = Path(__file__).resolve().parents[1] / "checkpoints"
 
@@ -98,7 +105,55 @@ def warmup_download_all(
             if progress_callback is not None:
                 progress_callback.progress(frac, text=f"❌ {filename}: {exc}")
 
+    # --- Image demo dataset (folder download) ---
+    _download_image_dataset(results, progress_callback)
+
     return results
+
+
+def _find_dataset_dict_root(base_dir: str) -> str | None:
+    """Walk *base_dir* looking for a ``dataset_dict.json`` file."""
+    for r, _d, files in os.walk(base_dir):
+        if "dataset_dict.json" in files:
+            return r
+    return None
+
+
+def _download_image_dataset(
+    results: dict[str, str],
+    progress_callback: Optional[Callable] = None,
+) -> None:
+    """Download the image demo dataset folder from Drive if not cached."""
+    cache_dir = IMAGE_DATASET_CACHE_DIR
+    cache_dir.mkdir(parents=True, exist_ok=True)
+
+    if _find_dataset_dict_root(str(cache_dir)) is not None:
+        results["image_dataset_folder"] = "skipped"
+        if progress_callback is not None:
+            progress_callback.progress(1.0, text="✅ Image dataset (already on disk)")
+        return
+
+    try:
+        if progress_callback is not None:
+            progress_callback.progress(0.95, text="⬇️ Downloading image dataset folder...")
+        gdown.download_folder(
+            url=IMAGE_DATASET_FOLDER_URL,
+            output=str(cache_dir),
+            quiet=True,
+            use_cookies=False,
+        )
+        if _find_dataset_dict_root(str(cache_dir)) is not None:
+            results["image_dataset_folder"] = "downloaded"
+            if progress_callback is not None:
+                progress_callback.progress(1.0, text="⬇️ Image dataset downloaded")
+        else:
+            results["image_dataset_folder"] = "FAILED"
+            if progress_callback is not None:
+                progress_callback.progress(1.0, text="❌ Image dataset: no dataset_dict.json found")
+    except Exception as exc:
+        results["image_dataset_folder"] = f"FAILED: {exc}"
+        if progress_callback is not None:
+            progress_callback.progress(1.0, text=f"❌ Image dataset: {exc}")
 
 
 # ---------------------------------------------------------------------------
