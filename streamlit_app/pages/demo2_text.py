@@ -36,6 +36,30 @@ TEXT_CHECKPOINT_ID = "1IfVsAt5c9cHgaNiM3Q-y6z8XCTwDBsJw"
 MODEL_NAME = "bert-base-uncased"
 LABELS = {0: "Bearish", 1: "Bullish", 2: "Neutral"}
 
+# ── Model registry ───────────────────────────────────────────────────────
+MODEL_OPTIONS = {
+    "BERT fine-tuning": {
+        "type": "bert",
+        "gdrive_id": TEXT_CHECKPOINT_ID,
+        "filename": "text_bert_checkpoint.bin",
+    },
+    "Naive Bayes (Traditional ML)": {
+        "type": "sklearn",
+        "gdrive_id": "1k5Fiy7HlnUNLKhRYvm3akoysTcXa5Ejs",
+        "filename": "pipeline_Naive_Bayes.joblib",
+    },
+    "Logistic Regression (Traditional ML)": {
+        "type": "sklearn",
+        "gdrive_id": "1Z7bLzVeUmioeQC4m9o2xoaYdnsT6d-cr",
+        "filename": "pipeline_Logistic_Regression.joblib",
+    },
+    "Best Pipeline (Traditional ML)": {
+        "type": "sklearn",
+        "gdrive_id": "1X2UbAGLQUMlsiXxAaHddPMwvOlBaEjXN",
+        "filename": "best_pipeline.joblib",
+    },
+}
+
 st.markdown(
     f"""
 <style>
@@ -65,10 +89,10 @@ div[data-testid="collapsedControl"] {{ display:none !important; }}
 )
 
 st.markdown("<p class='hero'>Demo 2 · Text Classification</p>", unsafe_allow_html=True)
-st.markdown("<p class='sub'>Single-model demo using BERT fine-tuning on the Twitter financial news sentiment dataset.</p>", unsafe_allow_html=True)
+st.markdown("<p class='sub'>Multi-model demo: BERT fine-tuning and Traditional ML pipelines on the Twitter financial news sentiment dataset.</p>", unsafe_allow_html=True)
 
 
-# ── Model ────────────────────────────────────────────────────────────────
+# ── BERT Model ───────────────────────────────────────────────────────────
 class BERTMeanPoolingClassifier(nn.Module):
     def __init__(self, model_name: str, num_labels: int = 3):
         super().__init__()
@@ -86,19 +110,23 @@ class BERTMeanPoolingClassifier(nn.Module):
         return self.classifier(pooled)
 
 
-def _download_checkpoint() -> Path:
+# ── Download helper ──────────────────────────────────────────────────────
+def _download_checkpoint(gdrive_id: str, filename: str) -> Path:
     CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = CHECKPOINT_DIR / "text_bert_checkpoint.bin"
+    checkpoint_path = CHECKPOINT_DIR / filename
     if checkpoint_path.exists() and checkpoint_path.stat().st_size > 0:
         return checkpoint_path
-    url = f"https://drive.google.com/uc?id={TEXT_CHECKPOINT_ID}"
+    url = f"https://drive.google.com/uc?id={gdrive_id}"
     gdown.download(url, str(checkpoint_path), quiet=False)
     return checkpoint_path
 
 
+# ── Loaders (cached by model_key) ────────────────────────────────────────
 @st.cache_resource(show_spinner=True)
-def load_text_model():
-    checkpoint_path = _download_checkpoint()
+def load_bert_model(model_key: str):
+    """Load BERT model. Cache is keyed by model_key."""
+    info = MODEL_OPTIONS[model_key]
+    checkpoint_path = _download_checkpoint(info["gdrive_id"], info["filename"])
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = BERTMeanPoolingClassifier(MODEL_NAME, num_labels=3)
     state = torch.load(checkpoint_path, map_location=device)
@@ -112,6 +140,16 @@ def load_text_model():
     return model, tokenizer, device, str(checkpoint_path)
 
 
+@st.cache_resource(show_spinner=True)
+def load_sklearn_model(model_key: str):
+    """Load sklearn pipeline. Cache is keyed by model_key."""
+    import joblib
+    info = MODEL_OPTIONS[model_key]
+    checkpoint_path = _download_checkpoint(info["gdrive_id"], info["filename"])
+    pipeline = joblib.load(checkpoint_path)
+    return pipeline, str(checkpoint_path)
+
+
 @st.cache_data(show_spinner=True)
 def load_sample_dataset():
     from datasets import load_dataset
@@ -120,14 +158,13 @@ def load_sample_dataset():
     return ds[split_name].to_pandas().copy()
 
 
-# Evaluation function removed as per request
-
-
 # ── UI ───────────────────────────────────────────────────────────────────
 df = load_sample_dataset()
 
 if "text_demo_model_loaded" not in st.session_state:
     st.session_state["text_demo_model_loaded"] = False
+if "text_demo_active_model" not in st.session_state:
+    st.session_state["text_demo_active_model"] = None
 
 st.markdown("<div class='editor-shell'>", unsafe_allow_html=True)
 left, right = st.columns([1.15, 1])
@@ -135,21 +172,41 @@ left, right = st.columns([1.15, 1])
 with left:
     st.markdown("<div class='bento'>", unsafe_allow_html=True)
     st.markdown("<div class='section'>Model</div>", unsafe_allow_html=True)
-    st.markdown("<div class='model-chip'>BERT fine-tuning</div>", unsafe_allow_html=True)
 
-    load_model_btn = st.button("Load BERT model", use_container_width=True)
+    model_names = list(MODEL_OPTIONS.keys())
+    selected_model = st.selectbox(
+        "Choose model",
+        model_names,
+        index=0,
+        label_visibility="collapsed",
+        key="text_model_selector",
+    )
+    model_info = MODEL_OPTIONS[selected_model]
+    model_type_label = "Deep Learning" if model_info["type"] == "bert" else "Traditional ML"
+    st.markdown(f"<div class='model-chip'>{selected_model}</div> <span style='font-size:.78rem; color:{MUT};'>{model_type_label}</span>", unsafe_allow_html=True)
+
+    # Detect model switch — clear old state if user picked a different model
+    if st.session_state.get("text_demo_active_model") != selected_model:
+        st.session_state["text_demo_model_loaded"] = False
+        st.session_state["text_demo_active_model"] = selected_model
+
+    load_model_btn = st.button("Load model", use_container_width=True)
     if load_model_btn:
-        with st.spinner("Downloading/loading BERT checkpoint..."):
-            _model, _tok, _dev, _ckpt = load_text_model()
+        with st.spinner(f"Downloading/loading {selected_model}..."):
+            if model_info["type"] == "bert":
+                _model, _tok, _dev, _ckpt = load_bert_model(selected_model)
+            else:
+                _pipeline, _ckpt = load_sklearn_model(selected_model)
             st.session_state["text_demo_model_loaded"] = True
+            st.session_state["text_demo_active_model"] = selected_model
             st.session_state["text_demo_checkpoint_path"] = _ckpt
-        st.success("BERT model loaded successfully.")
+        st.success(f"{selected_model} loaded successfully.")
 
-    if st.session_state.get("text_demo_model_loaded"):
+    if st.session_state.get("text_demo_model_loaded") and st.session_state.get("text_demo_active_model") == selected_model:
         st.caption("Checkpoint")
         st.code(st.session_state.get("text_demo_checkpoint_path", ""), language="text")
     else:
-        st.info("Click 'Load BERT model' before running prediction.")
+        st.info(f"Click 'Load model' to load **{selected_model}** before running prediction.")
 
     st.markdown("<div class='section'>Input Text</div>", unsafe_allow_html=True)
     sample_options = df.sample(6, random_state=7).reset_index(drop=True)
@@ -165,15 +222,29 @@ with right:
     st.markdown("<div class='section'>Prediction</div>", unsafe_allow_html=True)
 
     if pred_btn:
-        if not st.session_state.get("text_demo_model_loaded"):
-            st.warning("Please load the BERT model first.")
+        if not st.session_state.get("text_demo_model_loaded") or st.session_state.get("text_demo_active_model") != selected_model:
+            st.warning(f"Please load **{selected_model}** first.")
         else:
-            model, tokenizer, device, _ = load_text_model()
-            encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
-            with torch.no_grad():
-                logits = model(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
-                probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-                pred_id = int(np.argmax(probs))
+            active_model = st.session_state["text_demo_active_model"]
+            active_info = MODEL_OPTIONS[active_model]
+
+            if active_info["type"] == "bert":
+                model, tokenizer, device, _ = load_bert_model(active_model)
+                encoded = tokenizer(text, truncation=True, padding="max_length", max_length=64, return_tensors="pt")
+                with torch.no_grad():
+                    logits = model(encoded["input_ids"].to(device), encoded["attention_mask"].to(device))
+                    probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+                    pred_id = int(np.argmax(probs))
+            else:
+                pipeline, _ = load_sklearn_model(active_model)
+                pred_id = int(pipeline.predict([text])[0])
+                # Try to get probabilities if the pipeline supports it
+                try:
+                    probs = pipeline.predict_proba([text])[0]
+                except AttributeError:
+                    probs = np.zeros(len(LABELS))
+                    probs[pred_id] = 1.0
+
             st.markdown(f"<div class='model-chip'>Predicted label: {LABELS[pred_id]}</div>", unsafe_allow_html=True)
             st.write("Class probabilities")
             for i, p in enumerate(probs):

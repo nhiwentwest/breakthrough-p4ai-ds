@@ -21,6 +21,10 @@ import gdown
 WARMUP_REGISTRY: dict[str, str] = {
     # --- Text (BERT) ---
     "text_bert_checkpoint.bin": "1IfVsAt5c9cHgaNiM3Q-y6z8XCTwDBsJw",
+    # --- Text (Traditional ML) ---
+    "pipeline_Naive_Bayes.joblib": "1k5Fiy7HlnUNLKhRYvm3akoysTcXa5Ejs",
+    "pipeline_Logistic_Regression.joblib": "1Z7bLzVeUmioeQC4m9o2xoaYdnsT6d-cr",
+    "best_pipeline.joblib": "1X2UbAGLQUMlsiXxAaHddPMwvOlBaEjXN",
     # --- Tabular (sklearn) ---
     "linear_regression.joblib": "1SiLVaci0rpQjPs3iO9dVjeIcNmrSKW3a",
     "random_forest.joblib": "1eF-Kk7ZMBr67BnSNi1_pjVvkKpuz32hM",
