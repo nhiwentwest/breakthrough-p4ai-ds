@@ -27,11 +27,11 @@ WARMUP_REGISTRY: dict[str, str] = {
     "pipeline_Logistic_Regression.joblib": "1Z7bLzVeUmioeQC4m9o2xoaYdnsT6d-cr",
     "best_pipeline.joblib": "1X2UbAGLQUMlsiXxAaHddPMwvOlBaEjXN",
     # --- Tabular (sklearn) ---
-    "linear_regression.joblib": "1SiLVaci0rpQjPs3iO9dVjeIcNmrSKW3a",
-    "random_forest.joblib": "1eF-Kk7ZMBr67BnSNi1_pjVvkKpuz32hM",
-    "gradient_boosting.joblib": "1LAtn7OCcyjXnZJOugWPeTJCNtc-ABEml",
-    "scaler.joblib": "1dxAAIgxlVnOYB8ZK2I1eYd-8nnZUwcqX",
-    "feature_columns.json": "1ah34c8PDl4_P9v5UTg5tdIfWbTamdBRY",
+    "linear_regression.joblib": "1Q79AlDSSM1UNSMkIqKSO28iMGrgsjpzM",
+    "random_forest.joblib": "1tl8yowNqcPzfqIRlGDXJr2fQM3Dm-bCR",
+    "gradient_boosting.joblib": "1lWLbpkX6iq6hi6pfroY7Y_9cLIwHXQlH",
+    "scaler.joblib": "1G1sl40ilyTF4IPoRbvvPuhKDoXoxpKsJ",
+    "feature_columns.joblib": "1FxeRjLNkBIl6pn2KUjV7dccnHYBgsrYt",
     "insurance.csv": "16hHeuqWKFhrdk-PtyfVVOqDV1y77v9MS",
     # --- Image: MBLANet ---
     "best_mblanet.pt": "1JOHbgznyN358XsnUX4jGYAjQc_wsjKZI",

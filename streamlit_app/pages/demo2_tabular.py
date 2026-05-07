@@ -29,11 +29,11 @@ BOR = "#D4C9B8"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CHECKPOINT_DIR = PROJECT_ROOT / "streamlit_app" / "checkpoints"
 MODEL_DRIVE_IDS = {
-    "linear_regression.joblib": "1SiLVaci0rpQjPs3iO9dVjeIcNmrSKW3a",
-    "random_forest.joblib": "1eF-Kk7ZMBr67BnSNi1_pjVvkKpuz32hM",
-    "gradient_boosting.joblib": "1LAtn7OCcyjXnZJOugWPeTJCNtc-ABEml",
-    "scaler.joblib": "1dxAAIgxlVnOYB8ZK2I1eYd-8nnZUwcqX",
-    "feature_columns.json": "1ah34c8PDl4_P9v5UTg5tdIfWbTamdBRY",
+    "linear_regression.joblib": "1Q79AlDSSM1UNSMkIqKSO28iMGrgsjpzM",
+    "random_forest.joblib": "1tl8yowNqcPzfqIRlGDXJr2fQM3Dm-bCR",
+    "gradient_boosting.joblib": "1lWLbpkX6iq6hi6pfroY7Y_9cLIwHXQlH",
+    "scaler.joblib": "1G1sl40ilyTF4IPoRbvvPuhKDoXoxpKsJ",
+    "feature_columns.joblib": "1FxeRjLNkBIl6pn2KUjV7dccnHYBgsrYt",
     "insurance.csv": "16hHeuqWKFhrdk-PtyfVVOqDV1y77v9MS",
 }
 
@@ -69,19 +69,19 @@ MODEL_ASSETS = {
     "Linear Regression": {
         "model": "linear_regression.joblib",
         "scaler": "scaler.joblib",
-        "feature_columns": "feature_columns.json",
+        "feature_columns": "feature_columns.joblib",
         "kind": "regression",
     },
     "Random Forest Regressor": {
         "model": "random_forest.joblib",
         "scaler": "scaler.joblib",
-        "feature_columns": "feature_columns.json",
+        "feature_columns": "feature_columns.joblib",
         "kind": "regression",
     },
     "Gradient Boosting Regressor": {
         "model": "gradient_boosting.joblib",
         "scaler": "scaler.joblib",
-        "feature_columns": "feature_columns.json",
+        "feature_columns": "feature_columns.joblib",
         "kind": "regression",
     },
 }
@@ -120,8 +120,7 @@ def load_tabular_model(model_name: str):
 
     model = joblib.load(model_path)
     scaler = joblib.load(scaler_path)
-    with open(feature_path, "r", encoding="utf-8") as f:
-        feature_columns = json.load(f)
+    feature_columns = joblib.load(feature_path)
 
     return model, scaler, feature_columns, str(model_path)
 
