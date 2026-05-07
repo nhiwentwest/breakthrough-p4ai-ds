@@ -40,7 +40,7 @@
       <div class="label">What makes it different</div>
       <div class="k">ResNet50 + CLAM (CCAM/LSAM)</div>
       <div class="s">Combines the deep ResNet50 architecture with custom Cross-channel and Local Spatial Attention Modules (CLAM). This dual-branch attention mechanism focuses on identifying high-impact features and their spatial locations within remote sensing imagery.</div>
-      <div class="chips"><span class="chip">MBLANet</span><span class="chip">Attention</span><span class="chip">SGD</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
+      <div class="chips"><span class="chip">MBLANet</span><span class="chip">Attention</span><span class="chip">AdamW</span><span class="chip">Cosine LR</span><span class="chip">Early stopping</span></div>
       <div class="label" style="margin-top:16px">Source links</div>
       <div class="links">
         <a class="link" href="https://github.com/nhiwentwest/breakthrough-p4ai-ds/blob/main/assign2-ml/image/mblanet.py" target="_blank" rel="noopener"><div class="k" style="font-size:.72rem;margin-bottom:2px">Light Augmentation</div><div class="u">assign2-ml/image/mblanet.py</div></a>
@@ -101,11 +101,11 @@
   </div>
   <div class="table-card">
     <div class="table-title">Light Augmentation result</div>
-    <table class="tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Test accuracy</td><td>0.9357</td></tr><tr><td>Balanced accuracy</td><td>0.9088</td></tr><tr><td>Macro F1</td><td>0.9102</td></tr><tr><td>Best validation macro F1</td><td>0.9125</td></tr><tr><td>Training time</td><td>21.00 min</td></tr><tr><td>Early stopping</td><td>Triggered at epoch 29</td></tr><tr><td>GPU peak memory</td><td>6319.55 MB</td></tr><tr><td>Inference</td><td>111.03 ms/batch · 288.20 images/sec</td></tr></tbody></table>
+    <table class="tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Test accuracy</td><td>0.9401</td></tr><tr><td>Balanced accuracy</td><td>0.9135</td></tr><tr><td>Macro F1</td><td>0.9130</td></tr><tr><td>Best validation macro F1</td><td>0.9074</td></tr><tr><td>Training time</td><td>17.31 min</td></tr><tr><td>Early stopping</td><td>Triggered at epoch 24</td></tr><tr><td>GPU peak memory</td><td>6319.55 MB</td></tr><tr><td>Inference</td><td>110.06 ms/batch · 290.74 images/sec</td></tr></tbody></table>
   </div>
   <div class="result-stack">
-    <div class="image-card"><div class="table-title">Learning curves</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778171951/learning_curves_lzzomz.png" alt="MBLANet non-augmentation learning curves" /></div>
-    <div class="image-card"><div class="table-title">Confusion matrix</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778171950/confusion_matrix_crl99s.png" alt="MBLANet non-augmentation confusion matrix" /></div>
+    <div class="image-card"><div class="table-title">Learning curves</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778173983/learning_curves_new_jrraxk.png" alt="MBLANet non-augmentation learning curves" /></div>
+    <div class="image-card"><div class="table-title">Confusion matrix</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778173979/confusion_matrix_new_stspyx.png" alt="MBLANet non-augmentation confusion matrix" /></div>
   </div>
   <div class="table-card">
     <div class="table-title">Heavy Augmentation TRAINING Configuration</div>
@@ -131,7 +131,7 @@
         </tr>
         <tr>
           <td>Optimization</td>
-          <td>SGD (Nesterov, LR: 0.01, Momentum: 0.9, WD: 1e-4) + Cosine Annealing</td>
+          <td>AdamW (LR: 1e-4 / 5e-4 diff, WD: 1e-4 no-bias/BN) + Cosine Annealing</td>
         </tr>
         <tr>
           <td>Batch Size</td>
@@ -158,11 +158,11 @@
   </div>
   <div class="table-card">
     <div class="table-title">Heavy Augmentation result</div>
-    <table class="tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Test accuracy</td><td>0.9202</td></tr><tr><td>Balanced accuracy</td><td>0.8951</td></tr><tr><td>Macro F1</td><td>0.8972</td></tr><tr><td>Test loss</td><td>0.3574</td></tr><tr><td>Training time</td><td>16.42 min</td></tr><tr><td>Early stopping</td><td>Triggered at epoch 39</td></tr><tr><td>GPU peak memory</td><td>5904.86 MB</td></tr></tbody></table>
+    <table class="tbl"><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Test accuracy</td><td>0.9401</td></tr><tr><td>Balanced accuracy</td><td>0.9135</td></tr><tr><td>Macro F1</td><td>0.9061</td></tr><tr><td>Best validation macro F1</td><td>0.9155</td></tr><tr><td>Training time</td><td>30.77 min</td></tr><tr><td>Early stopping</td><td>Triggered at epoch 44</td></tr><tr><td>GPU peak memory</td><td>6319.55 MB</td></tr><tr><td>Inference</td><td>108.40 ms/batch · 295.21 images/sec</td></tr></tbody></table>
   </div>
   <div class="result-stack">
-    <div class="image-card"><div class="table-title">Learning curves</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777640607/learning_curves_uarzpi.png" alt="MBLANet augmentation learning curves" /></div>
-    <div class="image-card"><div class="table-title">Confusion matrix</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1777640607/confusion_matrix_bwnxtw.png" alt="MBLANet augmentation confusion matrix" /></div>
+    <div class="image-card"><div class="table-title">Learning curves</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778174089/learning_curves_heavy_hqm023.png" alt="MBLANet augmentation learning curves" /></div>
+    <div class="image-card"><div class="table-title">Confusion matrix</div><img src="https://res.cloudinary.com/dkbkhckle/image/upload/v1778174084/confusion_matrix_heavy_sgbql5.png" alt="MBLANet augmentation confusion matrix" /></div>
   </div>
 </main>
 <footer>Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026</footer>
