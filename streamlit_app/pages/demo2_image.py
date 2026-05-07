@@ -159,7 +159,7 @@ RSITMD_CLASSES = [
 # Google Drive assets — only the 2 models needed for demo
 _DRIVE_ASSETS = {
     "MBLANet": {
-        "checkpoint": ("best_mblanet.pt", "1JOHbgznyN358XsnUX4jGYAjQc_wsjKZI"),
+        "checkpoint": ("best_mblanet.pt", "11YKkizz4FBzY72wrFFSZPgDDm48074Lx"),
         "label_map": ("label_mapping_mblanet.json", "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq"),
     },
     "Pretrained CNN Fine-tuned": {

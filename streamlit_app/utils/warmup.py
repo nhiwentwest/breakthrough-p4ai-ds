@@ -34,7 +34,7 @@ WARMUP_REGISTRY: dict[str, str] = {
     "feature_columns.joblib": "1FxeRjLNkBIl6pn2KUjV7dccnHYBgsrYt",
     "insurance.csv": "16hHeuqWKFhrdk-PtyfVVOqDV1y77v9MS",
     # --- Image: MBLANet ---
-    "best_mblanet.pt": "1JOHbgznyN358XsnUX4jGYAjQc_wsjKZI",
+    "best_mblanet.pt": "11YKkizz4FBzY72wrFFSZPgDDm48074Lx",
     "label_mapping_mblanet.json": "13wXU29DAVfo0MWqHWTHSzRB5c-p3d9Wq",
     # --- Image: Pretrained CNN Fine-tuned ---
     "best_resnet50_finetuned_model.pt": "1vIgcLba9ylYT7wNUVeQ7FLRBauvioi8_",
