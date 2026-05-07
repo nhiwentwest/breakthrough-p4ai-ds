@@ -9,8 +9,10 @@ import json
 from datetime import datetime
 import time
 import os
-from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+import seaborn as sns
 from transformers import (
     AutoTokenizer, AutoModel, AutoConfig,
     get_linear_schedule_with_warmup
@@ -139,10 +141,11 @@ class BERTMeanPoolingClassifier(nn.Module):
 # ============================================================================
 # 5. Evaluation Function
 # ============================================================================
-def evaluate(model, dataloader, device):
+def evaluate(model, dataloader, device, loss_fn=None):
     model.eval()
     all_preds = []
     all_labels = []
+    total_loss = 0.0
     
     start_time = time.time()
     with torch.no_grad():
@@ -152,6 +155,10 @@ def evaluate(model, dataloader, device):
             labels = batch['label'].to(device)
             
             logits = model(input_ids, attention_mask)
+            if loss_fn is not None:
+                loss = loss_fn(logits, labels)
+                total_loss += loss.item()
+
             preds = torch.argmax(logits, dim=1)
             
             all_preds.extend(preds.cpu().numpy())
@@ -160,11 +167,12 @@ def evaluate(model, dataloader, device):
     inference_time = time.time() - start_time
     num_samples = len(all_labels)
     inf_time_ms_per_sample = (inference_time / num_samples) * 1000 if num_samples > 0 else 0
+    avg_loss = total_loss / len(dataloader) if loss_fn is not None else 0.0
             
     acc = accuracy_score(all_labels, all_preds)
     prec, rec, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average='weighted', zero_division=0)
     
-    return acc, prec, rec, f1, inf_time_ms_per_sample
+    return avg_loss, acc, prec, rec, f1, inf_time_ms_per_sample, all_labels, all_preds
 # ============================================================================
 # 6. Main Training Loop
 # ============================================================================
@@ -204,6 +212,12 @@ def main():
     best_val_acc = 0
     train_start_time = time.time()
     
+    history = {
+        'train_loss': [],
+        'val_loss': [],
+        'val_acc': []
+    }
+    
     for epoch in range(CONFIG['num_epochs']):
         model.train()
         total_train_loss = 0
@@ -227,9 +241,13 @@ def main():
             progress_bar.set_postfix({'loss': f"{loss.item():.4f}"})
             
         avg_train_loss = total_train_loss / len(train_loader)
-        val_acc, val_prec, val_rec, val_f1, _ = evaluate(model, val_loader, device)
+        val_loss, val_acc, val_prec, val_rec, val_f1, _, _, _ = evaluate(model, val_loader, device, loss_fn)
         
-        print(f"📊 Epoch {epoch+1} Summary: Train Loss: {avg_train_loss:.4f} | Val Acc: {val_acc*100:.2f}% | Val F1: {val_f1*100:.2f}%")
+        history['train_loss'].append(avg_train_loss)
+        history['val_loss'].append(val_loss)
+        history['val_acc'].append(val_acc)
+        
+        print(f"📊 Epoch {epoch+1} Summary: Train Loss: {avg_train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc*100:.2f}% | Val F1: {val_f1*100:.2f}%")
         
         # Lưu lại mô hình tốt nhất
         if val_acc > best_val_acc:
@@ -238,6 +256,26 @@ def main():
 
     total_train_time = time.time() - train_start_time
 
+    # Plot learning curves
+    plt.figure(figsize=(12, 5))
+    plt.subplot(1, 2, 1)
+    plt.plot(range(1, CONFIG['num_epochs']+1), history['train_loss'], label='Train Loss', marker='o')
+    plt.plot(range(1, CONFIG['num_epochs']+1), history['val_loss'], label='Val Loss', marker='o')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    
+    plt.subplot(1, 2, 2)
+    plt.plot(range(1, CONFIG['num_epochs']+1), history['val_acc'], label='Val Accuracy', marker='o')
+    plt.title('Validation Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('bert_learning_curves.png')
+    print("\n✓ Saved learning curves to bert_learning_curves.png")
+
     # 5. Final Testing
     print("\n" + "="*70)
     print("🧪 EVALUATING ON TEST SET (UNSEEN DATA)")
@@ -245,8 +283,26 @@ def main():
     
     # Load lại weights tốt nhất từ validation
     model.load_state_dict(torch.load('best_bert_mean.pt'))
-    test_acc, test_prec, test_rec, test_f1, test_inf_ms = evaluate(model, test_loader, device)
+    test_loss, test_acc, test_prec, test_rec, test_f1, test_inf_ms, test_labels, test_preds = evaluate(model, test_loader, device, loss_fn)
     
+    target_names = [k for k, v in sorted(label_map.items(), key=lambda item: item[1])]
+    
+    print("\n📊 Classification Report on Test Set:")
+    print(classification_report(test_labels, test_preds, target_names=target_names))
+    
+    print("\n📉 Confusion Matrix:")
+    cm = confusion_matrix(test_labels, test_preds)
+    print(cm)
+    
+    # Plot confusion matrix
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=target_names, yticklabels=target_names)
+    plt.title('Confusion Matrix on Test Set')
+    plt.xlabel('Predicted Label')
+    plt.ylabel('True Label')
+    plt.savefig('bert_confusion_matrix.png')
+    print("✓ Saved confusion matrix to bert_confusion_matrix.png\n")
+
     total_params = sum(p.numel() for p in model.parameters())
     model_size_mb = os.path.getsize('best_bert_mean.pt') / (1024 * 1024) if os.path.exists('best_bert_mean.pt') else 0
     
