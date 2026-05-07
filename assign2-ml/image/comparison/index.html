@@ -178,7 +178,7 @@
         <p style="font-size:.88rem;color:var(--ink-muted);line-height:1.6;margin-bottom:14px">
             All models are compared using three primary metrics, selected to reflect both per-class fairness and overall classification quality:
             <strong style="color:var(--accent)"> Macro-Averaged F1 Score</strong>,
-            <strong style="color:var(--accent)"> Balanced Accuracy</strong> (macro recall), and
+            <strong style="color:var(--accent)"> Macro Recall</strong> (balanced accuracy), and
             <strong style="color:var(--accent)"> Overall Accuracy</strong>.
         </p>
 
@@ -205,7 +205,7 @@
                 <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">2. Final Evaluation Metrics</div>
                 <div style="font-size:.9rem;line-height:2;color:var(--ink);font-family:'Georgia',serif">
                     <div><em>OverallAcc</em> = Σ TP<sub>i</sub> / N</div>
-                    <div><em>BalancedAcc</em> = (1/C) Σ<sup>C</sup><sub>i=1</sub> R<sub>i</sub></div>
+                    <div><em>MacroRecall</em> = (1/C) Σ<sup>C</sup><sub>i=1</sub> R<sub>i</sub></div>
                     <div><em>MacroF1</em> = (1/C) Σ<sup>C</sup><sub>i=1</sub> F1<sub>i</sub></div>
                 </div>
             </div>
@@ -269,7 +269,7 @@
                 <tr>
                     <th>Model</th>
                     <th>Test Acc</th>
-                    <th>Bal. Acc</th>
+                    <th>Macro Recall</th>
                     <th>Macro F1</th>
                     <th>Training Time</th>
                     <th>GPU Peak</th>
@@ -308,7 +308,7 @@
                 <tr>
                     <th>Model</th>
                     <th>Test Acc</th>
-                    <th>Bal. Acc</th>
+                    <th>Macro Recall</th>
                     <th>Macro F1</th>
                     <th>Training Time</th>
                 </tr>
