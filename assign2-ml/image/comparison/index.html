@@ -212,34 +212,49 @@
         </table>
     </div>
 
-    <!-- ═══ RESOURCE & EFFICIENCY ═══ -->
-    <div class="section-label">Resource & Efficiency (Light Augmentation)</div>
+    <!-- ═══ EARLY STOPPING & EFFICIENCY ═══ -->
+    <div class="section-label">Early Stopping Behavior & Resource Efficiency</div>
     <div class="table-card">
-        <div class="table-title">Trainable Parameters</div>
+        <div class="table-title">Convergence & Trainable Parameters</div>
         <table class="tbl">
-            <thead><tr><th>Model</th><th>Trainable Params</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Trainable Params</th>
+                    <th>Early Stop (Light Aug)</th>
+                    <th>Early Stop (Heavy Aug)</th>
+                </tr>
+            </thead>
             <tbody>
-                <tr><td class="model-name">MBLANet</td><td>26.12M</td></tr>
-                <tr><td class="model-name">ResNet50-FineTune</td><td>23.58M</td></tr>
-                <tr><td class="model-name">ResNet18-Scratch</td><td>11.19M</td></tr>
-                <tr><td class="model-name">ResNet50-SVM</td><td>N/A</td></tr>
-                <tr><td class="model-name">ResNet50-Frozen</td><td>68K</td></tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- ═══ EARLY STOPPING ═══ -->
-    <div class="section-label">Early Stopping Behavior</div>
-    <div class="table-card">
-        <div class="table-title">Convergence Comparison</div>
-        <table class="tbl">
-            <thead><tr><th>Model</th><th>Light Aug</th><th>Heavy Aug</th></tr></thead>
-            <tbody>
-                <tr><td class="model-name">ResNet18-Scratch</td><td>Not triggered; ran full 50 epochs</td><td>Triggered at epoch 47</td></tr>
-                <tr><td class="model-name">ResNet50-FineTune</td><td>Triggered at epoch 22</td><td>Triggered at epoch 18</td></tr>
-                <tr><td class="model-name">MBLANet</td><td>Triggered at epoch 24</td><td>Triggered at epoch 44</td></tr>
-                <tr><td class="model-name">ResNet50-SVM</td><td colspan="2" style="text-align:center;color:var(--ink-faint);font-style:italic">N/A — SVM does not use epoch-based stopping</td></tr>
-                <tr><td class="model-name">ResNet50-Frozen</td><td>Triggered at epoch 21</td><td>Triggered at epoch 19</td></tr>
+                <tr>
+                    <td class="model-name">ResNet18-Scratch</td>
+                    <td>11.19M</td>
+                    <td>Not triggered; ran full 50 epochs</td>
+                    <td>Triggered at epoch 47</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-FineTune</td>
+                    <td>23.58M</td>
+                    <td>Triggered at epoch 22</td>
+                    <td>Triggered at epoch 18</td>
+                </tr>
+                <tr>
+                    <td class="model-name">MBLANet</td>
+                    <td>26.12M</td>
+                    <td>Triggered at epoch 24</td>
+                    <td>Triggered at epoch 44</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-SVM</td>
+                    <td>N/A</td>
+                    <td colspan="2" style="text-align:center;color:var(--ink-faint);font-style:italic">N/A — SVM does not use epoch-based stopping</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-Frozen</td>
+                    <td>68K</td>
+                    <td>Triggered at epoch 21</td>
+                    <td>Triggered at epoch 19</td>
+                </tr>
             </tbody>
         </table>
     </div>
