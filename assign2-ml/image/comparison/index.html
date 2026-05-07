@@ -151,6 +151,25 @@
         </table>
     </div>
 
+    <!-- ═══ DUAL-BRANCH AUGMENTATION ═══ -->
+    <div class="section-label">Dual-Branch Augmentation Strategy</div>
+    <div class="table-card">
+        <div class="table-title">Data Augmentation Regimes</div>
+        <table class="tbl">
+            <thead><tr><th>Branch</th><th>Transforms</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight:700;color:var(--accent)">Branch A: Light</td>
+                    <td><code>RandomResizedCrop(scale=(0.8, 1.0))</code> + <code>RandomHorizontalFlip()</code> + Light <code>ColorJitter</code></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700;color:var(--accent)">Branch B: Heavy</td>
+                    <td><code>RandomResizedCrop(scale=(0.65, 0.70))</code> + <code>RandomRotation(10)</code> + <code>RandomPerspective(distortion_scale=0.15, p=0.5)</code> + <code>RandomAffine(degrees=0, translate=(0.05,0.05), scale=(0.95,1.05), shear=5)</code> + <code>RandomHorizontalFlip()</code> + Stronger <code>ColorJitter</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
 
     <!-- ═══ EVALUATION METHOD ═══ -->
     <div class="section-label">Evaluation Method</div>
@@ -195,24 +214,6 @@
 
 
 
-    <!-- ═══ DUAL-BRANCH AUGMENTATION ═══ -->
-    <div class="section-label">Dual-Branch Augmentation Strategy</div>
-    <div class="table-card">
-        <div class="table-title">Data Augmentation Regimes</div>
-        <table class="tbl">
-            <thead><tr><th>Branch</th><th>Transforms</th></tr></thead>
-            <tbody>
-                <tr>
-                    <td style="font-weight:700;color:var(--accent)">Branch A: Light</td>
-                    <td><code>RandomResizedCrop(scale=(0.8, 1.0))</code> + <code>RandomHorizontalFlip()</code> + Light <code>ColorJitter</code></td>
-                </tr>
-                <tr>
-                    <td style="font-weight:700;color:var(--accent)">Branch B: Heavy</td>
-                    <td><code>RandomResizedCrop(scale=(0.65, 0.70))</code> + <code>RandomRotation(10)</code> + <code>RandomPerspective(distortion_scale=0.15, p=0.5)</code> + <code>RandomAffine(degrees=0, translate=(0.05,0.05), scale=(0.95,1.05), shear=5)</code> + <code>RandomHorizontalFlip()</code> + Stronger <code>ColorJitter</code></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
 
     <!-- ═══ CONVERGENCE & TRAINABLE PARAMETERS ═══ -->
     <div class="section-label">Convergence & Trainable Parameters</div>
