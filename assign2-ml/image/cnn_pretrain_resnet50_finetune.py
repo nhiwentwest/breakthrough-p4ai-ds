@@ -142,7 +142,7 @@ class PretrainedResNet50FineTune(nn.Module):
     def __init__(self, num_classes=33):
         super().__init__()
         # Pre-trained ResNet50 on ImageNet, fine-tuned end-to-end
-        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
 
         in_features = self.model.fc.in_features
         self.model.fc = nn.Linear(in_features, num_classes)

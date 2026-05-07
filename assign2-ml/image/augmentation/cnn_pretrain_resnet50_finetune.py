@@ -147,7 +147,7 @@ class PretrainedResNet50FineTune(nn.Module):
     def __init__(self, num_classes=33, dropout=0.3):
         super().__init__()
         # Pre-trained ResNet50 on ImageNet, fine-tuned end-to-end
-        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V2)
+        self.model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
 
         in_features = self.model.fc.in_features
         self.model.fc = nn.Linear(in_features, num_classes)
@@ -226,6 +226,40 @@ def train_one_epoch(model, loader, optimizer, criterion, device, scaler):
         "balanced_acc": balanced_accuracy_score(ys, ps),
         "macro_f1": f1_score(ys, ps, average="macro"),
     }
+
+
+# =========================
+# STEP 5 — Inference Speed
+# =========================
+def measure_inference_speed(model, loader, device, warmup=10):
+    model.eval()
+    times = []
+    amp_enabled = device.type == "cuda"
+    it = iter(loader)
+    with torch.no_grad():
+        for _ in range(warmup):
+            try:
+                x, _ = next(it)
+            except StopIteration:
+                break
+            x = x.to(device, non_blocking=True)
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+        for x, _ in loader:
+            x = x.to(device, non_blocking=True)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            t0 = time.time()
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                _ = model(x)
+            if device.type == "cuda":
+                torch.cuda.synchronize()
+            times.append(time.time() - t0)
+    if not times:
+        return {"ms_per_batch": None, "images_per_sec": None}
+    ms_per_batch = 1000.0 * float(np.mean(times))
+    images_per_sec = float(loader.batch_size / np.mean(times))
+    return {"ms_per_batch": ms_per_batch, "images_per_sec": images_per_sec}
 
 
 # =========================
