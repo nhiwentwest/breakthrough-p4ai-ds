@@ -60,29 +60,121 @@
     <h1 class="title">Model Comparison</h1>
     <p class="sub">Side-by-side performance comparison of all five image classification models on the RSITMD dataset, evaluated under both light and heavy data augmentation regimes.</p>
 
-    <!-- KEY INSIGHTS -->
-    <div class="section-label">Key Insights</div>
-    <div class="insights">
-        <div class="insight">
-            <div class="insight-icon">🏆</div>
-            <div class="insight-title">Best Overall: MBLANet</div>
-            <div class="insight-desc">Achieves the highest test accuracy (0.9401) and macro F1 (0.9130) under light augmentation, demonstrating the power of attention mechanisms.</div>
-        </div>
-        <div class="insight">
-            <div class="insight-icon">⚡</div>
-            <div class="insight-title">Fastest Training: ResNet50-SVM</div>
-            <div class="insight-desc">Completes training in under 1 minute by separating feature extraction from classification, at the cost of lower accuracy.</div>
-        </div>
-        <div class="insight">
-            <div class="insight-icon">📉</div>
-            <div class="insight-title">Heavy Aug ≠ Better</div>
-            <div class="insight-desc">Most models show degraded test performance with heavy augmentation, suggesting over-regularization on this small dataset (4743 images).</div>
-        </div>
-        <div class="insight">
-            <div class="insight-icon">🎯</div>
-            <div class="insight-title">Fine-Tune > Freeze</div>
-            <div class="insight-desc">ResNet50-FineTune outperforms ResNet50-Frozen by ~8% F1, confirming that end-to-end adaptation is critical for domain-specific tasks.</div>
-        </div>
+    <!-- ═══ GLOBAL SHARED CONFIG ═══ -->
+    <div class="section-label">Global Shared Configurations</div>
+    <div class="table-card">
+        <div class="table-title">Experimental Framework</div>
+        <p style="font-size:.88rem;color:var(--ink-muted);line-height:1.6;margin-bottom:14px">All deep learning models are evaluated under a consistent experimental framework to ensure fair comparison:</p>
+        <table class="tbl">
+            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+            <tbody>
+                <tr><td>Image Resolution</td><td>224 × 224 pixels</td></tr>
+                <tr><td>Batch Size</td><td>32</td></tr>
+                <tr><td>Max Epochs</td><td>50</td></tr>
+                <tr><td>Early Stopping</td><td>Patience = 8 epochs, monitor Validation Macro F1 (Min Delta: 1e-4)</td></tr>
+                <tr><td>Loss Function</td><td>Cross-Entropy Loss</td></tr>
+            </tbody>
+        </table>
+        <p style="font-size:.78rem;color:var(--ink-faint);margin-top:10px;font-style:italic">⚠ The SVM pipeline does not use epoch-based early stopping.</p>
+    </div>
+
+    <!-- ═══ PER-MODEL CONFIG ═══ -->
+    <div class="section-label">Per-Model Architecture & Optimization</div>
+    <div class="table-card">
+        <div class="table-title">Model-Specific Configurations</div>
+        <table class="tbl">
+            <thead>
+                <tr><th>Model</th><th>Backbone & Weights</th><th>Head</th><th>Trainable Setup</th><th>Optimization</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="model-name">ResNet18-Scratch</td>
+                    <td>ResNet18 (weights=None)</td>
+                    <td>Linear (512→33)</td>
+                    <td>Full model from scratch</td>
+                    <td>AdamW (LR: 3e-4, WD: 1e-4) + Cosine Annealing</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-FineTune</td>
+                    <td>ResNet50 (ImageNet-1K V1) — <strong>Fine-tuned</strong></td>
+                    <td>Linear (2048→33)</td>
+                    <td>Full model (all layers)</td>
+                    <td>AdamW (LR: 1e-4, WD: 1e-4) + Cosine Annealing</td>
+                </tr>
+                <tr>
+                    <td class="model-name">MBLANet</td>
+                    <td>ResNet50 (ImageNet-1K V1) + CLAM (CCAM/LSAM)</td>
+                    <td>Linear (2048→33)</td>
+                    <td>Full model fine-tuning</td>
+                    <td>AdamW (LR: 1e-4/5e-4 diff, WD: 1e-4) + Cosine Annealing</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-SVM</td>
+                    <td>ResNet50 (ImageNet-1K V1) — <strong>Feature Extractor</strong></td>
+                    <td>RBF SVM</td>
+                    <td>Backbone frozen; SVM trains on features</td>
+                    <td>SMO (Sequential Minimal Optimization)</td>
+                </tr>
+                <tr>
+                    <td class="model-name">ResNet50-Frozen</td>
+                    <td>ResNet50 (ImageNet-1K V1) — <strong>Frozen</strong></td>
+                    <td>Linear (2048→33)</td>
+                    <td>Linear head only (FC layer)</td>
+                    <td>AdamW (LR: 1e-3, WD: 0.0)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══ DUAL-BRANCH AUGMENTATION ═══ -->
+    <div class="section-label">Dual-Branch Augmentation Strategy</div>
+    <div class="table-card">
+        <div class="table-title">Data Augmentation Regimes</div>
+        <table class="tbl">
+            <thead><tr><th>Branch</th><th>Transforms</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td style="font-weight:700;color:var(--accent)">Branch A: Light</td>
+                    <td><code>RandomResizedCrop(scale=(0.8, 1.0))</code> + <code>RandomHorizontalFlip()</code> + Light <code>ColorJitter</code></td>
+                </tr>
+                <tr>
+                    <td style="font-weight:700;color:var(--accent)">Branch B: Heavy</td>
+                    <td><code>RandomResizedCrop(scale=(0.65, 0.70))</code> + <code>RandomRotation(10)</code> + <code>RandomPerspective(distortion_scale=0.15, p=0.5)</code> + <code>RandomAffine(degrees=0, translate=(0.05,0.05), scale=(0.95,1.05), shear=5)</code> + <code>RandomHorizontalFlip()</code> + Stronger <code>ColorJitter</code></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══ RESOURCE & EFFICIENCY ═══ -->
+    <div class="section-label">Resource & Efficiency (Light Augmentation)</div>
+    <div class="table-card">
+        <div class="table-title">Trainable Parameters, GPU Memory & Throughput</div>
+        <table class="tbl">
+            <thead><tr><th>Model</th><th>Trainable Params</th><th>GPU RAM</th><th>Throughput</th></tr></thead>
+            <tbody>
+                <tr><td class="model-name">MBLANet</td><td>26.12M</td><td>6.3195 GB</td><td>288.2 images/sec</td></tr>
+                <tr><td class="model-name">ResNet50-FineTune</td><td>23.58M</td><td>3.8516 GB</td><td>779.85 images/sec</td></tr>
+                <tr><td class="model-name">ResNet18-Scratch</td><td>11.19M</td><td>1.0937 GB</td><td>1614.2454 images/sec</td></tr>
+                <tr><td class="model-name">ResNet50-SVM</td><td>N/A</td><td>0.4267 GB</td><td>178.8664 images/sec</td></tr>
+                <tr><td class="model-name">ResNet50-Frozen</td><td>68K</td><td>0.4611 GB</td><td>371.6705 images/sec</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══ EARLY STOPPING ═══ -->
+    <div class="section-label">Early Stopping Behavior</div>
+    <div class="table-card">
+        <div class="table-title">Convergence Comparison</div>
+        <table class="tbl">
+            <thead><tr><th>Model</th><th>Light Aug</th><th>Heavy Aug</th></tr></thead>
+            <tbody>
+                <tr><td class="model-name">ResNet18-Scratch</td><td>Not triggered; ran full 50 epochs</td><td>Triggered at epoch 47</td></tr>
+                <tr><td class="model-name">ResNet50-FineTune</td><td>Triggered at epoch 22</td><td>Triggered at epoch 18</td></tr>
+                <tr><td class="model-name">MBLANet</td><td>Triggered at epoch 24</td><td>Triggered at epoch 44</td></tr>
+                <tr><td class="model-name">ResNet50-SVM</td><td colspan="2" style="text-align:center;color:var(--ink-faint);font-style:italic">N/A — SVM does not use epoch-based stopping</td></tr>
+                <tr><td class="model-name">ResNet50-Frozen</td><td>Triggered at epoch 21</td><td>Triggered at epoch 19</td></tr>
+            </tbody>
+        </table>
     </div>
 
     <!-- LIGHT AUGMENTATION TABLE -->
@@ -228,6 +320,31 @@
                 <tr><td class="model-name">ResNet50-Frozen</td><td>0.7965</td><td>0.7595</td><td style="color:#c0392b;font-weight:700">−0.0370</td><td>Moderate drop</td></tr>
             </tbody>
         </table>
+    </div>
+
+    <!-- ═══ KEY INSIGHTS ═══ -->
+    <div class="section-label">Key Insights</div>
+    <div class="insights">
+        <div class="insight">
+            <div class="insight-icon">🏆</div>
+            <div class="insight-title">Best Overall: MBLANet</div>
+            <div class="insight-desc">Achieves the highest test accuracy (0.9401) and macro F1 (0.9130) under light augmentation, demonstrating the power of attention mechanisms.</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">⚡</div>
+            <div class="insight-title">Fastest Training: ResNet50-SVM</div>
+            <div class="insight-desc">Completes training in under 1 minute by separating feature extraction from classification, at the cost of lower accuracy.</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">📉</div>
+            <div class="insight-title">Heavy Aug ≠ Better</div>
+            <div class="insight-desc">Most models show degraded test performance with heavy augmentation, suggesting over-regularization on this small dataset (4743 images).</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">🎯</div>
+            <div class="insight-title">Fine-Tune > Freeze</div>
+            <div class="insight-desc">ResNet50-FineTune outperforms ResNet50-Frozen by ~8% F1, confirming that end-to-end adaptation is critical for domain-specific tasks.</div>
+        </div>
     </div>
 
 </main>
