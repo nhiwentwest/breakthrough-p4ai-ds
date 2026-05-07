@@ -78,6 +78,47 @@
         <p style="font-size:.78rem;color:var(--ink-faint);margin-top:10px;font-style:italic">⚠ The SVM pipeline does not use epoch-based early stopping.</p>
     </div>
 
+    <!-- ═══ EVALUATION METHOD ═══ -->
+    <div class="section-label">Evaluation Method</div>
+    <div class="table-card">
+        <div class="table-title">Multi-Class Performance Metrics (C = 33)</div>
+        <p style="font-size:.88rem;color:var(--ink-muted);line-height:1.6;margin-bottom:14px">
+            All models are compared using three primary metrics, selected to reflect both per-class fairness and overall classification quality:
+            <strong style="color:var(--accent)"> Macro-Averaged F1 Score</strong>,
+            <strong style="color:var(--accent)"> Balanced Accuracy</strong> (macro recall), and
+            <strong style="color:var(--accent)"> Overall Accuracy</strong>.
+        </p>
+
+        <table class="tbl" style="margin-bottom:16px">
+            <thead><tr><th>Condition</th><th>Interpretation</th></tr></thead>
+            <tbody>
+                <tr><td><strong>True Positive (TP)</strong></td><td>Samples belonging to Class <em>i</em> that are correctly predicted as Class <em>i</em>.</td></tr>
+                <tr><td><strong>True Negative (TN)</strong></td><td>Samples not belonging to Class <em>i</em> that are correctly predicted as any other class.</td></tr>
+                <tr><td><strong>False Positive (FP)</strong></td><td>Samples not belonging to Class <em>i</em> but are incorrectly predicted as Class <em>i</em>.</td></tr>
+                <tr><td><strong>False Negative (FN)</strong></td><td>Samples belonging to Class <em>i</em> but are incorrectly predicted as a different class.</td></tr>
+            </tbody>
+        </table>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+            <div style="background:var(--bg);border:1px solid var(--border-md);border-radius:10px;padding:16px 18px">
+                <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">1. Base Metrics (Per Class <em>i</em>)</div>
+                <div style="font-size:.9rem;line-height:2;color:var(--ink);font-family:'Georgia',serif">
+                    <div><em>P<sub>i</sub></em> = TP<sub>i</sub> / (TP<sub>i</sub> + FP<sub>i</sub>)</div>
+                    <div><em>R<sub>i</sub></em> = TP<sub>i</sub> / (TP<sub>i</sub> + FN<sub>i</sub>)</div>
+                    <div><em>F1<sub>i</sub></em> = 2 × (P<sub>i</sub> × R<sub>i</sub>) / (P<sub>i</sub> + R<sub>i</sub>)</div>
+                </div>
+            </div>
+            <div style="background:var(--bg);border:1px solid var(--border-md);border-radius:10px;padding:16px 18px">
+                <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">2. Final Evaluation Metrics</div>
+                <div style="font-size:.9rem;line-height:2;color:var(--ink);font-family:'Georgia',serif">
+                    <div><em>OverallAcc</em> = Σ TP<sub>i</sub> / N</div>
+                    <div><em>BalancedAcc</em> = (1/C) Σ<sup>C</sup><sub>i=1</sub> R<sub>i</sub></div>
+                    <div><em>MacroF1</em> = (1/C) Σ<sup>C</sup><sub>i=1</sub> F1<sub>i</sub></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ═══ PER-MODEL CONFIG ═══ -->
     <div class="section-label">Per-Model Architecture & Optimization</div>
     <div class="table-card">
