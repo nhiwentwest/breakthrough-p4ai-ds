@@ -128,27 +128,23 @@ val_df = preprocess_data(val_df)
 df = train_df
 
 # ============================================================================
-#TF-IDF
+# FEATURE EXTRACTION & PIPELINE PREP
 # ============================================================================
 
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-vectorizer = TfidfVectorizer(
-    max_features=5000,
-    ngram_range=(1, 2),  # Unigrams + bigrams
-    min_df=2,
-    max_df=0.8
-)
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.pipeline import Pipeline
+import joblib
 
-start = time.time()
-X_train = vectorizer.fit_transform(train_df['text'])
-X_val = vectorizer.transform(val_df['text'])
-elapsed = time.time() - start
+# Raw text data
+X_train = train_df['text']
+X_val = val_df['text']
+X_test = test_df['text']
 
 print('\n')
-print(f'✓ Vocabulary: {len(vectorizer.get_feature_names_out()):,} features')
+print(f'✓ Using Pipelines combining Vectorizer and Classifier')
 print(f'✓ Train shape: {X_train.shape}')
-print(f'✓ Test shape: {X_val.shape}')
-print(f'✓ Extraction time: {elapsed:.2f}s\n')
+print(f'✓ Val shape: {X_val.shape}')
+print(f'✓ Test shape: {X_test.shape}\n')
 
 
 
@@ -179,12 +175,19 @@ def train_classifier(name, model, X_train, y_train, X_test, y_test):
     precision, recall, f1, _ = precision_recall_fscore_support(y_test, y_pred, average='weighted', zero_division=0)
     cm = confusion_matrix(y_test, y_pred)
     
+    from sklearn.metrics import classification_report
     print(f"⏱️  Training: {train_time:.4f}s")
     print(f"⏱️  Inference: {inference_time:.4f}s")
     print(f"📊 Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
     print(f"📊 Precision: {precision:.4f} ({precision*100:.2f}%)")
     print(f"📊 Recall: {recall:.4f} ({recall*100:.2f}%)")
     print(f"📊 F1-Score: {f1:.4f} ({f1*100:.2f}%)")
+    
+    print("\n📊 Classification Report on Test Set:")
+    print(classification_report(y_test, y_pred))
+    
+    print("📉 Confusion Matrix:")
+    print(cm)
     print()
     
     return {
@@ -428,31 +431,83 @@ def main():
     
     print()
     print("="*70)
-    print("🚀 TEXT CLASSIFICATION (Naive Bayes & Logistic Regression)")
+    print("🚀 TEXT CLASSIFICATION (Pipelines with Naive Bayes & Logistic Regression)")
     print("="*70)
     print()
 
     # Get labels from global dataframes
     y_train = train_df['label']
     y_val = val_df['label']
+    y_test = test_df['label']
+
+    def create_pipeline(classifier):
+        return Pipeline([
+            ('tfidf', TfidfVectorizer(
+                max_features=5000,
+                ngram_range=(1, 2),
+                min_df=2,
+                max_df=0.8
+            )),
+            ('clf', classifier)
+        ])
 
     classifiers = [
-        ('Naive Bayes', MultinomialNB()),
-        ('Logistic Regression', LogisticRegression(max_iter=1000, random_state=42))
+        ('Naive Bayes', create_pipeline(MultinomialNB())),
+        ('Logistic Regression', create_pipeline(LogisticRegression(max_iter=1000, random_state=42)))
     ]
+
+    from sklearn.model_selection import learning_curve
+    import matplotlib.pyplot as plt
+
+    def plot_learning_curve(estimator, title, X, y, cv=5, n_jobs=None, train_sizes=np.linspace(.1, 1.0, 5)):
+        plt.figure()
+        plt.title(title)
+        plt.xlabel("Training examples")
+        plt.ylabel("Score")
+        train_sizes, train_scores, test_scores = learning_curve(
+            estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+        train_scores_mean = np.mean(train_scores, axis=1)
+        train_scores_std = np.std(train_scores, axis=1)
+        test_scores_mean = np.mean(test_scores, axis=1)
+        test_scores_std = np.std(test_scores, axis=1)
+        plt.grid()
+
+        plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                         train_scores_mean + train_scores_std, alpha=0.1,
+                         color="r")
+        plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                         test_scores_mean + test_scores_std, alpha=0.1, color="g")
+        plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+                 label="Training score")
+        plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+                 label="Cross-validation score")
+
+        plt.legend(loc="best")
+        return plt
 
     results = []
     for name, model in classifiers:
-        # Note: Using X_val and y_val for evaluation
-        result = train_classifier(name, model, X_train, y_train, X_val, y_val)
+        print(f"Plotting learning curve for {name}...")
+        # Reduce CV and train_sizes to speed up learning curve if dataset is large
+        plot_learning_curve(model, f"Learning Curve ({name})", X_train, y_train, cv=3)
+        plt.savefig(f"learning_curve_{name.replace(' ', '_')}.png")
+
+        # Note: Using X_test and y_test for evaluation
+        print(f"Evaluating {name} on ACTUAL test set...")
+        result = train_classifier(name, model, X_train, y_train, X_test, y_test)
         results.append(result)
+        
+        # Save pipeline to joblib
+        joblib_file = f"pipeline_{name.replace(' ', '_')}.joblib"
+        joblib.dump(model, joblib_file)
+        print(f"💾 Saved pipeline to {joblib_file}")
         print()
 
     # Generate HTML report
     print("="*70)
     print("📄 GENERATING HTML REPORT")
     print("="*70)
-    html_report = generate_html_report(results, y_val)
+    html_report = generate_html_report(results, y_test)
 
     with open('classification_results.html', 'w', encoding='utf-8') as f:
         f.write(html_report)
