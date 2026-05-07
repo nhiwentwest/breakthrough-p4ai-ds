@@ -244,8 +244,11 @@ def load_model_and_labels(model_choice: str, ckpt_path: str, map_path: str):
     try:
         load_msg = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        st.error(f"{model_choice} checkpoint does not match architecture: {e}")
-        raise
+        # Architecture version mismatch (e.g., checkpoint lacks gate keys
+        # or has different conv2x1 shapes). Fall back to non-strict loading.
+        st.warning(f"Checkpoint/architecture mismatch detected — loading with strict=False. "
+                   f"Missing or mismatched keys will use default initialization.")
+        load_msg = model.load_state_dict(state_dict, strict=False)
     if len(load_msg.unexpected_keys) > 0:
         st.warning(f"Unexpected keys ignored: {load_msg.unexpected_keys}")
     if len(load_msg.missing_keys) > 0:
