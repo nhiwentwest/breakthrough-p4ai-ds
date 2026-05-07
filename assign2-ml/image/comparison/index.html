@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Comparison · Assignment 02 | Breakthrough</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{--bg:#F0EDE6;--bg-card:#FAF8F4;--ink:#1C1A16;--ink-muted:#7A746A;--ink-faint:#B0A89C;--accent:#A06820;--border:rgba(28,26,22,.09);--border-md:rgba(28,26,22,.14);--shadow-sm:0 1px 3px rgba(28,26,22,.06),0 2px 8px rgba(28,26,22,.04);--green:#2D6A4F;--green-bg:rgba(45,106,79,.09)}
+        body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}a{text-decoration:none;color:inherit}
+        .topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 40px;background:var(--bg-card);border-bottom:1px solid var(--border)}
+        .brand{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.08rem;display:inline-flex;align-items:center;gap:7px}.brand .b{color:var(--ink)}.brand .t{color:var(--accent)}.brand .i{width:18px;height:18px;border-radius:999px;background:rgba(160,104,32,.09);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
+        .wrap{max-width:1020px;margin:0 auto;padding:28px 40px 44px}
+        .eyebrow{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+        .title{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(2rem,4vw,3.2rem);line-height:1;margin-bottom:10px}
+        .sub{max-width:800px;color:var(--ink-muted);line-height:1.6;font-size:.96rem;margin-bottom:24px}
+        .table-card{margin-top:18px;background:var(--bg-card);border:1px solid var(--border-md);border-radius:12px;padding:24px;box-shadow:var(--shadow-sm);overflow-x:auto}
+        .table-title{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+        .tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:.85rem;border:1.5px solid rgba(28,26,22,.35);border-radius:8px;overflow:hidden}
+        .tbl th,.tbl td{padding:12px 14px;text-align:left;vertical-align:middle;line-height:1.45;border-bottom:1px solid rgba(28,26,22,.35);border-right:1px solid rgba(28,26,22,.35)}
+        .tbl th:last-child,.tbl td:last-child{border-right:none}
+        .tbl th{background:var(--accent);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:#fff;font-weight:600;border-right:1px solid rgba(255,255,255,.1)}
+        .tbl th:last-child{border-right:none}
+        .tbl tr:last-child td{border-bottom:none}
+        .tbl tr:hover td{background:rgba(160,104,32,.02)}
+        .best{background:var(--green-bg);font-weight:700;color:var(--green)}
+        .model-name{font-weight:700;color:var(--accent);white-space:nowrap}
+        .section-label{font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);margin:28px 0 10px}
+
+        /* Insight cards */
+        .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px}
+        .insight{background:var(--bg-card);border:1px solid var(--border-md);border-radius:10px;padding:16px 18px;box-shadow:var(--shadow-sm)}
+        .insight-icon{font-size:1.2rem;margin-bottom:6px}
+        .insight-title{font-size:.78rem;font-weight:700;color:var(--ink);margin-bottom:4px}
+        .insight-desc{font-size:.82rem;color:var(--ink-muted);line-height:1.5}
+
+        /* Bar chart */
+        .bar-section{margin-top:22px}
+        .bar-group{margin-bottom:14px}
+        .bar-label{font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:5px;display:flex;justify-content:space-between}
+        .bar-track{height:22px;background:var(--bg);border:1px solid var(--border-md);border-radius:6px;overflow:hidden;position:relative}
+        .bar-fill{height:100%;border-radius:5px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:.65rem;font-weight:700;color:#fff}
+        .bar-fill.accent{background:linear-gradient(90deg,rgba(160,104,32,.7),var(--accent))}
+        .bar-fill.green{background:linear-gradient(90deg,rgba(45,106,79,.7),var(--green))}
+
+        footer{text-align:center;padding:18px;color:var(--ink-faint);font-size:.63rem;letter-spacing:.1em;margin-top:18px}
+        @media(max-width:900px){.wrap{padding:20px 16px 32px}.topbar{padding:12px 16px}.insights{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="topbar">
+    <a class="brand" href="../index.html" title="Return to Image landing">
+        <span class="i">↩</span><span class="b">Break</span><span class="t">through.</span>
+    </a>
+    <div style="font-size:.68rem;letter-spacing:.08em;color:#B0A89C">A02 · Image · Comparison</div>
+</div>
+
+<main class="wrap">
+    <div class="eyebrow">Assignment 02 · Model Comparison</div>
+    <h1 class="title">Model Comparison</h1>
+    <p class="sub">Side-by-side performance comparison of all five image classification models on the RSITMD dataset, evaluated under both light and heavy data augmentation regimes.</p>
+
+    <!-- KEY INSIGHTS -->
+    <div class="section-label">Key Insights</div>
+    <div class="insights">
+        <div class="insight">
+            <div class="insight-icon">🏆</div>
+            <div class="insight-title">Best Overall: MBLANet</div>
+            <div class="insight-desc">Achieves the highest test accuracy (0.9401) and macro F1 (0.9130) under light augmentation, demonstrating the power of attention mechanisms.</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">⚡</div>
+            <div class="insight-title">Fastest Training: ResNet50-SVM</div>
+            <div class="insight-desc">Completes training in under 1 minute by separating feature extraction from classification, at the cost of lower accuracy.</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">📉</div>
+            <div class="insight-title">Heavy Aug ≠ Better</div>
+            <div class="insight-desc">Most models show degraded test performance with heavy augmentation, suggesting over-regularization on this small dataset (4743 images).</div>
+        </div>
+        <div class="insight">
+            <div class="insight-icon">🎯</div>
+            <div class="insight-title">Fine-Tune > Freeze</div>
+            <div class="insight-desc">ResNet50-FineTune outperforms ResNet50-Frozen by ~8% F1, confirming that end-to-end adaptation is critical for domain-specific tasks.</div>
+        </div>
+    </div>
+
+    <!-- LIGHT AUGMENTATION TABLE -->
+    <div class="table-card">
+        <div class="table-title">Light Augmentation — Test Results</div>
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Test Acc</th>
+                    <th>Bal. Acc</th>
+                    <th>Macro F1</th>
+                    <th>Training Time</th>
+                    <th>GPU Peak</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="model-name"><a href="../cnn_scratch/" style="color:var(--accent)">ResNet18-Scratch</a></td>
+                    <td>0.8514</td><td>0.7953</td><td>0.7943</td><td>14.83 min</td><td>1093.79 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../cnn_pretrain_resnet50_finetune/" style="color:var(--accent)">ResNet50-FineTune</a></td>
+                    <td>0.9335</td><td>0.8824</td><td>0.8805</td><td>7.56 min</td><td>3851.60 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../mblanet/" style="color:var(--accent)">MBLANet</a></td>
+                    <td class="best">0.9401</td><td class="best">0.9135</td><td class="best">0.9130</td><td>17.31 min</td><td>6319.55 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../rsitmd_svm_feature_pytorch/" style="color:var(--accent)">ResNet50-SVM</a></td>
+                    <td>0.8492</td><td>0.7743</td><td>0.7767</td><td>0.92 min</td><td>426.79 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../rsmitsd_cnn_pytorch/" style="color:var(--accent)">ResNet50-Frozen</a></td>
+                    <td>0.8492</td><td>0.8012</td><td>0.7965</td><td>35.70 min</td><td>461.16 MB</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- HEAVY AUGMENTATION TABLE -->
+    <div class="table-card">
+        <div class="table-title">Heavy Augmentation — Test Results</div>
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Test Acc</th>
+                    <th>Bal. Acc</th>
+                    <th>Macro F1</th>
+                    <th>Training Time</th>
+                    <th>GPU Peak</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="model-name"><a href="../cnn_scratch/" style="color:var(--accent)">ResNet18-Scratch</a></td>
+                    <td>0.8337</td><td>0.7806</td><td>0.7821</td><td>14.14 min</td><td>—</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../cnn_pretrain_resnet50_finetune/" style="color:var(--accent)">ResNet50-FineTune</a></td>
+                    <td>0.9157</td><td>0.8914</td><td>0.8948</td><td>6.45 min</td><td>3851.60 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../mblanet/" style="color:var(--accent)">MBLANet</a></td>
+                    <td class="best">0.9401</td><td class="best">0.9135</td><td class="best">0.9061</td><td>30.77 min</td><td>6319.55 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../rsitmd_svm_feature_pytorch/" style="color:var(--accent)">ResNet50-SVM</a></td>
+                    <td>0.7583</td><td>0.6967</td><td>0.7048</td><td>0.96 min</td><td>426.79 MB</td>
+                </tr>
+                <tr>
+                    <td class="model-name"><a href="../rsmitsd_cnn_pytorch/" style="color:var(--accent)">ResNet50-Frozen</a></td>
+                    <td>0.7672</td><td>0.7515</td><td>0.7595</td><td>33.60 min</td><td>461.16 MB</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- VISUAL BAR CHART — LIGHT AUG MACRO F1 -->
+    <div class="section-label">Macro F1 — Light Augmentation</div>
+    <div class="table-card bar-section">
+        <div class="bar-group">
+            <div class="bar-label"><span>MBLANet</span><span>0.9130</span></div>
+            <div class="bar-track"><div class="bar-fill green" style="width:91.3%">🏆</div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-FineTune</span><span>0.8805</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:88.05%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-Frozen</span><span>0.7965</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:79.65%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet18-Scratch</span><span>0.7943</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:79.43%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-SVM</span><span>0.7767</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:77.67%"></div></div>
+        </div>
+    </div>
+
+    <!-- VISUAL BAR CHART — HEAVY AUG MACRO F1 -->
+    <div class="section-label">Macro F1 — Heavy Augmentation</div>
+    <div class="table-card bar-section">
+        <div class="bar-group">
+            <div class="bar-label"><span>MBLANet</span><span>0.9061</span></div>
+            <div class="bar-track"><div class="bar-fill green" style="width:90.61%">🏆</div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-FineTune</span><span>0.8948</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:89.48%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet18-Scratch</span><span>0.7821</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:78.21%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-Frozen</span><span>0.7595</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:75.95%"></div></div>
+        </div>
+        <div class="bar-group">
+            <div class="bar-label"><span>ResNet50-SVM</span><span>0.7048</span></div>
+            <div class="bar-track"><div class="bar-fill accent" style="width:70.48%"></div></div>
+        </div>
+    </div>
+
+    <!-- DELTA TABLE -->
+    <div class="table-card">
+        <div class="table-title">Augmentation Impact — Δ Macro F1 (Heavy − Light)</div>
+        <table class="tbl">
+            <thead>
+                <tr><th>Model</th><th>Light F1</th><th>Heavy F1</th><th>Δ F1</th><th>Verdict</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="model-name">ResNet18-Scratch</td><td>0.7943</td><td>0.7821</td><td style="color:#c0392b;font-weight:700">−0.0122</td><td>Slight drop</td></tr>
+                <tr><td class="model-name">ResNet50-FineTune</td><td>0.8805</td><td>0.8948</td><td style="color:var(--green);font-weight:700">+0.0143</td><td>Improved ✓</td></tr>
+                <tr><td class="model-name">MBLANet</td><td>0.9130</td><td>0.9061</td><td style="color:#c0392b;font-weight:700">−0.0069</td><td>Marginal drop</td></tr>
+                <tr><td class="model-name">ResNet50-SVM</td><td>0.7767</td><td>0.7048</td><td style="color:#c0392b;font-weight:700">−0.0719</td><td>Significant drop</td></tr>
+                <tr><td class="model-name">ResNet50-Frozen</td><td>0.7965</td><td>0.7595</td><td style="color:#c0392b;font-weight:700">−0.0370</td><td>Moderate drop</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+</main>
+<footer>Breakthrough · CO3135 P4AI-DS · HCMUT · 2025–2026</footer>
+</body>
+</html>
