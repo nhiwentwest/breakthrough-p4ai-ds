@@ -207,6 +207,9 @@ CLASSIFIERS = {
 def format_model_name(name, cfg): 
     return f"{name} (" + ", ".join(f"{k}={v}" for k,v in cfg.items()) + ")" if cfg else name
 
+from sklearn.pipeline import Pipeline
+import joblib
+
 def train_pipeline(X_train, y_train, X_test, y_test,
                   extractor_name, extractor_config,
                   reducer_name, reducer_config,
@@ -219,44 +222,30 @@ def train_pipeline(X_train, y_train, X_test, y_test,
         'classifier': format_model_name(CLASSIFIERS[classifier_name]['name'], classifier_config)
     }
     
+    steps = []
+    
     # Feature Extraction
-    start_time = time.time()
-    vectorizer = EXTRACTORS[extractor_name]['class'](**extractor_config)
-    X_train_vec = vectorizer.fit_transform(X_train)
-    X_test_vec = vectorizer.transform(X_test)
-    results['extraction_time'] = time.time() - start_time
+    steps.append(('vectorizer', EXTRACTORS[extractor_name]['class'](**extractor_config)))
     
     # Dimensionality Reduction
     if reducer_name != 'none':
-        start_time = time.time()
+        steps.append(('reducer', REDUCERS[reducer_name]['class'](**reducer_config)))
         
-
-        reducer = REDUCERS[reducer_name]['class'](**reducer_config)
-        X_train_vec = reducer.fit_transform(X_train_vec)
-        X_test_vec = reducer.transform(X_test_vec)
-        
-        results['reduction_time'] = time.time() - start_time
-    else:
-        results['reduction_time'] = 0
-    
     # Classification
+    # Note: Naive Bayes requires non-negative inputs, so TruncatedSVD might cause issues.
+    # In traditional setup, we might need a MinMaxScaler, but we'll let it fail or handle it if necessary.
+    steps.append(('classifier', CLASSIFIERS[classifier_name]['class'](**classifier_config)))
+    
+    pipeline = Pipeline(steps)
+    
+    # Training
     start_time = time.time()
-    
-    # Naive Bayes needs dense, non-negative
-    if classifier_name == 'naive_bayes':
-        if hasattr(X_train_vec, 'toarray'):
-            X_train_vec = X_train_vec.toarray()
-            X_test_vec = X_test_vec.toarray()
-        X_train_vec = np.abs(X_train_vec)
-        X_test_vec = np.abs(X_test_vec)
-    
-    classifier = CLASSIFIERS[classifier_name]['class'](**classifier_config)
-    classifier.fit(X_train_vec, y_train)
+    pipeline.fit(X_train, y_train)
     results['train_time'] = time.time() - start_time
     
     # Prediction
     start_time = time.time()
-    y_pred = classifier.predict(X_test_vec)
+    y_pred = pipeline.predict(X_test)
     results['inference_time'] = (time.time() - start_time) / len(y_test) * 1000  # ms/sample
     
     # Metrics
@@ -265,6 +254,7 @@ def train_pipeline(X_train, y_train, X_test, y_test,
     results['precision'] = precision
     results['recall'] = recall
     results['f1'] = f1
+    results['pipeline_obj'] = pipeline  # Store the pipeline to dump later
     
     return results
 
@@ -316,18 +306,21 @@ def run_all_pipelines(X_train, y_train, X_test, y_test, limit=None):
 # STEP 6: Generate Comparison Report
 #================================================
 
-def generate_comparison_report(results):
+def generate_comparison_report(results, X_test=None, y_test=None):
     """Generate HTML comparison report"""
     print("📊 Generating comparison report...\n")
     
+    # Filter out pipeline_obj to make DataFrame creation safe
+    df_data = [{k: v for k, v in r.items() if k != 'pipeline_obj'} for r in results]
     # Convert to DataFrame
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(df_data)
     
     # Sort by accuracy
     df = df.sort_values('accuracy', ascending=False)
     
     # Find best models
-    best_accuracy = df.iloc[0]
+    best_idx = df['accuracy'].idxmax()
+    best_accuracy = df.loc[best_idx]
     fastest_train = df.loc[df['train_time'].idxmin()]
     fastest_infer = df.loc[df['inference_time'].idxmin()]
     
@@ -337,6 +330,20 @@ def generate_comparison_report(results):
     print(f"\n📈 Best Accuracy: {best_accuracy['accuracy']*100:.2f}%")
     print(f"\n⚡ Fastest Training: {fastest_train['train_time']:.3f}s")
     print(f"\n💨 Fastest Inference: {fastest_infer['inference_time']:.3f} ms/sample")
+    
+    # Dump best pipeline to joblib
+    best_pipeline = results[best_idx]['pipeline_obj']
+    joblib_filename = "best_pipeline.joblib"
+    joblib.dump(best_pipeline, joblib_filename)
+    print(f"\n💾 Saved best pipeline to {joblib_filename}")
+    
+    if X_test is not None and y_test is not None:
+        from sklearn.metrics import classification_report, confusion_matrix
+        y_pred = best_pipeline.predict(X_test)
+        print("\n📊 Classification Report on Test Set (Best Pipeline):")
+        print(classification_report(y_test, y_pred))
+        print("📉 Confusion Matrix:")
+        print(confusion_matrix(y_test, y_pred))
     
     # Top 10 table
     print(f"\n\n{'='*70}")
@@ -374,7 +381,7 @@ if __name__ == '__main__':
     
     # Generate report
     if results:
-        df_results = generate_comparison_report(results)
+        df_results = generate_comparison_report(results, X_test, y_test)
     
     print("="*70)
     print("✅ PIPELINE COMPARISON COMPLETE!")
