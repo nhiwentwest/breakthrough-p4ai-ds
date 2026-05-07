@@ -32,7 +32,8 @@ class CFG:
     epochs: int = 50
     batch_size: int = 32
     num_workers: int = 4
-    lr: float = 0.01
+    lr: float = 1e-4
+    lr_new: float = 5e-4
     weight_decay: float = 1e-4
 
     early_stop_patience: int = 8
@@ -144,7 +145,7 @@ class CCAM(nn.Module):
         hidden = max(1, channels // reduction)
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
-        self.conv2x1 = nn.Conv2d(channels, channels, kernel_size=(2, 1), bias=False)
+        self.conv2x1 = nn.Conv2d(channels, channels, kernel_size=(2, 1), groups=channels, bias=False)
         self.mlp = nn.Sequential(
             nn.Conv2d(channels, hidden, kernel_size=1, bias=False),
             nn.ReLU(inplace=True),
@@ -193,11 +194,17 @@ class CLAM(nn.Module):
         super().__init__()
         self.ccam = CCAM(channels)
         self.lsam = LSAM(channels)
+        # ReZero gate: starts at 0 so CLAM acts as identity at init,
+        # preserving the pretrained residual balance.
+        self.gate = nn.Parameter(torch.zeros(1))
 
     def forward(self, x):
         mc = self.ccam(x)
         ms = self.lsam(x)
-        return (mc * ms) * x
+        attn = mc * ms                           # in (0, 1)
+        return x * (1.0 + self.gate * (attn - 1.0))
+        # gate=0 → output = x          (identity, pretrained preserved)
+        # gate→1 → output = attn * x   (full CLAM attention)
 
 class CLAMResBlock(nn.Module):
     def __init__(self, block):
@@ -472,7 +479,27 @@ def run_training(cfg: CFG):
         torch.cuda.reset_peak_memory_stats()
 
     criterion = nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
+
+    # Differential LR: backbone (pretrained) gets lower LR, CLAM + head (random init) gets higher LR
+    # Exclude bias and BatchNorm from weight decay (AdamW decoupled WD best practice)
+    backbone_decay, backbone_no_decay = [], []
+    new_decay, new_no_decay = [], []
+    for name, p in model.named_parameters():
+        if not p.requires_grad:
+            continue
+        is_new = ('clam' in name or 'fc' in name)
+        no_decay = ('bias' in name or 'bn' in name)
+        if is_new:
+            (new_no_decay if no_decay else new_decay).append(p)
+        else:
+            (backbone_no_decay if no_decay else backbone_decay).append(p)
+
+    optimizer = torch.optim.AdamW([
+        {'params': backbone_decay,    'lr': cfg.lr,     'weight_decay': cfg.weight_decay},
+        {'params': backbone_no_decay, 'lr': cfg.lr,     'weight_decay': 0.0},
+        {'params': new_decay,         'lr': cfg.lr_new, 'weight_decay': cfg.weight_decay},
+        {'params': new_no_decay,      'lr': cfg.lr_new, 'weight_decay': 0.0},
+    ])
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.epochs)
     scaler = torch.amp.GradScaler(device="cuda", enabled=(device.type == "cuda"))
 
@@ -582,13 +609,14 @@ def parse_args():
     p.add_argument("--data_dir", type=str, default="processed_rsitmd_256_clean")
     p.add_argument("--epochs", type=int, default=50)
     p.add_argument("--batch_size", type=int, default=32)
-    p.add_argument("--lr", type=float, default=0.01)
+    p.add_argument("--lr", type=float, default=1e-4)
+    p.add_argument("--lr_new", type=float, default=5e-4)
     args, _ = p.parse_known_args()
     return args
 
 def main():
     args = parse_args()
-    cfg = CFG(data_dir=args.data_dir, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr)
+    cfg = CFG(data_dir=args.data_dir, epochs=args.epochs, batch_size=args.batch_size, lr=args.lr, lr_new=args.lr_new)
     run_training(cfg)
 
 if __name__ == "__main__":
