@@ -141,7 +141,7 @@ def prepare_insurance_data(_df_hash, df: pd.DataFrame):
 
 
 @st.cache_data(show_spinner=False)
-def evaluate_model_on_insurance(_model_name, _model, _scaler, feature_columns, X_test, y_test):
+def evaluate_model_on_insurance(model_name, _model, _scaler, feature_columns, X_test, y_test):
     """Cached evaluation — only re-runs when the model changes."""
     X_test_scaled = _scaler.transform(X_test)
     preds = _model.predict(X_test_scaled)
